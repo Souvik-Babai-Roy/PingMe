@@ -1,0 +1,215 @@
+package com.pingme.android.utils;
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.preference.PreferenceManager;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+public class PreferenceUtils {
+    // Preference keys
+    private static final String PREF_THEME = "theme";
+    private static final String PREF_LAST_SEEN = "last_seen";
+    private static final String PREF_READ_RECEIPTS = "read_receipts";
+    private static final String PREF_PROFILE_PHOTO = "profile_photo";
+    private static final String PREF_ABOUT = "about";
+    private static final String PREF_MESSAGE_NOTIFS = "message_notifications";
+    private static final String PREF_GROUP_NOTIFS = "group_notifications";
+    private static final String PREF_STATUS_NOTIFS = "status_notifications";
+
+    // Default values
+    private static final boolean DEFAULT_LAST_SEEN = true;
+    private static final boolean DEFAULT_READ_RECEIPTS = true;
+    private static final boolean DEFAULT_PROFILE_PHOTO = true;
+    private static final boolean DEFAULT_ABOUT = true;
+    private static final boolean DEFAULT_MESSAGE_NOTIFS = true;
+    private static final boolean DEFAULT_GROUP_NOTIFS = true;
+    private static final boolean DEFAULT_STATUS_NOTIFS = false;
+
+    // 🔄 Apply selected theme (light, dark, auto)
+    public static void applyTheme(String themeValue) {
+        switch (themeValue) {
+            case "light":
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                break;
+            case "dark":
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                break;
+            case "auto":
+            default:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+                break;
+        }
+    }
+
+    // 🌗 Save theme selection
+    public static void setThemePreference(Context context, String themeValue) {
+        savePreference(context, PREF_THEME, themeValue);
+        updateFirestore("theme", themeValue);
+    }
+
+    // ⏳ Last Seen settings
+    public static void setLastSeenEnabled(Context context, boolean enabled) {
+        savePreference(context, PREF_LAST_SEEN, enabled);
+        updateFirestore("last_seen_enabled", enabled);
+    }
+
+    // ✅ Read Receipts
+    public static void setReadReceiptsEnabled(Context context, boolean enabled) {
+        savePreference(context, PREF_READ_RECEIPTS, enabled);
+        updateFirestore("read_receipts_enabled", enabled);
+    }
+
+    // 👤 Profile Photo visibility
+    public static void setProfilePhotoEnabled(Context context, boolean enabled) {
+        savePreference(context, PREF_PROFILE_PHOTO, enabled);
+        updateFirestore("profile_photo_enabled", enabled);
+    }
+
+    // ℹ️ About visibility
+    public static void setAboutEnabled(Context context, boolean enabled) {
+        savePreference(context, PREF_ABOUT, enabled);
+        updateFirestore("about_enabled", enabled);
+    }
+
+    // 🔔 Message notifications
+    public static void setMessageNotificationsEnabled(Context context, boolean enabled) {
+        savePreference(context, PREF_MESSAGE_NOTIFS, enabled);
+        // WhatsApp-like: Toggle notification channels
+    }
+
+    // 👥 Group notifications
+    public static void setGroupNotificationsEnabled(Context context, boolean enabled) {
+        savePreference(context, PREF_GROUP_NOTIFS, enabled);
+        // WhatsApp-like: Toggle notification channels
+    }
+
+    // 📢 Status notifications
+    public static void setStatusNotificationsEnabled(Context context, boolean enabled) {
+        savePreference(context, PREF_STATUS_NOTIFS, enabled);
+        // WhatsApp-like: Toggle notification channels
+    }
+
+    // 🔄 Generic save method
+    private static void savePreference(Context context, String key, Object value) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        if (value instanceof Boolean) {
+            editor.putBoolean(key, (Boolean) value);
+        } else if (value instanceof String) {
+            editor.putString(key, (String) value);
+        }
+        editor.apply();
+    }
+
+    // 🔥 Update Firestore with preference changes
+    private static void updateFirestore(String key, Object value) {
+        String userId = getCurrentUserId();
+        if (userId != null) {
+            FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(userId)
+                    .update(key, value);
+        }
+    }
+
+    // 🔄 Sync preferences from Firestore
+    public static void syncPreferencesFromFirestore(Context context) {
+        String userId = getCurrentUserId();
+        if (userId == null) return;
+
+        FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(userId)
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    if (snapshot.exists()) {
+                        updateLocalPreferences(context, snapshot);
+                    }
+                });
+    }
+
+    // 📥 Update local preferences from Firestore snapshot
+    private static void updateLocalPreferences(Context context, DocumentSnapshot snapshot) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        // Theme
+        if (snapshot.contains("theme")) {
+            editor.putString(PREF_THEME, snapshot.getString("theme"));
+        }
+
+        // Privacy settings
+        updateBooleanPref(editor, snapshot, "last_seen_enabled", PREF_LAST_SEEN, DEFAULT_LAST_SEEN);
+        updateBooleanPref(editor, snapshot, "read_receipts_enabled", PREF_READ_RECEIPTS, DEFAULT_READ_RECEIPTS);
+        updateBooleanPref(editor, snapshot, "profile_photo_enabled", PREF_PROFILE_PHOTO, DEFAULT_PROFILE_PHOTO);
+        updateBooleanPref(editor, snapshot, "about_enabled", PREF_ABOUT, DEFAULT_ABOUT);
+
+        editor.apply();
+
+        // Apply theme changes immediately
+        applyTheme(prefs.getString(PREF_THEME, "auto"));
+    }
+
+    // 🔧 Helper: Update boolean preference
+    private static void updateBooleanPref(SharedPreferences.Editor editor, DocumentSnapshot snapshot,
+                                          String firestoreKey, String prefKey, boolean defaultValue) {
+        if (snapshot.contains(firestoreKey)) {
+            editor.putBoolean(prefKey, snapshot.getBoolean(firestoreKey));
+        } else {
+            editor.putBoolean(prefKey, defaultValue);
+        }
+    }
+
+    // 🔐 Get current user's UID
+    private static String getCurrentUserId() {
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            return FirebaseAuth.getInstance().getCurrentUser().getUid();
+        }
+        return null;
+    }
+
+    // ===== GETTERS =====
+    public static String getThemePreference(Context context) {
+        return PreferenceManager.getDefaultSharedPreferences(context)
+                .getString(PREF_THEME, "auto");
+    }
+
+    public static boolean isLastSeenEnabled(Context context) {
+        return PreferenceManager.getDefaultSharedPreferences(context)
+                .getBoolean(PREF_LAST_SEEN, DEFAULT_LAST_SEEN);
+    }
+
+    public static boolean isReadReceiptsEnabled(Context context) {
+        return PreferenceManager.getDefaultSharedPreferences(context)
+                .getBoolean(PREF_READ_RECEIPTS, DEFAULT_READ_RECEIPTS);
+    }
+
+    public static boolean isProfilePhotoEnabled(Context context) {
+        return PreferenceManager.getDefaultSharedPreferences(context)
+                .getBoolean(PREF_PROFILE_PHOTO, DEFAULT_PROFILE_PHOTO);
+    }
+
+    public static boolean isAboutEnabled(Context context) {
+        return PreferenceManager.getDefaultSharedPreferences(context)
+                .getBoolean(PREF_ABOUT, DEFAULT_ABOUT);
+    }
+
+    public static boolean areMessageNotificationsEnabled(Context context) {
+        return PreferenceManager.getDefaultSharedPreferences(context)
+                .getBoolean(PREF_MESSAGE_NOTIFS, DEFAULT_MESSAGE_NOTIFS);
+    }
+
+    public static boolean areGroupNotificationsEnabled(Context context) {
+        return PreferenceManager.getDefaultSharedPreferences(context)
+                .getBoolean(PREF_GROUP_NOTIFS, DEFAULT_GROUP_NOTIFS);
+    }
+
+    public static boolean areStatusNotificationsEnabled(Context context) {
+        return PreferenceManager.getDefaultSharedPreferences(context)
+                .getBoolean(PREF_STATUS_NOTIFS, DEFAULT_STATUS_NOTIFS);
+    }
+}

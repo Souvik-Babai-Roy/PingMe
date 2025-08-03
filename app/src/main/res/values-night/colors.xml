@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#BB86FC</color> <!-- Lighter purple for dark mode -->
+    <color name="colorPrimaryDark">#3700B3</color>
+    <color name="colorAccent">#03DAC5</color>
+
+    <color name="background_color">#121212</color> <!-- Android recommended dark background -->
+    <color name="chat_background">#1E1E1E</color>  <!-- Slightly lighter for chat area -->
+    <color name="textColorPrimary">#FFFFFF</color>
+    <color name="textColorSecondary">#B3FFFFFF</color>
+    <color name="textColorTertiary">#80FFFFFF</color>
+
+    <color name="sender_bubble">#2E7D32</color> <!-- Darker green bubble -->
+    <color name="receiver_bubble">#2C2C2C</color> <!-- Dark bubble -->
+    <color name="error_red">#EF5350</color>
+    <color name="success_green">#66BB6A</color> <!-- Lighter success green for contrast -->
+    <color name="tab_selected">#FFFFFF</color>
+    <color name="tab_unselected">#80FFFFFF</color>
+
+    <!-- Added missing ones from light mode -->
+    <color name="notification_badge">#FF5252</color> <!-- Softer red for dark BG -->
+    <color name="message_delivered">#81C784</color> <!-- Adjusted green -->
+    <color name="message_read">#64B5F6</color> <!-- Lighter blue -->
+    <color name="message_sent">#B0BEC5</color> <!-- Light grey -->
+    <color name="white">#FFFFFFFF</color> <!-- Same as light mode -->
+    <color name="strokeColor">#33FFFFFF</color> <!-- Light stroke on dark BG -->
+    <color name="dividerColor">#1FFFFFFF</color> <!-- Subtle divider -->
+    <color name="whatsapp_green">#25D366</color> <!-- Keep consistent -->
+</resources>

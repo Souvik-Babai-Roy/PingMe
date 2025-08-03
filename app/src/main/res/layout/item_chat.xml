@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+        <import type="android.view.View"/>
+        <import type="com.pingme.android.models.Chat"/>
+        <variable
+            name="chat"
+            type="Chat" />
+    </data>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="?attr/selectableItemBackground">
+
+        <ImageView
+            android:id="@+id/ivProfile"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:src="@drawable/ic_profile"
+            app:imageUrl="@{chat.otherUser.imageUrl}"
+            app:placeholder="@{@drawable/ic_profile}"/>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@{chat.otherUser.name}"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="John Doe"/>
+
+            <TextView
+                android:id="@+id/tvLastMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@{chat.lastMessage}"
+                android:textSize="14sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="Hello there!"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <TextView
+                android:id="@+id/tvTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{chat.formattedTime}"
+                android:textSize="12sp"
+                android:textColor="@android:color/darker_gray"
+                tools:text="10:30 AM"/>
+
+            <TextView
+                android:id="@+id/tvUnreadCount"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:gravity="center"
+                android:text="@{String.valueOf(chat.unreadCount)}"
+                android:visibility="@{chat.unreadCount > 0 ? View.VISIBLE : View.GONE}"
+                android:background="@drawable/bg_unread_count"
+                android:textColor="@android:color/white"
+                android:layout_marginTop="4dp"
+                tools:text="5"/>
+        </LinearLayout>
+    </LinearLayout>
+</layout>

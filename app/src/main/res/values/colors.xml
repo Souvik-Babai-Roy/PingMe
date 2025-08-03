@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#6200EE</color>
+    <color name="colorPrimaryDark">#3700B3</color>
+    <color name="colorAccent">#03DAC5</color>
+
+    <color name="background_color">#FFFFFF</color>
+    <color name="chat_background">#F0F0F0</color>
+    <color name="textColorPrimary">#212121</color>
+    <color name="textColorSecondary">#757575</color>
+    <color name="textColorTertiary">#9E9E9E</color>
+
+    <color name="sender_bubble">#DCF8C6</color>
+    <color name="receiver_bubble">#FFFFFF</color>
+    <color name="error_red">#F44336</color>
+    <color name="success_green">#4CAF50</color>
+    <color name="tab_selected">#FFFFFF</color>
+    <color name="tab_unselected">#B3FFFFFF</color>
+
+    <color name="notification_badge">#FF0000</color>
+    <color name="message_delivered">#4CAF50</color>
+    <color name="message_read">#2196F3</color>
+    <color name="message_sent">#9E9E9E</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="strokeColor">#FFCCCCCC</color>
+    <color name="dividerColor">#1F000000</color>
+    <color name="whatsapp_green">#25D366</color>
+</resources>

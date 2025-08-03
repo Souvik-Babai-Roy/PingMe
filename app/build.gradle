@@ -1,0 +1,91 @@
+plugins {
+    alias(libs.plugins.android.application)
+    id 'com.google.gms.google-services'
+}
+
+android {
+    namespace 'com.pingme.android'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.pingme.android"
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+        multiDexEnabled true
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // Custom BuildConfig fields (REQUIRES buildConfig enabled)
+        buildConfigField "String", "CLOUDINARY_CLOUD_NAME", '"dadyflsjk"'
+        buildConfigField "String", "CLOUDINARY_API_KEY", '"755265372428877"'
+        buildConfigField "String", "CLOUDINARY_API_SECRET", '"y7b9DNq9J5RU3vIe8Az0CTAEMds"'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true // ✅ Add this line to fix the error
+        dataBinding true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+
+dependencies {
+    // Core Android
+    implementation libs.appcompat
+    implementation libs.material.v1110
+    implementation libs.constraintlayout
+    implementation libs.recyclerview
+    implementation libs.viewpager2
+    implementation libs.preference
+    implementation libs.multidex
+
+    // Fragment and Navigation
+    implementation libs.fragment
+    implementation libs.androidx.navigation.fragment
+    implementation libs.navigation.ui
+
+    // Lifecycle components
+    implementation libs.androidx.lifecycle.viewmodel
+    implementation libs.androidx.lifecycle.livedata
+
+    // Firebase
+    implementation platform(libs.firebase.bom)
+    implementation libs.firebase.auth
+    implementation libs.firebase.firestore
+    implementation libs.firebase.messaging
+
+    // Cloudinary
+    implementation libs.cloudinary.android
+
+    // Google Sign-In
+    implementation libs.play.services.auth
+    implementation libs.play.services.auth.v2100
+
+
+    // Image loading
+    implementation libs.glide
+    annotationProcessor libs.glide.compiler
+
+    // Permission handling
+    implementation libs.dexter
+
+    // Testing
+    testImplementation libs.junit
+    androidTestImplementation libs.androidx.junit.v115
+    androidTestImplementation libs.androidx.espresso.core.v351
+
+    implementation libs.circleimageview
+}
