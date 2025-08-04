@@ -65,7 +65,22 @@ public class ChatRepository {
                     .addValueEventListener(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
-                            // Filter out chats with blocked users
+                            List<String> chatIds = new ArrayList<>();
+
+                            for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
+                                Boolean isActive = chatSnapshot.getValue(Boolean.class);
+                                if (isActive != null && isActive) {
+                                    chatIds.add(chatSnapshot.getKey());
+                                }
+                            }
+
+                            if (chatIds.isEmpty()) {
+                                // Load friends as potential chats with no messages
+                                loadFriendsAsChats(chatsLiveData);
+                            } else {
+                                loadChatDetails(chatIds, chatsLiveData);
+                            }
+                        }
                         List<String> chatIds = new ArrayList<>();
 
                         for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
