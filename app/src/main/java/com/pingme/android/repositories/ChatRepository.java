@@ -33,7 +33,7 @@ public class ChatRepository {
         HashMap<String, Object> chatMap = new HashMap<>();
         chatMap.put("participants/" + currentUserId, true);
         chatMap.put("participants/" + friendId, true);
-        chatMap.put("createdAt", ServerValue.TIMESTAMP);
+        chatMap.put("createdAt", com.google.firebase.database.ServerValue.TIMESTAMP);
         
         chatsRef.updateChildren(chatMap).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
@@ -43,7 +43,9 @@ public class ChatRepository {
             }
         });
     }
-        
+
+    public LiveData<List<Chat>> loadChats() {
+        MutableLiveData<List<Chat>> chatsLiveData = new MutableLiveData<>();
         DatabaseReference userChatsRef = FirestoreUtil.getUserChatsRef(currentUserId);
         DatabaseReference blockedUsersRef = FirestoreUtil.getBlockedUsersRef(currentUserId);
 
