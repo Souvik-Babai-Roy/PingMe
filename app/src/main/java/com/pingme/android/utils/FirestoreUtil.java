@@ -18,12 +18,13 @@ public class FirestoreUtil {
     private static final String COLLECTION_PRESENCE = "presence";
     private static final String COLLECTION_FRIENDS = "friends";
 
-    // Realtime Database references for chats
+    // Realtime Database references
     private static final String RT_CHATS = "chats";
     private static final String RT_MESSAGES = "messages";
     private static final String RT_TYPING = "typing";
     private static final String RT_USER_CHATS = "user_chats";
     private static final String RT_BLOCKED_USERS = "blocked_users";
+    private static final String RT_USER_SETTINGS = "user_settings";
 
     // ===== FIRESTORE METHODS (for user data, settings, friends) =====
 

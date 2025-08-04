@@ -17,8 +17,10 @@ public class Chat extends BaseObservable {
     private User otherUser;
     private int unreadCount;
     private boolean blockedByCurrentUser;
+    private boolean isFriend;
     private String lastMessageType;
     private String chatImage;
+    private String lastMessageMediaUrl;
 
     public Chat() {
         this.otherUser = new User();
