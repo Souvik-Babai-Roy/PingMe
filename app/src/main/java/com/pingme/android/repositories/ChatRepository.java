@@ -52,10 +52,20 @@ public class ChatRepository {
         DatabaseReference blockedUsersRef = FirestoreUtil.getBlockedUsersRef(currentUserId);
 
         // Listen to user's chat list from Realtime Database
-        FirestoreUtil.getUserChatsRef(currentUserId)
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
+        // Get blocked users first to filter chats
+        FirestoreUtil.getBlockedUsersRef(currentUserId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot blockedSnapshot) {
+                List<String> blockedUserIds = new ArrayList<>();
+                for (DataSnapshot snapshot : blockedSnapshot.getChildren()) {
+                    blockedUserIds.add(snapshot.getKey());
+                }
+
+                FirestoreUtil.getUserChatsRef(currentUserId)
+                    .addValueEventListener(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            // Filter out chats with blocked users
                         List<String> chatIds = new ArrayList<>();
 
                         for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
@@ -307,6 +317,21 @@ public class ChatRepository {
                         counter.setValue(counter.getValue() + 1);
                     });
         }
+    }
+
+    // Block/Unblock functionality
+    public void blockUser(String userId) {
+        FirestoreUtil.getBlockedUsersRef(currentUserId).child(userId).setValue(true);
+        FirestoreUtil.getFriendsRef(currentUserId).document(userId).delete();
+    }
+
+    public void unblockUser(String userId) {
+        FirestoreUtil.getBlockedUsersRef(currentUserId).child(userId).removeValue();
+    }
+
+    public void unfriendUser(String userId) {
+        FirestoreUtil.getFriendsRef(currentUserId).document(userId).delete();
+        FirestoreUtil.getFriendsRef(userId).document(currentUserId).delete();
     }
 
     public interface PrivacyUpdateCallback {
