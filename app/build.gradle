@@ -66,6 +66,7 @@ dependencies {
     implementation libs.firebase.auth
     implementation libs.firebase.firestore
     implementation libs.firebase.messaging
+    implementation libs.firebase.database
 
     // Cloudinary
     implementation libs.cloudinary.android
@@ -77,6 +78,7 @@ dependencies {
 
     // Image loading
     implementation libs.glide
+    implementation libs.firebase.database
     annotationProcessor libs.glide.compiler
 
     // Permission handling

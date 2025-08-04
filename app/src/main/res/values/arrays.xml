@@ -6,5 +6,9 @@
         <item>Auto (System)</item>
     </string-array>
 
-
+    <string-array name="theme_values">
+        <item>light</item>
+        <item>dark</item>
+        <item>auto</item>
+    </string-array>
 </resources>

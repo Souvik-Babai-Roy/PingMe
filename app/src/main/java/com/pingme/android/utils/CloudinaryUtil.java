@@ -10,8 +10,8 @@ import com.cloudinary.android.MediaManager;
 import com.cloudinary.android.callback.ErrorInfo;
 import com.cloudinary.android.callback.UploadCallback;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -33,24 +33,18 @@ public class CloudinaryUtil {
             // Get bitmap from URI
             Bitmap bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), imageUri);
 
-            // Compress bitmap
-            Bitmap compressedBitmap = compressBitmap(bitmap, 80);
-
-            // Upload options
-            Map<String, Object> options = new HashMap<>();
-            options.put("folder", folder);
-            options.put("resource_type", "image");
-            options.put("format", "jpg");
-            options.put("transformation", "c_fill,w_300,h_300,q_auto");
+            // Compress bitmap to byte array
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, stream);
+            byte[] byteArray = stream.toByteArray();
 
             // Generate unique filename
-            String filename = "profile_" + System.currentTimeMillis();
+            String filename = "img_" + System.currentTimeMillis();
 
-            MediaManager.get().upload(compressedBitmap.getNinePatchChunk())
-                    .unsigned("pingme_upload_preset") // You need to create this preset in Cloudinary
+            // FIXED: Removed transformation parameter for unsigned upload
+            MediaManager.get().upload(byteArray)
+                    .unsigned("pingme_upload_preset")
                     .option("public_id", folder + "/" + filename)
-                    .option("resource_type", "image")
-                    .option("format", "jpg")
                     .callback(new UploadCallback() {
                         @Override
                         public void onStart(String requestId) {
@@ -59,20 +53,25 @@ public class CloudinaryUtil {
 
                         @Override
                         public void onProgress(String requestId, long bytes, long totalBytes) {
-                            Log.d(TAG, "Upload progress: " + bytes + "/" + totalBytes);
+                            double progress = (double) bytes / totalBytes * 100;
+                            Log.d(TAG, "Upload progress: " + String.format("%.1f%%", progress));
                         }
 
                         @Override
                         public void onSuccess(String requestId, Map resultData) {
                             Log.d(TAG, "Upload successful: " + resultData);
                             String imageUrl = (String) resultData.get("secure_url");
-                            future.complete(imageUrl);
+                            if (imageUrl != null) {
+                                future.complete(imageUrl);
+                            } else {
+                                future.completeExceptionally(new Exception("No URL returned from Cloudinary"));
+                            }
                         }
 
                         @Override
                         public void onError(String requestId, ErrorInfo error) {
                             Log.e(TAG, "Upload failed: " + error.getDescription());
-                            future.completeExceptionally(new Exception(error.getDescription()));
+                            future.completeExceptionally(new Exception("Upload failed: " + error.getDescription()));
                         }
 
                         @Override
@@ -82,6 +81,9 @@ public class CloudinaryUtil {
                     })
                     .dispatch();
 
+            // Clean up
+            stream.close();
+
         } catch (IOException e) {
             Log.e(TAG, "Error processing image", e);
             future.completeExceptionally(e);
@@ -90,27 +92,115 @@ public class CloudinaryUtil {
         return future;
     }
 
-    private Bitmap compressBitmap(Bitmap bitmap, int quality) {
-        // Resize if too large
-        int maxSize = 1024;
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-
-        if (width > maxSize || height > maxSize) {
-            float ratio = Math.min((float) maxSize / width, (float) maxSize / height);
-            int newWidth = Math.round(width * ratio);
-            int newHeight = Math.round(height * ratio);
-            bitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
-        }
-
-        return bitmap;
-    }
-
     public CompletableFuture<String> uploadStatusImage(Uri imageUri, Context context) {
         return uploadImage(imageUri, "status_images", context);
     }
 
     public CompletableFuture<String> uploadChatMedia(Uri mediaUri, String chatId, Context context) {
         return uploadImage(mediaUri, "chat_media/" + chatId, context);
+    }
+
+    public CompletableFuture<String> uploadAudio(Uri audioUri, String chatId, Context context) {
+        CompletableFuture<String> future = new CompletableFuture<>();
+
+        try {
+            String filename = "audio_" + System.currentTimeMillis();
+
+            MediaManager.get().upload(audioUri)
+                    .unsigned("pingme_upload_preset")
+                    .option("public_id", "chat_audio/" + chatId + "/" + filename)
+                    .callback(new UploadCallback() {
+                        @Override
+                        public void onStart(String requestId) {
+                            Log.d(TAG, "Audio upload started: " + requestId);
+                        }
+
+                        @Override
+                        public void onProgress(String requestId, long bytes, long totalBytes) {
+                            Log.d(TAG, "Audio upload progress: " + bytes + "/" + totalBytes);
+                        }
+
+                        @Override
+                        public void onSuccess(String requestId, Map resultData) {
+                            Log.d(TAG, "Audio upload successful: " + resultData);
+                            String audioUrl = (String) resultData.get("secure_url");
+                            if (audioUrl != null) {
+                                future.complete(audioUrl);
+                            } else {
+                                future.completeExceptionally(new Exception("No URL returned"));
+                            }
+                        }
+
+                        @Override
+                        public void onError(String requestId, ErrorInfo error) {
+                            Log.e(TAG, "Audio upload failed: " + error.getDescription());
+                            future.completeExceptionally(new Exception(error.getDescription()));
+                        }
+
+                        @Override
+                        public void onReschedule(String requestId, ErrorInfo error) {
+                            Log.w(TAG, "Audio upload rescheduled: " + error.getDescription());
+                        }
+                    })
+                    .dispatch();
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error uploading audio", e);
+            future.completeExceptionally(e);
+        }
+
+        return future;
+    }
+
+    public CompletableFuture<String> uploadVideo(Uri videoUri, String chatId, Context context) {
+        CompletableFuture<String> future = new CompletableFuture<>();
+
+        try {
+            String filename = "video_" + System.currentTimeMillis();
+
+            MediaManager.get().upload(videoUri)
+                    .unsigned("pingme_upload_preset")
+                    .option("public_id", "chat_video/" + chatId + "/" + filename)
+                    .callback(new UploadCallback() {
+                        @Override
+                        public void onStart(String requestId) {
+                            Log.d(TAG, "Video upload started: " + requestId);
+                        }
+
+                        @Override
+                        public void onProgress(String requestId, long bytes, long totalBytes) {
+                            Log.d(TAG, "Video upload progress: " + bytes + "/" + totalBytes);
+                        }
+
+                        @Override
+                        public void onSuccess(String requestId, Map resultData) {
+                            Log.d(TAG, "Video upload successful: " + resultData);
+                            String videoUrl = (String) resultData.get("secure_url");
+                            if (videoUrl != null) {
+                                future.complete(videoUrl);
+                            } else {
+                                future.completeExceptionally(new Exception("No URL returned"));
+                            }
+                        }
+
+                        @Override
+                        public void onError(String requestId, ErrorInfo error) {
+                            Log.e(TAG, "Video upload failed: " + error.getDescription());
+                            future.completeExceptionally(new Exception(error.getDescription()));
+                        }
+
+                        @Override
+                        public void onReschedule(String requestId, ErrorInfo error) {
+                            Log.w(TAG, "Video upload rescheduled: " + error.getDescription());
+                        }
+                    })
+                    .dispatch();
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error uploading video", e);
+            future.completeExceptionally(e);
+        }
+
+        return future;
     }
 }

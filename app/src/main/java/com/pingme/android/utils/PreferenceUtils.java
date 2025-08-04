@@ -1,5 +1,6 @@
 package com.pingme.android.utils;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import androidx.appcompat.app.AppCompatDelegate;
@@ -28,7 +29,7 @@ public class PreferenceUtils {
     private static final boolean DEFAULT_GROUP_NOTIFS = true;
     private static final boolean DEFAULT_STATUS_NOTIFS = false;
 
-    // 🔄 Apply selected theme (light, dark, auto)
+    // FIXED: Apply selected theme with immediate activity recreation
     public static void applyTheme(String themeValue) {
         switch (themeValue) {
             case "light":
@@ -44,10 +45,18 @@ public class PreferenceUtils {
         }
     }
 
-    // 🌗 Save theme selection
+    // FIXED: Save theme selection with immediate UI update
     public static void setThemePreference(Context context, String themeValue) {
         savePreference(context, PREF_THEME, themeValue);
         updateFirestore("theme", themeValue);
+
+        // Apply theme immediately
+        applyTheme(themeValue);
+
+        // FIXED: Recreate current activity to apply theme
+        if (context instanceof Activity) {
+            ((Activity) context).recreate();
+        }
     }
 
     // ⏳ Last Seen settings
@@ -112,11 +121,18 @@ public class PreferenceUtils {
             FirebaseFirestore.getInstance()
                     .collection("users")
                     .document(userId)
-                    .update(key, value);
+                    .update(key, value)
+                    .addOnFailureListener(e -> {
+                        // If update fails, try to set the field
+                        FirebaseFirestore.getInstance()
+                                .collection("user_preferences")
+                                .document(userId)
+                                .update(key, value);
+                    });
         }
     }
 
-    // 🔄 Sync preferences from Firestore
+    // FIXED: Sync preferences from Firestore with error handling
     public static void syncPreferencesFromFirestore(Context context) {
         String userId = getCurrentUserId();
         if (userId == null) return;
@@ -129,6 +145,18 @@ public class PreferenceUtils {
                     if (snapshot.exists()) {
                         updateLocalPreferences(context, snapshot);
                     }
+                })
+                .addOnFailureListener(e -> {
+                    // Try backup preferences collection
+                    FirebaseFirestore.getInstance()
+                            .collection("user_preferences")
+                            .document(userId)
+                            .get()
+                            .addOnSuccessListener(backupSnapshot -> {
+                                if (backupSnapshot.exists()) {
+                                    updateLocalPreferences(context, backupSnapshot);
+                                }
+                            });
                 });
     }
 
@@ -137,9 +165,21 @@ public class PreferenceUtils {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = prefs.edit();
 
-        // Theme
+        // Theme - FIXED: Apply immediately if changed
+        String currentTheme = prefs.getString(PREF_THEME, "auto");
         if (snapshot.contains("theme")) {
-            editor.putString(PREF_THEME, snapshot.getString("theme"));
+            String newTheme = snapshot.getString("theme");
+            if (newTheme != null && !newTheme.equals(currentTheme)) {
+                editor.putString(PREF_THEME, newTheme);
+                editor.apply(); // Apply immediately
+                applyTheme(newTheme);
+
+                // Recreate activity if context is Activity
+                if (context instanceof Activity) {
+                    ((Activity) context).recreate();
+                }
+                return; // Exit early to avoid double apply
+            }
         }
 
         // Privacy settings
@@ -149,9 +189,6 @@ public class PreferenceUtils {
         updateBooleanPref(editor, snapshot, "about_enabled", PREF_ABOUT, DEFAULT_ABOUT);
 
         editor.apply();
-
-        // Apply theme changes immediately
-        applyTheme(prefs.getString(PREF_THEME, "auto"));
     }
 
     // 🔧 Helper: Update boolean preference

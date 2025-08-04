@@ -5,62 +5,133 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
-        
-        <!-- Background colors -->
+        <item name="colorOnPrimary">@android:color/white</item>
+
+        <!-- Surface -->
+        <item name="colorSurface">@color/surface_color</item>
+        <item name="colorOnSurface">@color/textColorPrimary</item>
+
+        <!-- Background -->
         <item name="android:windowBackground">@color/background_color</item>
-        
-        <!-- Text colors -->
+        <item name="colorBackground">@color/background_color</item>
+        <item name="colorOnBackground">@color/textColorPrimary</item>
+
+        <!-- Text -->
         <item name="android:textColorPrimary">@color/textColorPrimary</item>
         <item name="android:textColorSecondary">@color/textColorSecondary</item>
-        
+
         <!-- Status bar -->
         <item name="android:statusBarColor">@color/colorPrimaryDark</item>
         <item name="android:windowLightStatusBar">false</item>
+
+        <!-- Navigation bar -->
+        <item name="android:navigationBarColor">@color/background_color</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 
     <style name="Theme.PingMe" parent="Base.Theme.PingMe" />
-    
+
     <!-- Tab Text Style -->
     <style name="TabTextStyle" parent="TextAppearance.Design.Tab">
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="textAllCaps">true</item>
+        <item name="textAllCaps">false</item>
+        <item name="android:letterSpacing">0.02</item>
     </style>
-    
+
     <!-- Splash Theme -->
     <style name="SplashTheme" parent="Theme.PingMe">
         <item name="android:windowBackground">@drawable/splash_background</item>
         <item name="android:windowNoTitle">true</item>
-        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@color/colorPrimary</item>
     </style>
-    
+
     <!-- Chat Theme -->
     <style name="ChatTheme" parent="Theme.PingMe">
         <item name="android:windowBackground">@color/chat_background</item>
     </style>
-    
-    <!-- Custom Button Styles -->
+
+    <!-- Primary Button -->
     <style name="PrimaryButton" parent="Widget.MaterialComponents.Button">
-        <item name="backgroundTint">@color/colorPrimary</item>
+        <item name="backgroundTint">@color/soft_lavender</item>
         <item name="android:textColor">@android:color/white</item>
         <item name="cornerRadius">12dp</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:textStyle">bold</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="elevation">2dp</item>
     </style>
-    
+
+    <!-- Secondary Button -->
     <style name="SecondaryButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
         <item name="strokeColor">@color/colorPrimary</item>
         <item name="android:textColor">@color/colorPrimary</item>
         <item name="cornerRadius">12dp</item>
         <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">16sp</item>
+        <item name="strokeWidth">2dp</item>
     </style>
-    
-    <!-- Input Field Styles -->
+
+    <!-- Input Field Style -->
     <style name="InputFieldStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-        <item name="boxStrokeColor">@color/colorPrimary</item>
+        <item name="boxStrokeColor">@color/input_stroke_color</item>
         <item name="boxCornerRadiusTopStart">12dp</item>
         <item name="boxCornerRadiusTopEnd">12dp</item>
         <item name="boxCornerRadiusBottomStart">12dp</item>
         <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="hintTextColor">@color/textColorSecondary</item>
+        <item name="android:textColorHint">@color/textColorSecondary</item>
+    </style>
+
+    <!-- Toolbar -->
+    <style name="ToolbarStyle" parent="Widget.MaterialComponents.Toolbar.Primary">
+        <item name="android:background">@color/colorPrimary</item>
+        <item name="titleTextColor">@android:color/white</item>
+        <item name="subtitleTextColor">@color/white_70</item>
+        <item name="navigationIconTint">@android:color/white</item>
+    </style>
+
+    <!-- Card -->
+    <style name="CardStyle" parent="Widget.MaterialComponents.CardView">
+        <item name="cardCornerRadius">12dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="cardBackgroundColor">@color/surface_color</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+    <!-- FAB -->
+    <style name="FabStyle" parent="Widget.MaterialComponents.FloatingActionButton">
+        <item name="backgroundTint">@color/soft_lavender</item>
+        <item name="tint">@android:color/white</item>
+        <item name="elevation">6dp</item>
+        <item name="pressedTranslationZ">8dp</item>
+    </style>
+
+    <!-- Bottom Sheet -->
+    <style name="BottomSheetStyle" parent="Widget.MaterialComponents.BottomSheet">
+        <item name="shapeAppearanceOverlay">@style/BottomSheetShapeAppearance</item>
+        <item name="android:background">@color/surface_color</item>
+    </style>
+
+    <style name="BottomSheetShapeAppearance">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
+    </style>
+
+    <!-- Dialog -->
+    <style name="DialogStyle" parent="ThemeOverlay.Material3.Dialog">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorSurface">@color/surface_color</item>
+        <item name="android:windowBackground">@drawable/bg_dialog</item>
+    </style>
+
+    <!-- Progress Bar -->
+    <style name="ProgressBarStyle" parent="Widget.MaterialComponents.CircularProgressIndicator">
+        <item name="indicatorColor">@color/colorPrimary</item>
+        <item name="trackColor">@color/stroke_light</item>
     </style>
 </resources>

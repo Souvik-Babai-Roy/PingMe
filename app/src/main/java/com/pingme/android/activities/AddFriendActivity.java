@@ -7,6 +7,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.pingme.android.R;
 import com.pingme.android.databinding.ActivityAddFriendBinding;
 import com.pingme.android.models.User;
@@ -77,6 +78,7 @@ public class AddFriendActivity extends AppCompatActivity {
                         foundUser = doc.toObject(User.class);
 
                         if (foundUser != null) {
+                            foundUser.setId(doc.getId());
                             displayFoundUser(foundUser);
                             checkFriendshipStatus(foundUser.getId());
                         }
@@ -94,13 +96,20 @@ public class AddFriendActivity extends AppCompatActivity {
         binding.layoutUserFound.setVisibility(View.VISIBLE);
         binding.tvUserName.setText(user.getName());
         binding.tvUserEmail.setText(user.getEmail());
-        binding.tvUserAbout.setText(user.getAbout());
 
-        // Load profile image
-        if (user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
+        // Show about only if user allows it in privacy settings
+        if (user.isAboutEnabled()) {
+            binding.tvUserAbout.setVisibility(View.VISIBLE);
+            binding.tvUserAbout.setText(user.getAbout());
+        } else {
+            binding.tvUserAbout.setVisibility(View.GONE);
+        }
+
+        // Load profile image only if user allows it in privacy settings
+        if (user.isProfilePhotoEnabled() && user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
             Glide.with(this)
                     .load(user.getImageUrl())
-                    .circleCrop()
+                    .transform(new CircleCrop())
                     .placeholder(R.drawable.ic_profile)
                     .into(binding.ivUserProfile);
         } else {
@@ -117,11 +126,20 @@ public class AddFriendActivity extends AppCompatActivity {
                         // Already friends
                         binding.btnAddFriend.setText("Already Friends");
                         binding.btnAddFriend.setEnabled(false);
+                        binding.btnAddFriend.setBackgroundTintList(
+                                getColorStateList(android.R.color.darker_gray));
                     } else {
                         // Not friends
                         binding.btnAddFriend.setText("Add Friend");
                         binding.btnAddFriend.setEnabled(true);
+                        binding.btnAddFriend.setBackgroundTintList(
+                                getColorStateList(R.color.colorPrimary));
                     }
+                })
+                .addOnFailureListener(e -> {
+                    // Default to allowing add if check fails
+                    binding.btnAddFriend.setText("Add Friend");
+                    binding.btnAddFriend.setEnabled(true);
                 });
     }
 
@@ -141,19 +159,33 @@ public class AddFriendActivity extends AppCompatActivity {
                             .addOnSuccessListener(documentSnapshot -> {
                                 User currentUser = documentSnapshot.toObject(User.class);
                                 if (currentUser != null) {
+                                    currentUser.setId(documentSnapshot.getId());
+
                                     FirestoreUtil.getFriendsRef(foundUser.getId())
                                             .document(currentUserId)
                                             .set(currentUser)
                                             .addOnSuccessListener(aVoid1 -> {
+                                                // Create chat between users in Realtime Database
+                                                createChatBetweenUsers(currentUser, foundUser);
+
                                                 showLoading(false);
                                                 Toast.makeText(this, "Friend added successfully!", Toast.LENGTH_SHORT).show();
                                                 binding.btnAddFriend.setText("Added");
                                                 binding.btnAddFriend.setEnabled(false);
-
-                                                // Create chat between users
-                                                createChatBetweenUsers(currentUser, foundUser);
+                                                binding.btnAddFriend.setBackgroundTintList(
+                                                        getColorStateList(android.R.color.darker_gray));
+                                            })
+                                            .addOnFailureListener(e -> {
+                                                showLoading(false);
+                                                Toast.makeText(this, "Failed to complete friend request: " + e.getMessage(),
+                                                        Toast.LENGTH_SHORT).show();
                                             });
                                 }
+                            })
+                            .addOnFailureListener(e -> {
+                                showLoading(false);
+                                Toast.makeText(this, "Failed to get current user: " + e.getMessage(),
+                                        Toast.LENGTH_SHORT).show();
                             });
                 })
                 .addOnFailureListener(e -> {
@@ -165,15 +197,10 @@ public class AddFriendActivity extends AppCompatActivity {
     private void createChatBetweenUsers(User currentUser, User otherUser) {
         String chatId = FirestoreUtil.generateChatId(currentUser.getId(), otherUser.getId());
 
-        // Create chat document
-        FirestoreUtil.getChatRef(chatId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (!documentSnapshot.exists()) {
-                        // Chat doesn't exist, create it
-                        FirestoreUtil.createNewChat(chatId, currentUser.getId(), otherUser.getId());
-                    }
-                });
+        // Create chat in Realtime Database (this will automatically make it available in chat list)
+        FirestoreUtil.createNewChatInRealtime(chatId, currentUser.getId(), otherUser.getId());
+
+        Toast.makeText(this, "Chat created! You can now message " + otherUser.getName(), Toast.LENGTH_SHORT).show();
     }
 
     private void showUserNotFound() {
@@ -184,7 +211,8 @@ public class AddFriendActivity extends AppCompatActivity {
     private void showLoading(boolean show) {
         binding.progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
         binding.btnSearch.setEnabled(!show);
-        if (binding.btnAddFriend.isEnabled()) {
+
+        if (foundUser != null && binding.btnAddFriend.isEnabled()) {
             binding.btnAddFriend.setEnabled(!show);
         }
     }

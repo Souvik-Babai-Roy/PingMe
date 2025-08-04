@@ -5,18 +5,23 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="@color/background_color"
     tools:context=".activities.AddFriendActivity">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        app:elevation="4dp">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
+            android:background="@color/colorPrimary"
+            app:title="Add Friend"
+            app:titleTextColor="@android:color/white"
+            app:navigationIcon="@drawable/ic_arrow_back"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
     </com.google.android.material.appbar.AppBarLayout>
@@ -37,44 +42,60 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp">
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Search for friends by email"
-                        android:textSize="16sp"
+                        android:text="Find friends by email"
+                        android:textSize="18sp"
                         android:textStyle="bold"
-                        android:layout_marginBottom="16dp" />
+                        android:textColor="@color/textColorPrimary"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Enter the email address of the person you want to add"
+                        android:textSize="14sp"
+                        android:textColor="@color/textColorSecondary"
+                        android:layout_marginBottom="20dp" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
-                        android:hint="Enter email address"
-                        app:startIconDrawable="@drawable/ic_email">
+                        android:hint="Email address"
+                        style="@style/InputFieldStyle"
+                        app:startIconDrawable="@drawable/ic_email"
+                        app:startIconTint="@color/colorPrimary">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etEmail"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textEmailAddress" />
+                            android:inputType="textEmailAddress"
+                            android:textSize="16sp" />
 
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnSearch"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="56dp"
                         android:text="Search"
-                        app:icon="@drawable/ic_search" />
+                        android:textSize="16sp"
+                        style="@style/PrimaryButton"
+                        app:icon="@drawable/ic_search"
+                        app:iconGravity="textStart" />
 
                 </LinearLayout>
 
@@ -87,14 +108,15 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:visibility="gone"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -102,13 +124,30 @@
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
 
-                        <de.hdodenhof.circleimageview.CircleImageView
-                            android:id="@+id/ivUserProfile"
-                            android:layout_width="64dp"
-                            android:layout_height="64dp"
-                            android:src="@drawable/ic_profile"
-                            app:civ_border_width="2dp"
-                            app:civ_border_color="@color/colorPrimary" />
+                        <FrameLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content">
+
+                            <de.hdodenhof.circleimageview.CircleImageView
+                                android:id="@+id/ivUserProfile"
+                                android:layout_width="72dp"
+                                android:layout_height="72dp"
+                                android:src="@drawable/defaultprofile"
+                                app:civ_border_width="2dp"
+                                app:civ_border_color="@color/stroke_light" />
+
+                            <!-- Online Status Indicator -->
+                            <View
+                                android:id="@+id/onlineIndicator"
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:layout_gravity="bottom|end"
+                                android:layout_marginEnd="4dp"
+                                android:layout_marginBottom="4dp"
+                                android:background="@drawable/online_indicator"
+                                android:visibility="gone" />
+
+                        </FrameLayout>
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -123,7 +162,8 @@
                                 android:layout_height="wrap_content"
                                 android:text="User Name"
                                 android:textSize="18sp"
-                                android:textStyle="bold" />
+                                android:textStyle="bold"
+                                android:textColor="@color/textColorPrimary" />
 
                             <TextView
                                 android:id="@+id/tvUserEmail"
@@ -131,7 +171,8 @@
                                 android:layout_height="wrap_content"
                                 android:text="user@example.com"
                                 android:textSize="14sp"
-                                android:textColor="@android:color/darker_gray" />
+                                android:textColor="@color/textColorSecondary"
+                                android:layout_marginTop="2dp" />
 
                             <TextView
                                 android:id="@+id/tvUserAbout"
@@ -139,7 +180,21 @@
                                 android:layout_height="wrap_content"
                                 android:text="About"
                                 android:textSize="14sp"
-                                android:layout_marginTop="4dp" />
+                                android:textColor="@color/textColorTertiary"
+                                android:layout_marginTop="4dp"
+                                android:maxLines="2"
+                                android:ellipsize="end" />
+
+                            <!-- Online Status Text -->
+                            <TextView
+                                android:id="@+id/tvOnlineStatus"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="online"
+                                android:textSize="12sp"
+                                android:textColor="@color/soft_lavender"
+                                android:layout_marginTop="2dp"
+                                android:visibility="gone" />
 
                         </LinearLayout>
 
@@ -148,10 +203,60 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnAddFriend"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="20dp"
                         android:text="Add Friend"
-                        app:icon="@drawable/ic_baseline_person_24" />
+                        android:textSize="16sp"
+                        style="@style/PrimaryButton"
+                        app:icon="@drawable/ic_baseline_person_24"
+                        app:iconGravity="textStart" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- No User Found Section -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/layoutNoUserFound"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/error_red">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:gravity="center">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_baseline_person_24"
+                        app:tint="@color/textColorSecondary"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No user found"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/textColorPrimary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Check the email address and try again"
+                        android:textSize="14sp"
+                        android:textColor="@color/textColorSecondary"
+                        android:gravity="center" />
 
                 </LinearLayout>
 
@@ -163,7 +268,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:visibility="gone" />
+                android:visibility="gone"
+                android:indeterminateTint="@color/colorPrimary" />
 
         </LinearLayout>
 

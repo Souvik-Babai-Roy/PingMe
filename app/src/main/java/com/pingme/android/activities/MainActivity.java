@@ -5,6 +5,8 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.pingme.android.R;
@@ -24,6 +26,23 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private String currentUserId;
 
+    // FIXED: Add result launcher for settings/profile activities
+    private final ActivityResultLauncher<Intent> settingsLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        // Handle result from settings - theme might have changed
+                        recreateIfNeeded();
+                    });
+
+    private final ActivityResultLauncher<Intent> profileLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == RESULT_OK) {
+                            // Profile updated - refresh if needed
+                            recreateIfNeeded();
+                        }
+                    });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,13 +52,26 @@ public class MainActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         currentUserId = mAuth.getCurrentUser().getUid();
 
+        // FIXED: Apply theme and sync preferences before setting up UI
+        applyCurrentTheme();
+        syncUserPreferences();
+
         setupToolbar();
         setupViewPager();
         setupFAB();
         updateUserPresence();
         updateFCMToken();
+    }
 
-        PreferenceUtils.applyTheme(PreferenceUtils.getThemePreference(this));
+    // FIXED: Apply current theme
+    private void applyCurrentTheme() {
+        String savedTheme = PreferenceUtils.getThemePreference(this);
+        PreferenceUtils.applyTheme(savedTheme);
+    }
+
+    // FIXED: Sync user preferences from Firestore
+    private void syncUserPreferences() {
+        PreferenceUtils.syncPreferencesFromFirestore(this);
     }
 
     private void setupToolbar() {
@@ -115,10 +147,14 @@ public class MainActivity extends AppCompatActivity {
         int itemId = item.getItemId();
 
         if (itemId == R.id.menu_account) {
-            startActivity(new Intent(this, EditProfileActivity.class));
+            // FIXED: Use result launcher instead of direct startActivity
+            Intent intent = new Intent(this, EditProfileActivity.class);
+            profileLauncher.launch(intent);
             return true;
         } else if (itemId == R.id.menu_settings) {
-            startActivity(new Intent(this, SettingsActivity.class));
+            // FIXED: Use result launcher for settings
+            Intent intent = new Intent(this, SettingsActivity.class);
+            settingsLauncher.launch(intent);
             return true;
         } else if (itemId == R.id.menu_logout) {
             logout();
@@ -159,10 +195,20 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+    // FIXED: Helper method to recreate activity if theme changed
+    private void recreateIfNeeded() {
+        // This will be called when returning from settings
+        // The PreferenceUtils will handle recreation if theme changed
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
         updateUserPresence();
+
+        // FIXED: Recheck theme in case it was changed in settings
+        String currentTheme = PreferenceUtils.getThemePreference(this);
+        PreferenceUtils.applyTheme(currentTheme);
     }
 
     @Override

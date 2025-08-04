@@ -1,9 +1,12 @@
 package com.pingme.android.activities;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -16,12 +19,16 @@ import com.google.android.gms.auth.api.identity.Identity;
 import com.google.android.gms.auth.api.identity.SignInClient;
 import com.google.android.gms.auth.api.identity.SignInCredential;
 import com.google.android.gms.common.api.ApiException;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.pingme.android.R;
 import com.pingme.android.databinding.ActivityAuthBinding;
 import com.pingme.android.utils.FirestoreUtil;
+
+import android.widget.ProgressBar;
 
 public class AuthActivity extends AppCompatActivity {
 
@@ -85,6 +92,9 @@ public class AuthActivity extends AppCompatActivity {
             isLoginMode = !isLoginMode;
             updateUI();
         });
+
+        // Add forgot password click listener
+        binding.tvForgotPassword.setOnClickListener(v -> showForgotPasswordDialog());
     }
 
     private void updateUI() {
@@ -92,24 +102,29 @@ public class AuthActivity extends AppCompatActivity {
             binding.btnEmailAction.setText(R.string.login);
             binding.tvSwitchMode.setText(R.string.switch_to_signup);
             binding.tvTitle.setText(R.string.welcome_back);
+            binding.tvForgotPassword.setVisibility(View.VISIBLE);
         } else {
             binding.btnEmailAction.setText(R.string.sign_up);
             binding.tvSwitchMode.setText(R.string.switch_to_login);
             binding.tvTitle.setText(R.string.create_account);
+            binding.tvForgotPassword.setVisibility(View.GONE);
         }
     }
 
     private void signInWithGoogle() {
+        showProgress(true);
         oneTapClient.beginSignIn(signInRequest)
                 .addOnSuccessListener(this, result -> {
                     try {
                         IntentSenderRequest intentSenderRequest = new IntentSenderRequest.Builder(result.getPendingIntent().getIntentSender()).build();
                         googleSignInLauncher.launch(intentSenderRequest);
                     } catch (Exception e) {
+                        showProgress(false);
                         Toast.makeText(this, "Couldn't launch sign-in: " + e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(e -> {
+                    showProgress(false);
                     Toast.makeText(this, "Sign-in failed: " + e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
@@ -118,6 +133,7 @@ public class AuthActivity extends AppCompatActivity {
         AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
         mAuth.signInWithCredential(credential)
                 .addOnCompleteListener(this, task -> {
+                    showProgress(false);
                     if (task.isSuccessful()) {
                         checkUserProfile();
                     } else {
@@ -135,12 +151,23 @@ public class AuthActivity extends AppCompatActivity {
             return;
         }
 
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            Toast.makeText(this, "Please enter a valid email address", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        showProgress(true);
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
+                    showProgress(false);
                     if (task.isSuccessful()) {
                         checkUserProfile();
                     } else {
-                        Toast.makeText(AuthActivity.this, "Authentication failed", Toast.LENGTH_SHORT).show();
+                        String errorMessage = "Authentication failed";
+                        if (task.getException() != null) {
+                            errorMessage = task.getException().getMessage();
+                        }
+                        Toast.makeText(AuthActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -154,18 +181,29 @@ public class AuthActivity extends AppCompatActivity {
             return;
         }
 
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            Toast.makeText(this, "Please enter a valid email address", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         if (password.length() < 6) {
             Toast.makeText(this, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        showProgress(true);
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
+                    showProgress(false);
                     if (task.isSuccessful()) {
                         startActivity(new Intent(AuthActivity.this, SetupProfileActivity.class));
                         finish();
                     } else {
-                        Toast.makeText(AuthActivity.this, "Registration failed", Toast.LENGTH_SHORT).show();
+                        String errorMessage = "Registration failed";
+                        if (task.getException() != null) {
+                            errorMessage = task.getException().getMessage();
+                        }
+                        Toast.makeText(AuthActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -186,5 +224,96 @@ public class AuthActivity extends AppCompatActivity {
                 finish();
             }
         });
+    }
+
+    private void showForgotPasswordDialog() {
+        // Inflate the forgot password layout
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.forgot_password, null);
+
+        TextInputEditText etResetEmail = dialogView.findViewById(R.id.etResetEmail);
+        MaterialButton btnCancel = dialogView.findViewById(R.id.btnCancel);
+        MaterialButton btnSendReset = dialogView.findViewById(R.id.btnSendReset);
+        ProgressBar progressBar = dialogView.findViewById(R.id.progressBar);
+
+        // Pre-fill email if available
+        String currentEmail = binding.etEmail.getText().toString().trim();
+        if (!currentEmail.isEmpty()) {
+            etResetEmail.setText(currentEmail);
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnSendReset.setOnClickListener(v -> {
+            String email = etResetEmail.getText().toString().trim();
+
+            if (email.isEmpty()) {
+                Toast.makeText(this, "Please enter your email address", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                Toast.makeText(this, "Please enter a valid email address", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Show progress
+            progressBar.setVisibility(View.VISIBLE);
+            btnSendReset.setEnabled(false);
+            btnCancel.setEnabled(false);
+
+            // Send password reset email
+            mAuth.sendPasswordResetEmail(email)
+                    .addOnCompleteListener(task -> {
+                        // Hide progress
+                        progressBar.setVisibility(View.GONE);
+                        btnSendReset.setEnabled(true);
+                        btnCancel.setEnabled(true);
+
+                        if (task.isSuccessful()) {
+                            Toast.makeText(this, "Password reset email sent successfully. Please check your inbox.", Toast.LENGTH_LONG).show();
+                            dialog.dismiss();
+                        } else {
+                            String errorMessage = "Failed to send password reset email";
+                            if (task.getException() != null) {
+                                String exceptionMessage = task.getException().getMessage();
+                                if (exceptionMessage != null) {
+                                    if (exceptionMessage.contains("user-not-found")) {
+                                        errorMessage = "No account found with this email address";
+                                    } else if (exceptionMessage.contains("invalid-email")) {
+                                        errorMessage = "Invalid email address";
+                                    } else if (exceptionMessage.contains("too-many-requests")) {
+                                        errorMessage = "Too many requests. Please try again later";
+                                    } else {
+                                        errorMessage = exceptionMessage;
+                                    }
+                                }
+                            }
+                            Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
+                        }
+                    });
+        });
+
+        dialog.show();
+    }
+
+    private void showProgress(boolean show) {
+        if (show) {
+            binding.progressBar.setVisibility(View.VISIBLE);
+            binding.btnEmailAction.setEnabled(false);
+            binding.btnGoogle.setEnabled(false);
+            binding.tvSwitchMode.setEnabled(false);
+            binding.tvForgotPassword.setEnabled(false);
+        } else {
+            binding.progressBar.setVisibility(View.GONE);
+            binding.btnEmailAction.setEnabled(true);
+            binding.btnGoogle.setEnabled(true);
+            binding.tvSwitchMode.setEnabled(true);
+            binding.tvForgotPassword.setEnabled(true);
+        }
     }
 }

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="horizontal"
+    android:gravity="center"
+    android:padding="16dp">
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="1dp"
+        app:cardBackgroundColor="@color/date_header_background"
+        app:strokeWidth="0dp">
+
+        <TextView
+            android:id="@+id/tvDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Today"
+            android:textColor="@color/textColorSecondary"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="6dp"
+            android:letterSpacing="0.05" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+</LinearLayout>
