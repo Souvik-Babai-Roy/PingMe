@@ -83,6 +83,8 @@ public class ChatRepository {
                         }
                     }
 
+                    });
+
                     @Override
                     public void onCancelled(DatabaseError databaseError) {
                         chatsLiveData.setValue(Collections.emptyList());
