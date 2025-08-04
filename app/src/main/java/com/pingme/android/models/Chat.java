@@ -16,6 +16,9 @@ public class Chat extends BaseObservable {
     private String lastMessageSenderId;
     private User otherUser;
     private int unreadCount;
+    private boolean blockedByCurrentUser;
+    private String lastMessageType;
+    private String chatImage;
 
     public Chat() {
         this.otherUser = new User();
@@ -45,6 +48,15 @@ public class Chat extends BaseObservable {
 
     @Bindable
     public User getOtherUser() { return otherUser != null ? otherUser : new User(); }
+    
+    @Bindable
+    public boolean getBlockedByCurrentUser() { return blockedByCurrentUser; }
+    
+    @Bindable
+    public String getLastMessageType() { return lastMessageType; }
+    
+    @Bindable
+    public String getChatImage() { return chatImage; }
 
     @Bindable
     public int getUnreadCount() { return unreadCount; }

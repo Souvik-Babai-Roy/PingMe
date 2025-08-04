@@ -26,8 +26,26 @@ public class ChatRepository {
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
     }
 
-    public LiveData<List<Chat>> loadChats() {
-        MutableLiveData<List<Chat>> chatsLiveData = new MutableLiveData<>();
+    public void createNewEmptyChat(String friendId) {
+        DatabaseReference chatsRef = FirestoreUtil.getRealtimeDatabase().child("chats").push();
+        String chatId = chatsRef.getKey();
+        
+        HashMap<String, Object> chatMap = new HashMap<>();
+        chatMap.put("participants/" + currentUserId, true);
+        chatMap.put("participants/" + friendId, true);
+        chatMap.put("createdAt", ServerValue.TIMESTAMP);
+        
+        chatsRef.updateChildren(chatMap).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                // Add chat reference to both users
+                FirestoreUtil.getUserChatsRef(currentUserId).child(chatId).setValue(true);
+                FirestoreUtil.getUserChatsRef(friendId).child(chatId).setValue(true);
+            }
+        });
+    }
+        
+        DatabaseReference userChatsRef = FirestoreUtil.getUserChatsRef(currentUserId);
+        DatabaseReference blockedUsersRef = FirestoreUtil.getBlockedUsersRef(currentUserId);
 
         // Listen to user's chat list from Realtime Database
         FirestoreUtil.getUserChatsRef(currentUserId)

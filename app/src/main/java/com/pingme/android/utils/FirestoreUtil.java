@@ -22,6 +22,8 @@ public class FirestoreUtil {
     private static final String RT_CHATS = "chats";
     private static final String RT_MESSAGES = "messages";
     private static final String RT_TYPING = "typing";
+    private static final String RT_USER_CHATS = "user_chats";
+    private static final String RT_BLOCKED_USERS = "blocked_users";
 
     // ===== FIRESTORE METHODS (for user data, settings, friends) =====
 
@@ -77,7 +79,7 @@ public class FirestoreUtil {
     }
 
     public static DatabaseReference getUserChatsRef(String userId) {
-        return getRealtimeDatabase().child("user_chats").child(userId);
+        return getRealtimeDatabase().child(RT_USER_CHATS).child(userId);
     }
 
     // ===== CHAT MANAGEMENT =====
