@@ -97,8 +97,6 @@ public class ChatRepository {
         });
 
         return chatsLiveData;
-
-        return chatsLiveData;
     }
 
     private void loadChatDetails(List<String> chatIds, MutableLiveData<List<Chat>> chatsLiveData) {
@@ -148,7 +146,7 @@ public class ChatRepository {
             public void onCancelled(DatabaseError databaseError) {
                 completionCounter.setValue(completionCounter.getValue() + 1);
             }
-        }));
+        });
     }
 
     private void loadUserForChat(String chatId, String userId, String lastMessage,
