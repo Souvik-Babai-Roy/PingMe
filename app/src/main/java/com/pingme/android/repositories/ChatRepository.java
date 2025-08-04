@@ -81,21 +81,6 @@ public class ChatRepository {
                                 loadChatDetails(chatIds, chatsLiveData);
                             }
                         }
-                        List<String> chatIds = new ArrayList<>();
-
-                        for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
-                            Boolean isActive = chatSnapshot.getValue(Boolean.class);
-                            if (isActive != null && isActive) {
-                                chatIds.add(chatSnapshot.getKey());
-                            }
-                        }
-
-                        if (chatIds.isEmpty()) {
-                            // Load friends as potential chats with no messages
-                            loadFriendsAsChats(chatsLiveData);
-                        } else {
-                            loadChatDetails(chatIds, chatsLiveData);
-                        }
                     }
 
                     @Override
@@ -103,6 +88,15 @@ public class ChatRepository {
                         chatsLiveData.setValue(Collections.emptyList());
                     }
                 });
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                chatsLiveData.setValue(Collections.emptyList());
+            }
+        });
+
+        return chatsLiveData;
 
         return chatsLiveData;
     }
@@ -154,7 +148,7 @@ public class ChatRepository {
             public void onCancelled(DatabaseError databaseError) {
                 completionCounter.setValue(completionCounter.getValue() + 1);
             }
-        });
+        }));
     }
 
     private void loadUserForChat(String chatId, String userId, String lastMessage,
