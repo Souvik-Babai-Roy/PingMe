@@ -409,22 +409,53 @@ public class FirestoreUtil {
     public static void blockUser(String currentUserId, String userToBlockId) {
         Map<String, Object> updates = new HashMap<>();
 
-        // Add to blocked users
+        // Add to blocked users in Realtime Database
         updates.put("blocked_users/" + currentUserId + "/" + userToBlockId, System.currentTimeMillis());
 
-        // Remove active chats
+        // Hide active chats (don't delete, just mark as inactive)
         String chatId = generateChatId(currentUserId, userToBlockId);
-        updates.put("user_chats/" + currentUserId + "/" + chatId, null);
-        updates.put("user_chats/" + userToBlockId + "/" + chatId, null);
-
+        updates.put("user_chats/" + currentUserId + "/" + chatId, false);
+        
         getRealtimeDatabase().updateChildren(updates);
 
-        // Remove from Firestore friends
-        removeFriend(currentUserId, userToBlockId);
+        // Add to Firestore blocked users collection
+        Map<String, Object> blockData = new HashMap<>();
+        blockData.put("blockedAt", System.currentTimeMillis());
+        blockData.put("blockedUserId", userToBlockId);
+        
+        FirebaseFirestore.getInstance()
+                .collection("blocked_users")
+                .document(currentUserId)
+                .collection("blocked")
+                .document(userToBlockId)
+                .set(blockData);
+
+        // DON'T remove from friends - blocking is separate from unfriending
+        Log.d(TAG, "User " + userToBlockId + " blocked by " + currentUserId);
     }
 
     public static void unblockUser(String currentUserId, String userToUnblockId) {
+        // Remove from Realtime Database
         getBlockedUsersRef(currentUserId).child(userToUnblockId).removeValue();
+        
+        // Remove from Firestore
+        FirebaseFirestore.getInstance()
+                .collection("blocked_users")
+                .document(currentUserId)
+                .collection("blocked")
+                .document(userToUnblockId)
+                .delete();
+
+        // Restore chat if they're still friends
+        checkFriendship(currentUserId, userToUnblockId, areFriends -> {
+            if (areFriends) {
+                String chatId = generateChatId(currentUserId, userToUnblockId);
+                getUserChatsRef(currentUserId).child(chatId).setValue(true);
+                Log.d(TAG, "Chat restored after unblocking");
+            }
+        });
+
+        Log.d(TAG, "User " + userToUnblockId + " unblocked by " + currentUserId);
     }
 
     public static void checkIfBlocked(String currentUserId, String otherUserId, BlockStatusCallback callback) {
@@ -440,6 +471,30 @@ public class FirestoreUtil {
                         callback.onResult(false);
                     }
                 });
+    }
+
+    public static void getBlockedUsers(String currentUserId, BlockedUsersCallback callback) {
+        FirebaseFirestore.getInstance()
+                .collection("blocked_users")
+                .document(currentUserId)
+                .collection("blocked")
+                .orderBy("blockedAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    callback.onBlockedUsersLoaded(querySnapshot);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to load blocked users", e);
+                    callback.onError(e.getMessage());
+                });
+    }
+
+    public static void checkMutualBlocking(String userId1, String userId2, MutualBlockCallback callback) {
+        checkIfBlocked(userId1, userId2, user1BlockedUser2 -> {
+            checkIfBlocked(userId2, userId1, user2BlockedUser1 -> {
+                callback.onResult(user1BlockedUser2, user2BlockedUser1);
+            });
+        });
     }
 
     // ===== STATUS MANAGEMENT =====
@@ -470,6 +525,15 @@ public class FirestoreUtil {
         void onResult(boolean isBlocked);
     }
 
+    public interface BlockedUsersCallback {
+        void onBlockedUsersLoaded(com.google.firebase.firestore.QuerySnapshot querySnapshot);
+        void onError(String error);
+    }
+
+    public interface MutualBlockCallback {
+        void onResult(boolean user1BlockedUser2, boolean user2BlockedUser1);
+    }
+
     // ===== UTILITY METHODS =====
 
     public static void deleteChat(String chatId, String currentUserId) {
@@ -490,12 +554,35 @@ public class FirestoreUtil {
                 });
     }
 
+    public static void clearChatHistoryForUser(String chatId, String userId) {
+        Log.d(TAG, "Clearing chat history for user: " + userId + " in chat: " + chatId);
+
+        // Create user-specific cleared messages reference
+        Map<String, Object> userClearData = new HashMap<>();
+        userClearData.put("clearedAt", System.currentTimeMillis());
+        userClearData.put("userId", userId);
+
+        // Store when user cleared their chat
+        getRealtimeDatabase()
+                .child("cleared_chats")
+                .child(chatId)
+                .child(userId)
+                .setValue(System.currentTimeMillis())
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Chat history cleared for user: " + userId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to clear chat history for user", e);
+                });
+    }
+
+    // For backward compatibility - this method now only clears for all users (admin use)
     public static void clearChatHistory(String chatId) {
-        Log.d(TAG, "Clearing chat history for: " + chatId);
+        Log.d(TAG, "Clearing chat history for all users in chat: " + chatId);
 
         getMessagesRef(chatId).removeValue()
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Chat history cleared successfully");
+                    Log.d(TAG, "Chat history cleared successfully for all users");
 
                     // Update chat to reflect empty state
                     Map<String, Object> updates = new HashMap<>();
@@ -505,9 +592,32 @@ public class FirestoreUtil {
                     updates.put("lastMessageType", "empty_chat");
 
                     getChatRef(chatId).updateChildren(updates);
+                    
+                    // Clear the cleared_chats data since all messages are deleted
+                    getRealtimeDatabase().child("cleared_chats").child(chatId).removeValue();
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to clear chat history", e);
+                });
+    }
+
+    public static DatabaseReference getClearedChatsRef(String chatId) {
+        return getRealtimeDatabase().child("cleared_chats").child(chatId);
+    }
+
+    public static void getUserClearedTime(String chatId, String userId, ClearTimeCallback callback) {
+        getClearedChatsRef(chatId).child(userId)
+                .addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+                    @Override
+                    public void onDataChange(com.google.firebase.database.DataSnapshot dataSnapshot) {
+                        Long clearedAt = dataSnapshot.getValue(Long.class);
+                        callback.onResult(clearedAt != null ? clearedAt : 0);
+                    }
+
+                    @Override
+                    public void onCancelled(com.google.firebase.database.DatabaseError databaseError) {
+                        callback.onResult(0);
+                    }
                 });
     }
 
@@ -532,5 +642,9 @@ public class FirestoreUtil {
     public interface ChatListCallback {
         void onChatsLoaded(com.google.firebase.database.DataSnapshot dataSnapshot);
         void onError(String error);
+    }
+
+    public interface ClearTimeCallback {
+        void onResult(long clearedAt);
     }
 }

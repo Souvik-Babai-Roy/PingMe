@@ -72,6 +72,19 @@
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="pingme_messages" />
 
+        <!-- Image Viewer Activity -->
+        <activity
+            android:name=".activities.ImageViewerActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:screenOrientation="portrait" />
+
+        <!-- Blocked Users Activity -->
+        <activity
+            android:name=".activities.BlockedUsersActivity"
+            android:exported="false"
+            android:parentActivityName=".activities.SettingsActivity" />
+
         <!-- File Provider for Camera -->
         <provider
             android:name="androidx.core.content.FileProvider"

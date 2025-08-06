@@ -1,6 +1,7 @@
 package com.pingme.android.fragments;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
@@ -72,6 +73,7 @@ public class SettingsFragment extends PreferenceFragmentCompat
         }
 
         // Set click listeners
+        setupPreferenceClick("blocked_users", () -> openBlockedUsers());
         setupPreferenceClick("storage_usage", () -> openStorageSettings());
         setupPreferenceClick("network_usage", () -> openNetworkUsage());
         setupPreferenceClick("terms_of_service", () -> openWebPage("https://example.com/terms"));
@@ -134,6 +136,11 @@ public class SettingsFragment extends PreferenceFragmentCompat
     }
 
     // ===== WhatsApp-like actions =====
+
+    private void openBlockedUsers() {
+        Intent intent = new Intent(getActivity(), com.pingme.android.activities.BlockedUsersActivity.class);
+        startActivity(intent);
+    }
 
     private void openStorageSettings() {
         // Implement storage management screen

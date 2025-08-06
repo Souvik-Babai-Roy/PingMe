@@ -127,8 +127,8 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                 binding.ivProfile.setImageResource(R.drawable.defaultprofile);
             }
 
-            // FIXED: Show online indicator with better privacy and null checking
-            if (otherUser.isLastSeenEnabled() && otherUser.isOnline()) {
+            // FIXED: Show online indicator respecting user's privacy settings
+            if (otherUser.shouldShowLastSeen() && otherUser.isOnline()) {
                 binding.onlineIndicator.setVisibility(View.VISIBLE);
             } else {
                 binding.onlineIndicator.setVisibility(View.GONE);
@@ -300,17 +300,18 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
         }
 
         private void clearChat(Chat chat) {
-            FirestoreUtil.clearChatHistory(chat.getId());
-            // Update the chat to show empty state
-            chat.setLastMessage("");
-            chat.setLastMessageType("empty_chat");
+            // Clear chat only for current user
+            FirestoreUtil.clearChatHistoryForUser(chat.getId(), currentUserId);
+            // Update the chat to show empty state for this user
+            chat.setLastMessage("You cleared this chat");
+            chat.setLastMessageType("chat_cleared");
             chat.setUnreadCount(0);
             notifyItemChanged(getAdapterPosition());
         }
 
         private void blockUser(User user) {
             FirestoreUtil.blockUser(currentUserId, user.getId());
-            // Remove the chat from the list
+            // Hide the chat from the list (it will be hidden by the blocking logic)
             for (int i = 0; i < chats.size(); i++) {
                 if (chats.get(i).getOtherUser().getId().equals(user.getId())) {
                     chats.remove(i);

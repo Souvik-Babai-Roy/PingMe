@@ -256,10 +256,16 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     tvImageTime.setText(timeText);
                     setMessageStatus(ivImageStatus, message.getStatus());
 
-                    // Set click listener to view full image
+                    // Set click listener to view full image in ImageViewerActivity
                     ivMessageImage.setOnClickListener(v -> {
-                        Intent intent = new Intent(Intent.ACTION_VIEW);
-                        intent.setData(Uri.parse(message.getImageUrl()));
+                        Intent intent = com.pingme.android.activities.ImageViewerActivity.createIntent(
+                                context,
+                                message.getImageUrl(),
+                                "You", // Sender name for sent messages
+                                currentUserId,
+                                message.getTimestamp(),
+                                "" // Chat ID if needed
+                        );
                         context.startActivity(intent);
                     });
                     break;
@@ -404,10 +410,17 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     loadMessageImage(message.getImageUrl());
                     tvImageTime.setText(timeText);
 
-                    // Set click listener to view full image
+                    // Set click listener to view full image in ImageViewerActivity
                     ivMessageImage.setOnClickListener(v -> {
-                        Intent intent = new Intent(Intent.ACTION_VIEW);
-                        intent.setData(Uri.parse(message.getImageUrl()));
+                        String senderName = otherUser != null ? otherUser.getDisplayName() : "Unknown";
+                        Intent intent = com.pingme.android.activities.ImageViewerActivity.createIntent(
+                                context,
+                                message.getImageUrl(),
+                                senderName,
+                                message.getSenderId(),
+                                message.getTimestamp(),
+                                "" // Chat ID if needed
+                        );
                         context.startActivity(intent);
                     });
                     break;
