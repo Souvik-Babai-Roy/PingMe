@@ -42,6 +42,7 @@ firebaseMessagingDirectboot = "25.0.0"
 lifecycleProcess = "2.9.2"
 imagepicker = "2.1"
 firebaseDatabase = "22.0.0"
+swiperefreshlayout = "1.1.0"
 
 [libraries]
 androidx-espresso-core-v351 = { module = "androidx.test.espresso:espresso-core", version.ref = "espressoCoreVersion" }
@@ -93,6 +94,7 @@ glide-compiler = { group = "com.github.bumptech.glide", name = "compiler", versi
 imagepicker = { group = "com.github.dhaval2404", name = "imagepicker", version.ref = "imagepicker" }
 zego_uikit_prebuilt_call_android = { module = "com.github.ZEGOCLOUD:zego_uikit_prebuilt_call_android" }
 firebase-database = { group = "com.google.firebase", name = "firebase-database", version.ref = "firebaseDatabase" }
+androidx-swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

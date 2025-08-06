@@ -32,7 +32,7 @@ android {
 
     buildFeatures {
         viewBinding true
-        buildConfig true // ✅ Add this line to fix the error
+        buildConfig true
         dataBinding true
     }
 
@@ -40,6 +40,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+}
+
+// Enable -Xlint:unchecked for more warnings
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += "-Xlint:unchecked"
 }
 
 dependencies {
@@ -79,6 +84,7 @@ dependencies {
     // Image loading
     implementation libs.glide
     implementation libs.firebase.database
+    implementation libs.androidx.swiperefreshlayout
     annotationProcessor libs.glide.compiler
 
     // Permission handling

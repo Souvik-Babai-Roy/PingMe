@@ -125,7 +125,7 @@ public class EditProfileActivity extends AppCompatActivity {
         updatedUser.setAbout(about);
         updatedUser.setEmail(currentUser.getEmail());
         updatedUser.setImageUrl(currentUser.getImageUrl()); // Keep existing URL initially
-        updatedUser.setJoinedDate(currentUser.getJoinedDate());
+        updatedUser.setJoinedAt(currentUser.getJoinedAt());
         updatedUser.setFcmToken(currentUser.getFcmToken());
 
         showLoading(true);

@@ -53,3 +53,45 @@
 
 # 2025-08-04 13:16:45.857536
 +Y
+
+# 2025-08-04 15:14:47.885618
++which files are important to show chats after adding friends and store chats 
+
+# 2025-08-04 18:54:23.527263
++N
+
+# 2025-08-04 18:55:04.563941
++dont commit anything, just copy all java files in one txt file 
+
+# 2025-08-04 18:57:20.791949
++Y
+
+# 2025-08-04 18:57:20.811535
++/run (for /R %i in (*.java) do @type "%i" & echo.) > all_java_files.txt
+
+# 2025-08-04 18:57:20.811535
++/run (for /R %i in (*.java) do @type "%i" & echo.) > all_java_files.txt
+
+# 2025-08-04 18:58:44.483561
++Y
+
+# 2025-08-04 19:12:57.746668
++there is nothing the file. maye java files are in different folders? fetch from this folder D:\Projects\Android\PingMe\app\src\main\java\com\pingme\android
+
+# 2025-08-04 19:14:14.568079
++Y
+
+# 2025-08-04 19:14:14.599510
++/run pushd D:\Projects\Android\PingMe\app\src\main\java\com\pingme\android && (for /R %i in (*.java) do @type "%i" & echo.) > all_java_files.txt && popd
+
+# 2025-08-04 19:14:14.599510
++/run pushd D:\Projects\Android\PingMe\app\src\main\java\com\pingme\android && (for /R %i in (*.java) do @type "%i" & echo.) > all_java_files.txt && popd
+
+# 2025-08-04 19:15:32.216049
++list the file names that are copied
+
+# 2025-08-04 19:16:02.543019
++Y
+
+# 2025-08-04 19:17:07.786324
++list the java files that are copied to all_java_files.txt

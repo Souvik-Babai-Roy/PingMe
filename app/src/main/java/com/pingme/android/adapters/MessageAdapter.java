@@ -1,9 +1,13 @@
 package com.pingme.android.adapters;
 
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -11,55 +15,89 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.pingme.android.R;
 import com.pingme.android.models.Message;
 import com.pingme.android.models.User;
 import com.google.firebase.auth.FirebaseAuth;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private static final int VIEW_TYPE_SENT = 1;
-    private static final int VIEW_TYPE_RECEIVED = 2;
-    private static final int VIEW_TYPE_DATE_HEADER = 3;
+    private static final int VIEW_TYPE_DATE_HEADER = 0;
+    private static final int VIEW_TYPE_MESSAGE_SENT = 1;
+    private static final int VIEW_TYPE_MESSAGE_RECEIVED = 2;
 
-    private List<Object> items; // Can contain Message or DateHeader objects
+    private Context context;
+    private List<Object> items;
     private String currentUserId;
-    private User otherUser; // For showing profile picture
-    private boolean showProfilePicture = true;
-    private boolean showOnlineStatus = true;
+    private User otherUser;
+    private boolean otherUserShowsProfilePhoto = true;
+    private boolean otherUserShowsLastSeen = true;
 
     public MessageAdapter(List<Object> items, User otherUser) {
-        this.items = items;
+        this.items = items != null ? items : new ArrayList<>();
         this.otherUser = otherUser;
-        this.currentUserId = FirebaseAuth.getInstance().getUid();
+        this.currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
     }
 
-    public void updatePrivacySettings(boolean showProfilePicture, boolean showOnlineStatus) {
-        this.showProfilePicture = showProfilePicture;
-        this.showOnlineStatus = showOnlineStatus;
+    public void updateOtherUser(User otherUser) {
+        this.otherUser = otherUser;
+        if (otherUser != null) {
+            this.otherUserShowsProfilePhoto = otherUser.isProfilePhotoEnabled();
+            this.otherUserShowsLastSeen = otherUser.isLastSeenEnabled();
+        }
         notifyDataSetChanged();
+    }
+
+    public void updatePrivacySettings(boolean showsProfilePhoto, boolean showsLastSeen) {
+        this.otherUserShowsProfilePhoto = showsProfilePhoto;
+        this.otherUserShowsLastSeen = showsLastSeen;
+        notifyDataSetChanged();
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        Object item = items.get(position);
+        if (item instanceof String) {
+            return VIEW_TYPE_DATE_HEADER;
+        } else if (item instanceof Message) {
+            Message message = (Message) item;
+            if (message.getSenderId().equals(currentUserId)) {
+                return VIEW_TYPE_MESSAGE_SENT;
+            } else {
+                return VIEW_TYPE_MESSAGE_RECEIVED;
+            }
+        }
+        return VIEW_TYPE_MESSAGE_RECEIVED;
     }
 
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        context = parent.getContext();
+        LayoutInflater inflater = LayoutInflater.from(context);
 
         switch (viewType) {
-            case VIEW_TYPE_SENT:
-                return new SentMessageViewHolder(inflater.inflate(R.layout.item_message_sent, parent, false));
-            case VIEW_TYPE_RECEIVED:
-                return new ReceivedMessageViewHolder(inflater.inflate(R.layout.item_message_received, parent, false));
             case VIEW_TYPE_DATE_HEADER:
-                return new DateHeaderViewHolder(inflater.inflate(R.layout.item_date_header, parent, false));
+                View dateView = inflater.inflate(R.layout.item_date_header, parent, false);
+                return new DateHeaderViewHolder(dateView);
+            case VIEW_TYPE_MESSAGE_SENT:
+                View sentView = inflater.inflate(R.layout.item_message_sent, parent, false);
+                return new SentMessageViewHolder(sentView);
+            case VIEW_TYPE_MESSAGE_RECEIVED:
+                View receivedView = inflater.inflate(R.layout.item_message_received, parent, false);
+                return new ReceivedMessageViewHolder(receivedView);
             default:
-                return new SentMessageViewHolder(inflater.inflate(R.layout.item_message_sent, parent, false));
+                View defaultView = inflater.inflate(R.layout.item_message_received, parent, false);
+                return new ReceivedMessageViewHolder(defaultView);
         }
     }
 
@@ -67,12 +105,12 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         Object item = items.get(position);
 
-        if (holder instanceof SentMessageViewHolder && item instanceof Message) {
+        if (holder instanceof DateHeaderViewHolder && item instanceof String) {
+            ((DateHeaderViewHolder) holder).bind((String) item);
+        } else if (holder instanceof SentMessageViewHolder && item instanceof Message) {
             ((SentMessageViewHolder) holder).bind((Message) item);
         } else if (holder instanceof ReceivedMessageViewHolder && item instanceof Message) {
             ((ReceivedMessageViewHolder) holder).bind((Message) item);
-        } else if (holder instanceof DateHeaderViewHolder && item instanceof DateHeader) {
-            ((DateHeaderViewHolder) holder).bind((DateHeader) item);
         }
     }
 
@@ -81,211 +119,69 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         return items.size();
     }
 
-    @Override
-    public int getItemViewType(int position) {
-        Object item = items.get(position);
+    // Static method to add date headers to messages
+    public static void addDateHeaders(List<Object> items, List<Message> messages) {
+        items.clear();
 
-        if (item instanceof DateHeader) {
-            return VIEW_TYPE_DATE_HEADER;
-        } else if (item instanceof Message) {
-            Message message = (Message) item;
-            if (message.getSenderId().equals(currentUserId)) {
-                return VIEW_TYPE_SENT;
-            } else {
-                return VIEW_TYPE_RECEIVED;
-            }
-        }
-        return VIEW_TYPE_SENT;
-    }
+        // Sort messages by timestamp
+        Collections.sort(messages, (m1, m2) -> Long.compare(m1.getTimestamp(), m2.getTimestamp()));
 
-    // ===== VIEW HOLDERS =====
+        String currentDateHeader = null;
 
-    class SentMessageViewHolder extends RecyclerView.ViewHolder {
-        TextView tvMessage, tvTime;
-        ImageView ivStatus, ivMessageImage, ivVideoThumbnail, ivPlayButton;
-        View layoutImage, layoutVideo;
+        for (Message message : messages) {
+            String messageDate = getDateHeader(message.getTimestamp());
 
-        public SentMessageViewHolder(@NonNull View itemView) {
-            super(itemView);
-            tvMessage = itemView.findViewById(R.id.tvMessage);
-            tvTime = itemView.findViewById(R.id.tvTime);
-            ivStatus = itemView.findViewById(R.id.ivStatus);
-            ivMessageImage = itemView.findViewById(R.id.ivMessageImage);
-            ivVideoThumbnail = itemView.findViewById(R.id.ivVideoThumbnail);
-            ivPlayButton = itemView.findViewById(R.id.ivPlayButton);
-            layoutImage = itemView.findViewById(R.id.layoutImage);
-            layoutVideo = itemView.findViewById(R.id.layoutVideo);
-        }
-
-        void bind(Message message) {
-            // Hide all media layouts first
-            if (layoutImage != null) layoutImage.setVisibility(View.GONE);
-            if (layoutVideo != null) layoutVideo.setVisibility(View.GONE);
-
-            // Set time
-            SimpleDateFormat sdf = new SimpleDateFormat("h:mm a", Locale.getDefault());
-            tvTime.setText(sdf.format(new Date(message.getTimestamp())));
-
-            // Set status icon
-            switch (message.getStatus()) {
-                case Message.STATUS_SENT:
-                    ivStatus.setImageResource(R.drawable.ic_sent);
-                    break;
-                case Message.STATUS_DELIVERED:
-                    ivStatus.setImageResource(R.drawable.ic_delivered);
-                    break;
-                case Message.STATUS_READ:
-                    ivStatus.setImageResource(R.drawable.ic_read);
-                    break;
+            if (!messageDate.equals(currentDateHeader)) {
+                items.add(messageDate);
+                currentDateHeader = messageDate;
             }
 
-            // Handle different message types
-            switch (message.getType()) {
-                case Message.TYPE_TEXT:
-                    tvMessage.setVisibility(View.VISIBLE);
-                    tvMessage.setText(message.getText());
-                    break;
-
-                case Message.TYPE_IMAGE:
-                    tvMessage.setVisibility(View.GONE);
-                    if (layoutImage != null && ivMessageImage != null) {
-                        layoutImage.setVisibility(View.VISIBLE);
-                        Glide.with(itemView.getContext())
-                                .load(message.getImageUrl())
-                                .placeholder(R.drawable.ic_image_placeholder)
-                                .error(R.drawable.ic_image_placeholder)
-                                .into(ivMessageImage);
-
-                        // Click to view full image
-                        ivMessageImage.setOnClickListener(v -> {
-                            // TODO: Open full screen image viewer
-                        });
-                    }
-                    break;
-
-                case Message.TYPE_VIDEO:
-                    tvMessage.setVisibility(View.GONE);
-                    if (layoutVideo != null && ivVideoThumbnail != null) {
-                        layoutVideo.setVisibility(View.VISIBLE);
-
-                        // Load video thumbnail
-                        if (message.getThumbnailUrl() != null) {
-                            Glide.with(itemView.getContext())
-                                    .load(message.getThumbnailUrl())
-                                    .placeholder(R.drawable.ic_video_placeholder)
-                                    .into(ivVideoThumbnail);
-                        } else {
-                            // Generate thumbnail from video URL
-                            Glide.with(itemView.getContext())
-                                    .load(message.getVideoUrl())
-                                    .placeholder(R.drawable.ic_video_placeholder)
-                                    .into(ivVideoThumbnail);
-                        }
-
-                        // Click to play video
-                        layoutVideo.setOnClickListener(v -> {
-                            // TODO: Open video player
-                        });
-                    }
-                    break;
-
-                case Message.TYPE_AUDIO:
-                    tvMessage.setVisibility(View.VISIBLE);
-                    tvMessage.setText("🎵 Audio " + formatDuration(message.getDuration()));
-                    // TODO: Add audio player UI
-                    break;
-            }
+            items.add(message);
         }
     }
 
-    class ReceivedMessageViewHolder extends RecyclerView.ViewHolder {
-        TextView tvMessage, tvTime;
-        ImageView ivProfile, ivMessageImage, ivVideoThumbnail, ivPlayButton;
-        View layoutImage, layoutVideo, layoutProfile;
+    private static String getDateHeader(long timestamp) {
+        Calendar today = Calendar.getInstance();
+        Calendar messageDate = Calendar.getInstance();
+        messageDate.setTimeInMillis(timestamp);
 
-        public ReceivedMessageViewHolder(@NonNull View itemView) {
-            super(itemView);
-            tvMessage = itemView.findViewById(R.id.tvMessage);
-            tvTime = itemView.findViewById(R.id.tvTime);
-            ivProfile = itemView.findViewById(R.id.ivProfile);
-            ivMessageImage = itemView.findViewById(R.id.ivMessageImage);
-            ivVideoThumbnail = itemView.findViewById(R.id.ivVideoThumbnail);
-            ivPlayButton = itemView.findViewById(R.id.ivPlayButton);
-            layoutImage = itemView.findViewById(R.id.layoutImage);
-            layoutVideo = itemView.findViewById(R.id.layoutVideo);
-            layoutProfile = itemView.findViewById(R.id.layoutProfile);
+        // Check if it's today
+        if (isSameDay(today, messageDate)) {
+            return "Today";
         }
 
-        void bind(Message message) {
-            // Hide all media layouts first
-            if (layoutImage != null) layoutImage.setVisibility(View.GONE);
-            if (layoutVideo != null) layoutVideo.setVisibility(View.GONE);
-
-            // Set time
-            SimpleDateFormat sdf = new SimpleDateFormat("h:mm a", Locale.getDefault());
-            tvTime.setText(sdf.format(new Date(message.getTimestamp())));
-
-            // Show/hide profile picture based on privacy settings
-            if (ivProfile != null && layoutProfile != null) {
-                if (showProfilePicture && otherUser != null && otherUser.getImageUrl() != null && !otherUser.getImageUrl().isEmpty()) {
-                    layoutProfile.setVisibility(View.VISIBLE);
-                    Glide.with(itemView.getContext())
-                            .load(otherUser.getImageUrl())
-                            .transform(new CircleCrop())
-                            .placeholder(R.drawable.ic_profile)
-                            .into(ivProfile);
-                } else {
-                    layoutProfile.setVisibility(View.VISIBLE);
-                    ivProfile.setImageResource(R.drawable.ic_profile);
-                }
-            }
-
-            // Handle different message types (same as sent messages)
-            switch (message.getType()) {
-                case Message.TYPE_TEXT:
-                    tvMessage.setVisibility(View.VISIBLE);
-                    tvMessage.setText(message.getText());
-                    break;
-
-                case Message.TYPE_IMAGE:
-                    tvMessage.setVisibility(View.GONE);
-                    if (layoutImage != null && ivMessageImage != null) {
-                        layoutImage.setVisibility(View.VISIBLE);
-                        Glide.with(itemView.getContext())
-                                .load(message.getImageUrl())
-                                .placeholder(R.drawable.ic_image_placeholder)
-                                .error(R.drawable.ic_image_placeholder)
-                                .into(ivMessageImage);
-                    }
-                    break;
-
-                case Message.TYPE_VIDEO:
-                    tvMessage.setVisibility(View.GONE);
-                    if (layoutVideo != null && ivVideoThumbnail != null) {
-                        layoutVideo.setVisibility(View.VISIBLE);
-
-                        if (message.getThumbnailUrl() != null) {
-                            Glide.with(itemView.getContext())
-                                    .load(message.getThumbnailUrl())
-                                    .placeholder(R.drawable.ic_video_placeholder)
-                                    .into(ivVideoThumbnail);
-                        } else {
-                            Glide.with(itemView.getContext())
-                                    .load(message.getVideoUrl())
-                                    .placeholder(R.drawable.ic_video_placeholder)
-                                    .into(ivVideoThumbnail);
-                        }
-                    }
-                    break;
-
-                case Message.TYPE_AUDIO:
-                    tvMessage.setVisibility(View.VISIBLE);
-                    tvMessage.setText("🎵 Audio " + formatDuration(message.getDuration()));
-                    break;
-            }
+        // Check if it's yesterday
+        Calendar yesterday = Calendar.getInstance();
+        yesterday.add(Calendar.DAY_OF_YEAR, -1);
+        if (isSameDay(yesterday, messageDate)) {
+            return "Yesterday";
         }
+
+        // Check if it's this week
+        Calendar weekAgo = Calendar.getInstance();
+        weekAgo.add(Calendar.DAY_OF_YEAR, -7);
+        if (messageDate.after(weekAgo)) {
+            SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE", Locale.getDefault());
+            return dayFormat.format(new Date(timestamp));
+        }
+
+        // Check if it's this year
+        if (today.get(Calendar.YEAR) == messageDate.get(Calendar.YEAR)) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd", Locale.getDefault());
+            return dateFormat.format(new Date(timestamp));
+        }
+
+        // Older than this year
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault());
+        return dateFormat.format(new Date(timestamp));
     }
 
+    private static boolean isSameDay(Calendar cal1, Calendar cal2) {
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
+    }
+
+    // Date Header ViewHolder
     class DateHeaderViewHolder extends RecyclerView.ViewHolder {
         TextView tvDate;
 
@@ -294,77 +190,295 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             tvDate = itemView.findViewById(R.id.tvDate);
         }
 
-        void bind(DateHeader dateHeader) {
-            tvDate.setText(dateHeader.getFormattedDate());
+        public void bind(String date) {
+            tvDate.setText(date);
         }
     }
 
-    // ===== HELPER CLASSES =====
+    // Sent Message ViewHolder
+    class SentMessageViewHolder extends RecyclerView.ViewHolder {
+        LinearLayout layoutTextMessage, layoutImage, layoutVideo, layoutAudio, layoutDocument;
+        TextView tvMessage, tvTime, tvImageCaption, tvImageTime, tvVideoTime, tvAudioTime, tvDocumentTime;
+        TextView tvAudioDuration, tvDocumentName, tvDocumentSize, tvVideoDuration;
+        ImageView ivStatus, ivImageStatus, ivVideoStatus, ivAudioStatus, ivDocumentStatus;
+        ImageView ivMessageImage, ivVideoThumbnail, ivPlayButton, ivPlayAudio;
 
-    public static class DateHeader {
-        private long timestamp;
+        public SentMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            layoutTextMessage = itemView.findViewById(R.id.layoutTextMessage);
+            layoutImage = itemView.findViewById(R.id.layoutImage);
+            layoutVideo = itemView.findViewById(R.id.layoutVideo);
+            layoutAudio = itemView.findViewById(R.id.layoutAudio);
+            layoutDocument = itemView.findViewById(R.id.layoutDocument);
 
-        public DateHeader(long timestamp) {
-            this.timestamp = timestamp;
+            tvMessage = itemView.findViewById(R.id.tvMessage);
+            tvTime = itemView.findViewById(R.id.tvTime);
+            tvImageCaption = itemView.findViewById(R.id.tvImageCaption);
+            tvImageTime = itemView.findViewById(R.id.tvImageTime);
+            tvVideoTime = itemView.findViewById(R.id.tvVideoTime);
+            tvAudioTime = itemView.findViewById(R.id.tvAudioTime);
+            tvDocumentTime = itemView.findViewById(R.id.tvDocumentTime);
+
+            tvAudioDuration = itemView.findViewById(R.id.tvAudioDuration);
+            tvDocumentName = itemView.findViewById(R.id.tvDocumentName);
+            tvDocumentSize = itemView.findViewById(R.id.tvDocumentSize);
+            tvVideoDuration = itemView.findViewById(R.id.tvVideoDuration);
+
+            ivStatus = itemView.findViewById(R.id.ivStatus);
+            ivImageStatus = itemView.findViewById(R.id.ivImageStatus);
+            ivVideoStatus = itemView.findViewById(R.id.ivVideoStatus);
+            ivAudioStatus = itemView.findViewById(R.id.ivAudioStatus);
+            ivDocumentStatus = itemView.findViewById(R.id.ivDocumentStatus);
+
+            ivMessageImage = itemView.findViewById(R.id.ivMessageImage);
+            ivVideoThumbnail = itemView.findViewById(R.id.ivVideoThumbnail);
+            ivPlayButton = itemView.findViewById(R.id.ivPlayButton);
+            ivPlayAudio = itemView.findViewById(R.id.ivPlayAudio);
         }
 
-        public String getFormattedDate() {
-            Calendar today = Calendar.getInstance();
-            Calendar yesterday = Calendar.getInstance();
-            yesterday.add(Calendar.DAY_OF_YEAR, -1);
-            Calendar messageDate = Calendar.getInstance();
-            messageDate.setTimeInMillis(timestamp);
+        public void bind(Message message) {
+            hideAllLayouts();
 
-            if (isSameDay(today, messageDate)) {
-                return "Today";
-            } else if (isSameDay(yesterday, messageDate)) {
-                return "Yesterday";
-            } else {
-                SimpleDateFormat sdf = new SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault());
-                return sdf.format(new Date(timestamp));
+            String messageType = message.getType();
+            String timeText = getFormattedTime(message.getTimestamp());
+
+            switch (messageType) {
+                case Message.TYPE_TEXT:
+                    layoutTextMessage.setVisibility(View.VISIBLE);
+                    tvMessage.setText(message.getText());
+                    tvTime.setText(timeText);
+                    setMessageStatus(ivStatus, message.getStatus());
+                    break;
+
+                case Message.TYPE_IMAGE:
+                    layoutImage.setVisibility(View.VISIBLE);
+                    loadMessageImage(message.getImageUrl());
+                    tvImageTime.setText(timeText);
+                    setMessageStatus(ivImageStatus, message.getStatus());
+
+                    // Set click listener to view full image
+                    ivMessageImage.setOnClickListener(v -> {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setData(Uri.parse(message.getImageUrl()));
+                        context.startActivity(intent);
+                    });
+                    break;
+
+                case Message.TYPE_VIDEO:
+                    layoutVideo.setVisibility(View.VISIBLE);
+                    loadVideoThumbnail(message.getThumbnailUrl());
+                    tvVideoTime.setText(timeText);
+                    setMessageStatus(ivVideoStatus, message.getStatus());
+
+                    if (message.getDuration() > 0) {
+                        tvVideoDuration.setText(formatDuration(message.getDuration()));
+                        tvVideoDuration.setVisibility(View.VISIBLE);
+                    }
+
+                    // Set click listener to play video
+                    ivPlayButton.setOnClickListener(v -> {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setDataAndType(Uri.parse(message.getVideoUrl()), "video/*");
+                        context.startActivity(intent);
+                    });
+                    break;
+
+                case Message.TYPE_AUDIO:
+                    layoutAudio.setVisibility(View.VISIBLE);
+                    tvAudioTime.setText(timeText);
+                    setMessageStatus(ivAudioStatus, message.getStatus());
+
+                    if (message.getDuration() > 0) {
+                        tvAudioDuration.setText(formatDuration(message.getDuration()));
+                    }
+                    break;
             }
         }
 
-        private boolean isSameDay(Calendar cal1, Calendar cal2) {
-            return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-                    cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
+        private void hideAllLayouts() {
+            layoutTextMessage.setVisibility(View.GONE);
+            layoutImage.setVisibility(View.GONE);
+            layoutVideo.setVisibility(View.GONE);
+            layoutAudio.setVisibility(View.GONE);
+            layoutDocument.setVisibility(View.GONE);
+        }
+
+        private void loadMessageImage(String imageUrl) {
+            if (imageUrl != null && !imageUrl.isEmpty()) {
+                Glide.with(context)
+                        .load(imageUrl)
+                        .transform(new RoundedCorners(24))
+                        .placeholder(R.drawable.ic_image_placeholder)
+                        .into(ivMessageImage);
+            }
+        }
+
+        private void loadVideoThumbnail(String thumbnailUrl) {
+            if (thumbnailUrl != null && !thumbnailUrl.isEmpty()) {
+                Glide.with(context)
+                        .load(thumbnailUrl)
+                        .transform(new RoundedCorners(24))
+                        .placeholder(R.drawable.ic_video_placeholder)
+                        .into(ivVideoThumbnail);
+            }
+        }
+
+        private void setMessageStatus(ImageView statusIcon, int status) {
+            switch (status) {
+                case Message.STATUS_SENT:
+                    statusIcon.setImageResource(R.drawable.ic_sent);
+                    break;
+                case Message.STATUS_DELIVERED:
+                    statusIcon.setImageResource(R.drawable.ic_delivered);
+                    break;
+                case Message.STATUS_READ:
+                    statusIcon.setImageResource(R.drawable.ic_read);
+                    break;
+            }
         }
     }
 
-    // ===== HELPER METHODS =====
+    // Received Message ViewHolder
+    class ReceivedMessageViewHolder extends RecyclerView.ViewHolder {
+        LinearLayout layoutProfile, layoutTextMessage, layoutImage, layoutVideo, layoutAudio, layoutDocument;
+        TextView tvMessage, tvTime, tvImageCaption, tvImageTime, tvVideoTime, tvAudioTime, tvDocumentTime;
+        TextView tvAudioDuration, tvDocumentName, tvDocumentSize, tvVideoDuration;
+        ImageView ivProfile, ivMessageImage, ivVideoThumbnail, ivPlayButton, ivPlayAudio;
 
-    private String formatDuration(long durationMillis) {
-        long seconds = durationMillis / 1000;
+        public ReceivedMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            layoutProfile = itemView.findViewById(R.id.layoutProfile);
+            layoutTextMessage = itemView.findViewById(R.id.layoutTextMessage);
+            layoutImage = itemView.findViewById(R.id.layoutImage);
+            layoutVideo = itemView.findViewById(R.id.layoutVideo);
+            layoutAudio = itemView.findViewById(R.id.layoutAudio);
+            layoutDocument = itemView.findViewById(R.id.layoutDocument);
+
+            ivProfile = itemView.findViewById(R.id.ivProfile);
+            tvMessage = itemView.findViewById(R.id.tvMessage);
+            tvTime = itemView.findViewById(R.id.tvTime);
+            tvImageCaption = itemView.findViewById(R.id.tvImageCaption);
+            tvImageTime = itemView.findViewById(R.id.tvImageTime);
+            tvVideoTime = itemView.findViewById(R.id.tvVideoTime);
+            tvAudioTime = itemView.findViewById(R.id.tvAudioTime);
+            tvDocumentTime = itemView.findViewById(R.id.tvDocumentTime);
+
+            tvAudioDuration = itemView.findViewById(R.id.tvAudioDuration);
+            tvDocumentName = itemView.findViewById(R.id.tvDocumentName);
+            tvDocumentSize = itemView.findViewById(R.id.tvDocumentSize);
+            tvVideoDuration = itemView.findViewById(R.id.tvVideoDuration);
+
+            ivMessageImage = itemView.findViewById(R.id.ivMessageImage);
+            ivVideoThumbnail = itemView.findViewById(R.id.ivVideoThumbnail);
+            ivPlayButton = itemView.findViewById(R.id.ivPlayButton);
+            ivPlayAudio = itemView.findViewById(R.id.ivPlayAudio);
+        }
+
+        public void bind(Message message) {
+            hideAllLayouts();
+
+            // Load profile image based on privacy settings
+            if (otherUserShowsProfilePhoto && otherUser != null &&
+                    otherUser.getImageUrl() != null && !otherUser.getImageUrl().isEmpty()) {
+                Glide.with(context)
+                        .load(otherUser.getImageUrl())
+                        .transform(new CircleCrop())
+                        .placeholder(R.drawable.defaultprofile)
+                        .into(ivProfile);
+            } else {
+                ivProfile.setImageResource(R.drawable.defaultprofile);
+            }
+
+            String messageType = message.getType();
+            String timeText = getFormattedTime(message.getTimestamp());
+
+            switch (messageType) {
+                case Message.TYPE_TEXT:
+                    layoutTextMessage.setVisibility(View.VISIBLE);
+                    tvMessage.setText(message.getText());
+                    tvTime.setText(timeText);
+                    break;
+
+                case Message.TYPE_IMAGE:
+                    layoutImage.setVisibility(View.VISIBLE);
+                    loadMessageImage(message.getImageUrl());
+                    tvImageTime.setText(timeText);
+
+                    // Set click listener to view full image
+                    ivMessageImage.setOnClickListener(v -> {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setData(Uri.parse(message.getImageUrl()));
+                        context.startActivity(intent);
+                    });
+                    break;
+
+                case Message.TYPE_VIDEO:
+                    layoutVideo.setVisibility(View.VISIBLE);
+                    loadVideoThumbnail(message.getThumbnailUrl());
+                    tvVideoTime.setText(timeText);
+
+                    if (message.getDuration() > 0) {
+                        tvVideoDuration.setText(formatDuration(message.getDuration()));
+                        tvVideoDuration.setVisibility(View.VISIBLE);
+                    }
+
+                    // Set click listener to play video
+                    ivPlayButton.setOnClickListener(v -> {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setDataAndType(Uri.parse(message.getVideoUrl()), "video/*");
+                        context.startActivity(intent);
+                    });
+                    break;
+
+                case Message.TYPE_AUDIO:
+                    layoutAudio.setVisibility(View.VISIBLE);
+                    tvAudioTime.setText(timeText);
+
+                    if (message.getDuration() > 0) {
+                        tvAudioDuration.setText(formatDuration(message.getDuration()));
+                    }
+                    break;
+            }
+        }
+
+        private void hideAllLayouts() {
+            layoutTextMessage.setVisibility(View.GONE);
+            layoutImage.setVisibility(View.GONE);
+            layoutVideo.setVisibility(View.GONE);
+            layoutAudio.setVisibility(View.GONE);
+            layoutDocument.setVisibility(View.GONE);
+        }
+
+        private void loadMessageImage(String imageUrl) {
+            if (imageUrl != null && !imageUrl.isEmpty()) {
+                Glide.with(context)
+                        .load(imageUrl)
+                        .transform(new RoundedCorners(24))
+                        .placeholder(R.drawable.ic_image_placeholder)
+                        .into(ivMessageImage);
+            }
+        }
+
+        private void loadVideoThumbnail(String thumbnailUrl) {
+            if (thumbnailUrl != null && !thumbnailUrl.isEmpty()) {
+                Glide.with(context)
+                        .load(thumbnailUrl)
+                        .transform(new RoundedCorners(24))
+                        .placeholder(R.drawable.ic_video_placeholder)
+                        .into(ivVideoThumbnail);
+            }
+        }
+    }
+
+    private String getFormattedTime(long timestamp) {
+        SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
+        return timeFormat.format(new Date(timestamp));
+    }
+
+    private String formatDuration(long durationMs) {
+        long seconds = durationMs / 1000;
         long minutes = seconds / 60;
         seconds = seconds % 60;
         return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds);
-    }
-
-    // Method to add date headers to message list
-    public static void addDateHeaders(List<Object> items, List<Message> messages) {
-        items.clear();
-
-        if (messages.isEmpty()) return;
-
-        Calendar currentDate = Calendar.getInstance();
-        currentDate.setTimeInMillis(0); // Reset to ensure first date header is added
-
-        for (Message message : messages) {
-            Calendar messageDate = Calendar.getInstance();
-            messageDate.setTimeInMillis(message.getTimestamp());
-
-            // Add date header if day changed
-            if (!isSameDay(currentDate, messageDate)) {
-                items.add(new DateHeader(message.getTimestamp()));
-                currentDate.setTimeInMillis(message.getTimestamp());
-            }
-
-            items.add(message);
-        }
-    }
-
-    private static boolean isSameDay(Calendar cal1, Calendar cal2) {
-        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
     }
 }

@@ -178,7 +178,7 @@ public class SetupProfileActivity extends AppCompatActivity {
                 "Available"
         );
         user.setAbout(about);
-        user.setJoinedDate(System.currentTimeMillis());
+        user.setJoinedAt(System.currentTimeMillis());
         user.setOnline(true);
         user.setLastSeen(System.currentTimeMillis());
 

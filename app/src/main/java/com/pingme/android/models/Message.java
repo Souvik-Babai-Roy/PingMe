@@ -1,33 +1,41 @@
 package com.pingme.android.models;
 
+import java.util.Objects;
+
 public class Message {
     public static final int STATUS_SENT = 1;
     public static final int STATUS_DELIVERED = 2;
     public static final int STATUS_READ = 3;
 
-    public static final int TYPE_TEXT = 1;
-    public static final int TYPE_IMAGE = 2;
-    public static final int TYPE_VIDEO = 3;
-    public static final int TYPE_AUDIO = 4;
+    // String constants for type to match Realtime Database
+    public static final String TYPE_TEXT = "text";
+    public static final String TYPE_IMAGE = "image";
+    public static final String TYPE_VIDEO = "video";
+    public static final String TYPE_AUDIO = "audio";
 
     private String id;
     private String senderId;
     private String text;
     private long timestamp;
     private int status;
-    private int type;
+    private String type;
 
-    // FIXED: Add fields for media messages
+    // Media fields
     private String imageUrl;
     private String videoUrl;
     private String audioUrl;
     private String thumbnailUrl;
-    private long duration; // For audio/video
-    private long fileSize; // For media files
+    private long duration; // For audio/video in milliseconds
+    private long fileSize; // For media files in bytes
+    private String fileName; // For documents/files
 
-    public Message() {}
+    public Message() {
+        this.type = TYPE_TEXT;
+        this.status = STATUS_SENT;
+        this.timestamp = System.currentTimeMillis();
+    }
 
-    public Message(String senderId, String text, long timestamp, int status, int type) {
+    public Message(String senderId, String text, long timestamp, int status, String type) {
         this.senderId = senderId;
         this.text = text;
         this.timestamp = timestamp;
@@ -35,25 +43,45 @@ public class Message {
         this.type = type;
     }
 
-    // FIXED: Constructor for image messages
-    public Message(String senderId, String text, String imageUrl, long timestamp, int status) {
-        this.senderId = senderId;
-        this.text = text;
-        this.imageUrl = imageUrl;
-        this.timestamp = timestamp;
-        this.status = status;
-        this.type = TYPE_IMAGE;
+    // Constructor for text messages
+    public static Message createTextMessage(String senderId, String text) {
+        Message message = new Message();
+        message.setSenderId(senderId);
+        message.setText(text);
+        message.setType(TYPE_TEXT);
+        return message;
     }
 
-    // FIXED: Constructor for audio messages
-    public Message(String senderId, String audioUrl, long duration, long timestamp, int status) {
-        this.senderId = senderId;
-        this.text = "Audio message";
-        this.audioUrl = audioUrl;
-        this.duration = duration;
-        this.timestamp = timestamp;
-        this.status = status;
-        this.type = TYPE_AUDIO;
+    // Constructor for image messages
+    public static Message createImageMessage(String senderId, String imageUrl) {
+        Message message = new Message();
+        message.setSenderId(senderId);
+        message.setText("📷 Image");
+        message.setImageUrl(imageUrl);
+        message.setType(TYPE_IMAGE);
+        return message;
+    }
+
+    // Constructor for video messages
+    public static Message createVideoMessage(String senderId, String videoUrl, String thumbnailUrl) {
+        Message message = new Message();
+        message.setSenderId(senderId);
+        message.setText("🎥 Video");
+        message.setVideoUrl(videoUrl);
+        message.setThumbnailUrl(thumbnailUrl);
+        message.setType(TYPE_VIDEO);
+        return message;
+    }
+
+    // Constructor for audio messages
+    public static Message createAudioMessage(String senderId, String audioUrl, long duration) {
+        Message message = new Message();
+        message.setSenderId(senderId);
+        message.setText("🎤 Audio");
+        message.setAudioUrl(audioUrl);
+        message.setDuration(duration);
+        message.setType(TYPE_AUDIO);
+        return message;
     }
 
     // Getters and setters
@@ -72,10 +100,10 @@ public class Message {
     public int getStatus() { return status; }
     public void setStatus(int status) { this.status = status; }
 
-    public int getType() { return type; }
-    public void setType(int type) { this.type = type; }
+    public String getType() { return type != null ? type : TYPE_TEXT; }
+    public void setType(String type) { this.type = type; }
 
-    // FIXED: Media getters and setters
+    // Media getters and setters
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
@@ -94,10 +122,83 @@ public class Message {
     public long getFileSize() { return fileSize; }
     public void setFileSize(long fileSize) { this.fileSize = fileSize; }
 
+    public String getFileName() { return fileName; }
+    public void setFileName(String fileName) { this.fileName = fileName; }
+
     // Helper methods
-    public boolean isTextMessage() { return type == TYPE_TEXT; }
-    public boolean isImageMessage() { return type == TYPE_IMAGE; }
-    public boolean isVideoMessage() { return type == TYPE_VIDEO; }
-    public boolean isAudioMessage() { return type == TYPE_AUDIO; }
-    public boolean hasMedia() { return type != TYPE_TEXT; }
+    public boolean isTextMessage() { return TYPE_TEXT.equals(type); }
+    public boolean isImageMessage() { return TYPE_IMAGE.equals(type); }
+    public boolean isVideoMessage() { return TYPE_VIDEO.equals(type); }
+    public boolean isAudioMessage() { return TYPE_AUDIO.equals(type); }
+    public boolean hasMedia() { return !TYPE_TEXT.equals(type); }
+
+    public boolean isSentByCurrentUser(String currentUserId) {
+        return currentUserId != null && currentUserId.equals(senderId);
+    }
+
+    public String getMediaUrl() {
+        switch (getType()) {
+            case TYPE_IMAGE:
+                return getImageUrl();
+            case TYPE_VIDEO:
+                return getVideoUrl();
+            case TYPE_AUDIO:
+                return getAudioUrl();
+            default:
+                return null;
+        }
+    }
+
+    public String getDisplayText() {
+        switch (getType()) {
+            case TYPE_IMAGE:
+                return "📷 Image";
+            case TYPE_VIDEO:
+                return "🎥 Video";
+            case TYPE_AUDIO:
+                return "🎤 Audio";
+            case TYPE_TEXT:
+            default:
+                return getText();
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Message message = (Message) o;
+        return timestamp == message.timestamp &&
+                status == message.status &&
+                duration == message.duration &&
+                fileSize == message.fileSize &&
+                Objects.equals(id, message.id) &&
+                Objects.equals(senderId, message.senderId) &&
+                Objects.equals(text, message.text) &&
+                Objects.equals(type, message.type) &&
+                Objects.equals(imageUrl, message.imageUrl) &&
+                Objects.equals(videoUrl, message.videoUrl) &&
+                Objects.equals(audioUrl, message.audioUrl) &&
+                Objects.equals(thumbnailUrl, message.thumbnailUrl) &&
+                Objects.equals(fileName, message.fileName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, senderId, text, timestamp, status, type, imageUrl,
+                videoUrl, audioUrl, thumbnailUrl, duration, fileSize, fileName);
+    }
+
+    @Override
+    public String toString() {
+        return "Message{" +
+                "id='" + id + '\'' +
+                ", senderId='" + senderId + '\'' +
+                ", text='" + text + '\'' +
+                ", timestamp=" + timestamp +
+                ", status=" + status +
+                ", type='" + type + '\'' +
+                ", hasMedia=" + hasMedia() +
+                '}';
+    }
 }

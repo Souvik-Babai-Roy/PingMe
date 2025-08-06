@@ -81,4 +81,34 @@
     <!-- Misc -->
     <color name="input_stroke_color">#D1C4E9</color>
     <color name="colorBackground">#F3E5F5</color>
+
+    <color name="online_status">#4CAF50</color>
+    <color name="offline_status">#757575</color>
+    <color name="typing_color">#007AFF</color>
+
+
+    <color name="online_green">#4CAF50</color>
+    <color name="date_header_bg">#F5F5F5</color>
+
+    <!-- Status colors -->
+    <color name="status_sent">#9E9E9E</color>
+    <color name="status_delivered">#9E9E9E</color>
+    <color name="status_read">#4FC3F7</color>
+
+    <!-- Privacy indicator colors -->
+    <color name="privacy_enabled">#4CAF50</color>
+    <color name="privacy_disabled">#F44336</color>
+
+    <!-- Message bubble colors -->
+    <color name="message_sent_bg">@color/soft_lavender</color>
+    <color name="message_received_bg">#FFFFFF</color>
+
+    <!-- Typing indicator -->
+    <color name="typing_indicator">@color/colorPrimary</color>
+
+    <!-- Fallbacks for night-only colors -->
+    <color name="carbon_black">#D1C4E9</color>
+    <color name="pitch_black">#EDE7F6</color>
+    <color name="deep_night_black">#F3E5F5</color>
+
 </resources>

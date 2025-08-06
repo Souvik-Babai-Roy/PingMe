@@ -6,11 +6,13 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -27,7 +29,6 @@ import com.pingme.android.models.Message;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.CloudinaryUtil;
 import com.pingme.android.utils.FirestoreUtil;
-import com.pingme.android.utils.PreferenceUtils;
 import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ChatActivity extends AppCompatActivity {
+    private static final String TAG = "ChatActivity";
 
     private ActivityChatBinding binding;
     private String chatId;
@@ -45,9 +47,11 @@ public class ChatActivity extends AppCompatActivity {
     private List<Message> messages = new ArrayList<>();
     private ChildEventListener messageListener;
     private ValueEventListener typingListener;
+    private ValueEventListener onlineStatusListener;
     private User receiver;
     private User currentUser;
     private boolean isTyping = false;
+    private boolean isBlocked = false;
 
     private final ActivityResultLauncher<String> imagePickerLauncher =
             registerForActivityResult(new ActivityResultContracts.GetContent(), this::handleImageSelection);
@@ -64,6 +68,8 @@ public class ChatActivity extends AppCompatActivity {
         chatId = getIntent().getStringExtra("chatId");
         receiverId = getIntent().getStringExtra("receiverId");
 
+        Log.d(TAG, "ChatActivity created with chatId: " + chatId + " receiverId: " + receiverId);
+
         if (chatId == null || receiverId == null) {
             Toast.makeText(this, "Invalid chat", Toast.LENGTH_SHORT).show();
             finish();
@@ -74,8 +80,11 @@ public class ChatActivity extends AppCompatActivity {
         setupToolbar();
         loadCurrentUser();
         loadReceiver();
+        checkBlockStatus();
+        ensureChatExists();
         setupMessageListener();
         setupTypingListener();
+        setupOnlineStatusListener();
         setupClickListeners();
         markMessagesAsRead();
     }
@@ -92,6 +101,47 @@ public class ChatActivity extends AppCompatActivity {
         setSupportActionBar(binding.toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         binding.toolbar.setNavigationOnClickListener(v -> onBackPressed());
+
+        // Add menu for block/unblock/unfriend options
+        binding.ivMore.setOnClickListener(this::showMoreOptions);
+    }
+
+    private void showMoreOptions(View view) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+        String[] options;
+        if (isBlocked) {
+            options = new String[]{"Unblock User", "Clear Chat"};
+        } else {
+            options = new String[]{"Block User", "Remove Friend", "Clear Chat"};
+        }
+
+        builder.setItems(options, (dialog, which) -> {
+            if (isBlocked) {
+                switch (which) {
+                    case 0: // Unblock
+                        unblockUser();
+                        break;
+                    case 1: // Clear Chat
+                        clearChatHistory();
+                        break;
+                }
+            } else {
+                switch (which) {
+                    case 0: // Block
+                        blockUser();
+                        break;
+                    case 1: // Remove Friend
+                        removeFriend();
+                        break;
+                    case 2: // Clear Chat
+                        clearChatHistory();
+                        break;
+                }
+            }
+        });
+
+        builder.show();
     }
 
     private void loadCurrentUser() {
@@ -107,6 +157,8 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void loadReceiver() {
+        Log.d(TAG, "Loading receiver: " + receiverId);
+
         FirestoreUtil.getUserRef(receiverId).get().addOnSuccessListener(snapshot -> {
             if (snapshot.exists()) {
                 receiver = snapshot.toObject(User.class);
@@ -114,21 +166,66 @@ public class ChatActivity extends AppCompatActivity {
                     receiver.setId(snapshot.getId());
                     updateToolbarWithReceiver();
                     updateAdapterPrivacySettings();
+
+                    // Update adapter reference
+                    if (adapter != null) {
+                        adapter.updateOtherUser(receiver);
+                    }
+
+                    Log.d(TAG, "Receiver loaded successfully: " + receiver.getName());
                 }
+            } else {
+                Log.e(TAG, "Receiver not found: " + receiverId);
+                Toast.makeText(this, "User not found", Toast.LENGTH_SHORT).show();
+                finish();
             }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Failed to load receiver", e);
+            Toast.makeText(this, "Failed to load user data", Toast.LENGTH_SHORT).show();
+            finish();
         });
+    }
+
+    private void checkBlockStatus() {
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirestoreUtil.checkIfBlocked(currentUserId, receiverId, blocked -> {
+            isBlocked = blocked;
+            updateInputState();
+        });
+    }
+
+    private void updateInputState() {
+        if (isBlocked) {
+            binding.etMessage.setEnabled(false);
+            binding.btnSend.setEnabled(false);
+            binding.btnAttach.setEnabled(false);
+            binding.etMessage.setHint("You have blocked this user");
+        } else {
+            binding.etMessage.setEnabled(true);
+            binding.btnSend.setEnabled(true);
+            binding.btnAttach.setEnabled(true);
+            binding.etMessage.setHint(getString(R.string.type_a_message));
+        }
     }
 
     private void updateToolbarWithReceiver() {
         if (receiver == null) return;
 
-        binding.toolbar.setTitle(receiver.getName());
-        updateUserStatus();
+        // Set user name
+        binding.tvUserName.setText(receiver.getName());
 
         // Load profile picture in toolbar if privacy allows
         if (receiver.isProfilePhotoEnabled() && receiver.getImageUrl() != null && !receiver.getImageUrl().isEmpty()) {
-            // Implementation for profile image in toolbar
+            Glide.with(this)
+                    .load(receiver.getImageUrl())
+                    .transform(new CircleCrop())
+                    .placeholder(R.drawable.defaultprofile)
+                    .into(binding.toolbarProfileImage);
+        } else {
+            binding.toolbarProfileImage.setImageResource(R.drawable.defaultprofile);
         }
+
+        updateUserStatus();
     }
 
     private void updateUserStatus() {
@@ -136,7 +233,9 @@ public class ChatActivity extends AppCompatActivity {
 
         if (receiver.isLastSeenEnabled()) {
             if (receiver.isOnline()) {
-                binding.toolbar.setSubtitle("online");
+                binding.tvUserStatus.setText("online");
+                binding.tvUserStatus.setVisibility(View.VISIBLE);
+                binding.onlineIndicator.setVisibility(View.VISIBLE);
             } else {
                 long lastSeen = receiver.getLastSeen();
                 if (lastSeen > 0) {
@@ -145,13 +244,17 @@ public class ChatActivity extends AppCompatActivity {
                             System.currentTimeMillis(),
                             DateUtils.MINUTE_IN_MILLIS
                     ).toString();
-                    binding.toolbar.setSubtitle("last seen " + timeAgo);
+                    binding.tvUserStatus.setText("last seen " + timeAgo);
+                    binding.tvUserStatus.setVisibility(View.VISIBLE);
                 } else {
-                    binding.toolbar.setSubtitle("offline");
+                    binding.tvUserStatus.setText("offline");
+                    binding.tvUserStatus.setVisibility(View.VISIBLE);
                 }
+                binding.onlineIndicator.setVisibility(View.GONE);
             }
         } else {
-            binding.toolbar.setSubtitle("");
+            binding.tvUserStatus.setVisibility(View.GONE);
+            binding.onlineIndicator.setVisibility(View.GONE);
         }
     }
 
@@ -164,26 +267,67 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+    private void ensureChatExists() {
+        Log.d(TAG, "Ensuring chat exists: " + chatId);
+
+        // Check if chat exists, if not create it
+        FirestoreUtil.getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (!dataSnapshot.exists()) {
+                    Log.d(TAG, "Chat doesn't exist, creating new chat: " + chatId);
+                    // Create new chat
+                    FirestoreUtil.createNewChatInRealtime(chatId,
+                            FirebaseAuth.getInstance().getUid(), receiverId);
+                } else {
+                    Log.d(TAG, "Chat already exists: " + chatId);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.e(TAG, "Failed to check chat existence", databaseError.toException());
+            }
+        });
+    }
+
     private void setupMessageListener() {
+        Log.d(TAG, "Setting up message listener for chat: " + chatId);
+
         messageListener = new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
-                // FIX: Use getValue() instead of toObject() for Realtime Database
+                Log.d(TAG, "Message added: " + dataSnapshot.getKey());
+
                 Message message = dataSnapshot.getValue(Message.class);
                 if (message != null) {
                     message.setId(dataSnapshot.getKey());
-                    messages.add(message);
-                    updateMessagesWithDateHeaders();
 
-                    if (!message.getSenderId().equals(FirebaseAuth.getInstance().getUid())) {
-                        updateMessageStatus(message.getId(), Message.STATUS_DELIVERED);
+                    // Add message to list only if it's not already there
+                    boolean messageExists = false;
+                    for (Message existingMessage : messages) {
+                        if (existingMessage.getId().equals(message.getId())) {
+                            messageExists = true;
+                            break;
+                        }
+                    }
+
+                    if (!messageExists) {
+                        messages.add(message);
+                        updateMessagesWithDateHeaders();
+
+                        // Mark message as delivered if it's not from current user
+                        if (!message.getSenderId().equals(FirebaseAuth.getInstance().getUid())) {
+                            updateMessageStatus(message.getId(), Message.STATUS_DELIVERED);
+                        }
                     }
                 }
             }
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
-                // FIX: Use getValue() instead of toObject() for Realtime Database
+                Log.d(TAG, "Message changed: " + dataSnapshot.getKey());
+
                 Message updatedMessage = dataSnapshot.getValue(Message.class);
                 if (updatedMessage != null) {
                     updatedMessage.setId(dataSnapshot.getKey());
@@ -200,6 +344,8 @@ public class ChatActivity extends AppCompatActivity {
 
             @Override
             public void onChildRemoved(DataSnapshot dataSnapshot) {
+                Log.d(TAG, "Message removed: " + dataSnapshot.getKey());
+
                 String messageId = dataSnapshot.getKey();
                 messages.removeIf(message -> message.getId().equals(messageId));
                 updateMessagesWithDateHeaders();
@@ -210,6 +356,7 @@ public class ChatActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
+                Log.e(TAG, "Message listener cancelled", databaseError.toException());
                 Toast.makeText(ChatActivity.this, "Failed to load messages", Toast.LENGTH_SHORT).show();
             }
         };
@@ -223,8 +370,11 @@ public class ChatActivity extends AppCompatActivity {
             public void onDataChange(DataSnapshot dataSnapshot) {
                 Boolean isOtherUserTyping = dataSnapshot.child(receiverId).getValue(Boolean.class);
                 if (isOtherUserTyping != null && isOtherUserTyping) {
-                    binding.toolbar.setSubtitle("typing...");
+                    binding.tvUserStatus.setText("typing...");
+                    binding.tvUserStatus.setVisibility(View.VISIBLE);
+                    binding.typingIndicator.setVisibility(View.VISIBLE);
                 } else {
+                    binding.typingIndicator.setVisibility(View.GONE);
                     updateUserStatus();
                 }
             }
@@ -234,6 +384,27 @@ public class ChatActivity extends AppCompatActivity {
         };
 
         FirestoreUtil.getTypingRef(chatId).addValueEventListener(typingListener);
+    }
+
+    private void setupOnlineStatusListener() {
+        onlineStatusListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Boolean isOnline = dataSnapshot.child("online").getValue(Boolean.class);
+                Long lastSeen = dataSnapshot.child("lastSeen").getValue(Long.class);
+
+                if (receiver != null) {
+                    receiver.setOnline(isOnline != null ? isOnline : false);
+                    receiver.setLastSeen(lastSeen != null ? lastSeen : 0);
+                    updateUserStatus();
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {}
+        };
+
+        FirestoreUtil.getRealtimePresenceRef(receiverId).addValueEventListener(onlineStatusListener);
     }
 
     private void setupClickListeners() {
@@ -246,16 +417,31 @@ public class ChatActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                boolean shouldShowTyping = s.length() > 0;
-                if (shouldShowTyping != isTyping) {
-                    isTyping = shouldShowTyping;
-                    FirestoreUtil.setTyping(chatId, FirebaseAuth.getInstance().getUid(), isTyping);
+                if (!isBlocked) {
+                    boolean shouldShowTyping = s.length() > 0;
+                    if (shouldShowTyping != isTyping) {
+                        isTyping = shouldShowTyping;
+                        FirestoreUtil.setTyping(chatId, FirebaseAuth.getInstance().getUid(), isTyping);
+                    }
                 }
             }
 
             @Override
             public void afterTextChanged(Editable s) {}
         });
+
+        // Click on toolbar to view user profile
+        binding.toolbarContent.setOnClickListener(v -> viewUserProfile());
+    }
+
+    private void viewUserProfile() {
+        if (receiver != null) {
+            // You can implement a user profile activity here
+            // Intent intent = new Intent(this, UserProfileActivity.class);
+            // intent.putExtra("userId", receiver.getId());
+            // startActivity(intent);
+            Toast.makeText(this, "Profile: " + receiver.getName(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void updateMessagesWithDateHeaders() {
@@ -268,20 +454,30 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void showAttachmentOptions() {
-        String[] options = {"Image", "Video", "Audio"};
+        if (isBlocked) {
+            Toast.makeText(this, "You cannot send attachments to blocked users", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        String[] options = {"Image", "Video", "Camera", "Document"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Send Media")
                 .setItems(options, (dialog, which) -> {
                     switch (which) {
-                        case 0:
+                        case 0: // Image
                             imagePickerLauncher.launch("image/*");
                             break;
-                        case 1:
+                        case 1: // Video
                             videoPickerLauncher.launch("video/*");
                             break;
-                        case 2:
-                            Toast.makeText(this, "Audio recording coming soon", Toast.LENGTH_SHORT).show();
+                        case 2: // Camera
+                            // TODO: Implement camera capture
+                            Toast.makeText(this, "Camera feature coming soon", Toast.LENGTH_SHORT).show();
+                            break;
+                        case 3: // Document
+                            // TODO: Implement document picker
+                            Toast.makeText(this, "Document feature coming soon", Toast.LENGTH_SHORT).show();
                             break;
                     }
                 })
@@ -289,7 +485,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void handleImageSelection(Uri imageUri) {
-        if (imageUri != null) {
+        if (imageUri != null && !isBlocked) {
             showLoading(true);
             CloudinaryUtil.getInstance()
                     .uploadImage(imageUri, "chat_images/" + chatId, this)
@@ -307,8 +503,9 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+
     private void handleVideoSelection(Uri videoUri) {
-        if (videoUri != null) {
+        if (videoUri != null && !isBlocked) {
             showLoading(true);
             CloudinaryUtil.getInstance()
                     .uploadVideo(videoUri, chatId, this)
@@ -326,9 +523,17 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+
     private void sendTextMessage() {
+        if (isBlocked) {
+            Toast.makeText(this, "You cannot send messages to blocked users", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         String text = binding.etMessage.getText().toString().trim();
         if (text.isEmpty()) return;
+
+        Log.d(TAG, "Sending text message: " + text);
 
         String senderId = FirebaseAuth.getInstance().getUid();
         FirestoreUtil.sendMessageToRealtime(chatId, senderId, text, "text", null);
@@ -338,48 +543,122 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void sendImageMessage(String imageUrl) {
+        if (isBlocked) return;
+
+        Log.d(TAG, "Sending image message: " + imageUrl);
+
         String senderId = FirebaseAuth.getInstance().getUid();
 
         Map<String, Object> mediaData = new HashMap<>();
         mediaData.put("imageUrl", imageUrl);
 
-        FirestoreUtil.sendMessageToRealtime(chatId, senderId, "📷 Image", "image", mediaData);
+        FirestoreUtil.sendMessageToRealtime(chatId, senderId, "📷 Photo", "image", mediaData);
     }
 
     private void sendVideoMessage(String videoUrl) {
+        if (isBlocked) return;
+
+        Log.d(TAG, "Sending video message: " + videoUrl);
+
         String senderId = FirebaseAuth.getInstance().getUid();
 
         Map<String, Object> mediaData = new HashMap<>();
         mediaData.put("videoUrl", videoUrl);
+        // TODO: Generate thumbnail for video
+        mediaData.put("thumbnailUrl", "");
 
         FirestoreUtil.sendMessageToRealtime(chatId, senderId, "🎥 Video", "video", mediaData);
     }
 
-    private void sendAudioMessage(String audioUrl, long duration) {
-        String senderId = FirebaseAuth.getInstance().getUid();
-
-        Map<String, Object> mediaData = new HashMap<>();
-        mediaData.put("audioUrl", audioUrl);
-        mediaData.put("duration", duration);
-
-        FirestoreUtil.sendMessageToRealtime(chatId, senderId, "🎤 Audio", "audio", mediaData);
-    }
-
     private void updateMessageStatus(String messageId, int status) {
-        FirestoreUtil.getMessagesRef(chatId)
-                .child(messageId)
-                .child("status")
-                .setValue(status);
+        if (!isBlocked) {
+            FirestoreUtil.getMessagesRef(chatId)
+                    .child(messageId)
+                    .child("status")
+                    .setValue(status);
+        }
     }
 
     private void markMessagesAsRead() {
-        FirestoreUtil.markMessagesAsRead(chatId, FirebaseAuth.getInstance().getUid());
+        if (!isBlocked) {
+            FirestoreUtil.markMessagesAsRead(chatId, FirebaseAuth.getInstance().getUid());
+        }
+    }
+
+    private void blockUser() {
+        new AlertDialog.Builder(this)
+                .setTitle("Block User")
+                .setMessage("Are you sure you want to block " + receiver.getName() + "? You won't receive messages from them.")
+                .setPositiveButton("Block", (dialog, which) -> {
+                    String currentUserId = FirebaseAuth.getInstance().getUid();
+                    FirestoreUtil.blockUser(currentUserId, receiverId);
+                    isBlocked = true;
+                    updateInputState();
+                    Toast.makeText(this, receiver.getName() + " has been blocked", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void unblockUser() {
+        new AlertDialog.Builder(this)
+                .setTitle("Unblock User")
+                .setMessage("Are you sure you want to unblock " + receiver.getName() + "?")
+                .setPositiveButton("Unblock", (dialog, which) -> {
+                    String currentUserId = FirebaseAuth.getInstance().getUid();
+                    FirestoreUtil.unblockUser(currentUserId, receiverId);
+                    isBlocked = false;
+                    updateInputState();
+                    Toast.makeText(this, receiver.getName() + " has been unblocked", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void removeFriend() {
+        new AlertDialog.Builder(this)
+                .setTitle("Remove Friend")
+                .setMessage("Are you sure you want to remove " + receiver.getName() + " from your friends?")
+                .setPositiveButton("Remove", (dialog, which) -> {
+                    String currentUserId = FirebaseAuth.getInstance().getUid();
+                    FirestoreUtil.removeFriend(currentUserId, receiverId);
+                    Toast.makeText(this, receiver.getName() + " has been removed from friends", Toast.LENGTH_SHORT).show();
+                    finish(); // Close chat since they're no longer friends
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void clearChatHistory() {
+        new AlertDialog.Builder(this)
+                .setTitle("Clear Chat")
+                .setMessage("Are you sure you want to clear all messages in this chat?")
+                .setPositiveButton("Clear", (dialog, which) -> {
+                    FirestoreUtil.clearChatHistory(chatId);
+                    messages.clear();
+                    items.clear();
+                    adapter.notifyDataSetChanged();
+                    Toast.makeText(this, "Chat history cleared", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void showLoading(boolean show) {
-        binding.btnSend.setEnabled(!show);
-        binding.btnAttach.setEnabled(!show);
-        binding.etMessage.setEnabled(!show);
+        binding.btnSend.setEnabled(!show && !isBlocked);
+        binding.btnAttach.setEnabled(!show && !isBlocked);
+        binding.etMessage.setEnabled(!show && !isBlocked);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Update user presence
+        String currentUserId = FirebaseAuth.getInstance().getUid();
+        FirestoreUtil.updateUserPresence(currentUserId, true);
+
+        // Mark messages as read when returning to chat
+        markMessagesAsRead();
     }
 
     @Override
@@ -389,17 +668,26 @@ public class ChatActivity extends AppCompatActivity {
             FirestoreUtil.setTyping(chatId, FirebaseAuth.getInstance().getUid(), false);
             isTyping = false;
         }
+
+        // Update user presence
+        String currentUserId = FirebaseAuth.getInstance().getUid();
+        FirestoreUtil.updateUserPresence(currentUserId, false);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
+        Log.d(TAG, "ChatActivity destroyed, removing listeners");
+
         if (messageListener != null) {
             FirestoreUtil.getMessagesRef(chatId).removeEventListener(messageListener);
         }
         if (typingListener != null) {
             FirestoreUtil.getTypingRef(chatId).removeEventListener(typingListener);
+        }
+        if (onlineStatusListener != null) {
+            FirestoreUtil.getRealtimePresenceRef(receiverId).removeEventListener(onlineStatusListener);
         }
 
         if (isTyping) {

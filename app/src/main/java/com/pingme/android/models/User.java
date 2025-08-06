@@ -1,40 +1,48 @@
 package com.pingme.android.models;
 
-import androidx.databinding.BaseObservable;
-import androidx.databinding.Bindable;
-import com.pingme.android.BR;
-import java.util.ArrayList;
-import java.util.List;
+import androidx.annotation.NonNull;
+
 import java.util.Objects;
 
-public class User extends BaseObservable {
+public class User {
     private String id;
     private String name;
     private String email;
+    private String phoneNumber;
     private String imageUrl;
-    private String status;
     private String about;
-    private String phone;
-    private long joinedDate;
     private boolean isOnline;
     private long lastSeen;
     private String fcmToken;
-    private List<String> friends;
 
-    // Preference settings
+    // Privacy settings
+    private boolean profilePhotoEnabled = true;
     private boolean lastSeenEnabled = true;
     private boolean aboutEnabled = true;
     private boolean readReceiptsEnabled = true;
-    private boolean profilePhotoEnabled = true;
-    private String theme = "auto";
 
+    // Additional fields
+    private long joinedAt;
+    private String status;
+    private boolean isBlocked;
+
+    // Default constructor
     public User() {
-        this.about = "Hey there! I'm using PingMe";
-        this.joinedDate = System.currentTimeMillis();
-        this.lastSeen = System.currentTimeMillis();
-        this.friends = new ArrayList<>();
+        this.joinedAt = System.currentTimeMillis();
+        this.about = "Hey there! I am using PingMe.";
+        this.isOnline = false;
+        this.lastSeen = 0;
     }
 
+    // Constructor for registration
+    public User(String name, String email, String phoneNumber) {
+        this();
+        this.name = name;
+        this.email = email;
+        this.phoneNumber = phoneNumber;
+    }
+
+    // Constructor for setup profile
     public User(String id, String name, String email, String imageUrl, String status) {
         this();
         this.id = id;
@@ -44,91 +52,189 @@ public class User extends BaseObservable {
         this.status = status;
     }
 
-    // Getters with @Bindable
-    @Bindable public String getId() { return id; }
-    @Bindable public String getName() { return name != null ? name : ""; }
-    @Bindable public String getEmail() { return email != null ? email : ""; }
-    @Bindable public String getImageUrl() { return imageUrl != null ? imageUrl : ""; }
-    @Bindable public String getStatus() { return status != null ? status : ""; }
-    @Bindable public String getAbout() { return about != null ? about : ""; }
-    @Bindable public String getPhone() { return phone != null ? phone : ""; }
-    @Bindable public long getJoinedDate() { return joinedDate; }
-    @Bindable public boolean isOnline() { return isOnline; }
-    @Bindable public long getLastSeen() { return lastSeen; }
-    @Bindable public String getFcmToken() { return fcmToken; }
-    @Bindable public List<String> getFriends() { return friends != null ? friends : new ArrayList<>(); }
+    // Getters
+    public String getId() { return id; }
+    public String getName() { return name != null ? name : ""; }
+    public String getEmail() { return email != null ? email : ""; }
+    public String getPhoneNumber() { return phoneNumber != null ? phoneNumber : ""; }
+    public String getImageUrl() { return imageUrl; }
+    public String getAbout() { return about != null ? about : "Hey there! I am using PingMe."; }
+    public boolean isOnline() { return isOnline; }
+    public long getLastSeen() { return lastSeen; }
+    public String getFcmToken() { return fcmToken; }
+    public long getJoinedAt() { return joinedAt; }
+    public String getStatus() { return status; }
+    public boolean isBlocked() { return isBlocked; }
 
-    // Preference getters
-    @Bindable public boolean isLastSeenEnabled() { return lastSeenEnabled; }
-    @Bindable public boolean isAboutEnabled() { return aboutEnabled; }
-    @Bindable public boolean isReadReceiptsEnabled() { return readReceiptsEnabled; }
-    @Bindable public boolean isProfilePhotoEnabled() { return profilePhotoEnabled; }
-    @Bindable public String getTheme() { return theme; }
+    // Privacy settings getters
+    public boolean isProfilePhotoEnabled() { return profilePhotoEnabled; }
+    public boolean isLastSeenEnabled() { return lastSeenEnabled; }
+    public boolean isAboutEnabled() { return aboutEnabled; }
+    public boolean isReadReceiptsEnabled() { return readReceiptsEnabled; }
 
-    // Setters with notifyPropertyChanged
-    public void setId(String id) { this.id = id; notifyPropertyChanged(BR.id); }
-    public void setName(String name) { this.name = name; notifyPropertyChanged(BR.name); }
-    public void setEmail(String email) { this.email = email; notifyPropertyChanged(BR.email); }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; notifyPropertyChanged(BR.imageUrl); }
-    public void setStatus(String status) { this.status = status; notifyPropertyChanged(BR.status); }
-    public void setAbout(String about) { this.about = about; notifyPropertyChanged(BR.about); }
-    public void setPhone(String phone) { this.phone = phone; notifyPropertyChanged(BR.phone); }
-    public void setJoinedDate(long joinedDate) { this.joinedDate = joinedDate; notifyPropertyChanged(BR.joinedDate); }
-    public void setOnline(boolean online) { this.isOnline = online; notifyPropertyChanged(BR.online); }
-    public void setLastSeen(long lastSeen) { this.lastSeen = lastSeen; notifyPropertyChanged(BR.lastSeen); }
-    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; notifyPropertyChanged(BR.fcmToken); }
-    public void setFriends(List<String> friends) { this.friends = friends; notifyPropertyChanged(BR.friends); }
+    // Setters
+    public void setId(String id) { this.id = id; }
+    public void setName(String name) { this.name = name; }
+    public void setEmail(String email) { this.email = email; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public void setAbout(String about) { this.about = about; }
+    public void setOnline(boolean online) { isOnline = online; }
+    public void setLastSeen(long lastSeen) { this.lastSeen = lastSeen; }
+    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
+    public void setJoinedAt(long joinedAt) { this.joinedAt = joinedAt; }
+    public void setStatus(String status) { this.status = status; }
+    public void setBlocked(boolean blocked) { isBlocked = blocked; }
 
-    // Preference setters
-    public void setLastSeenEnabled(boolean lastSeenEnabled) {
-        this.lastSeenEnabled = lastSeenEnabled;
-        notifyPropertyChanged(BR.lastSeenEnabled);
-    }
-
-    public void setAboutEnabled(boolean aboutEnabled) {
-        this.aboutEnabled = aboutEnabled;
-        notifyPropertyChanged(BR.aboutEnabled);
-    }
-
-    public void setReadReceiptsEnabled(boolean readReceiptsEnabled) {
-        this.readReceiptsEnabled = readReceiptsEnabled;
-        notifyPropertyChanged(BR.readReceiptsEnabled);
-    }
-
+    // Privacy settings setters
     public void setProfilePhotoEnabled(boolean profilePhotoEnabled) {
         this.profilePhotoEnabled = profilePhotoEnabled;
-        notifyPropertyChanged(BR.profilePhotoEnabled);
+    }
+    public void setLastSeenEnabled(boolean lastSeenEnabled) {
+        this.lastSeenEnabled = lastSeenEnabled;
+    }
+    public void setAboutEnabled(boolean aboutEnabled) {
+        this.aboutEnabled = aboutEnabled;
+    }
+    public void setReadReceiptsEnabled(boolean readReceiptsEnabled) {
+        this.readReceiptsEnabled = readReceiptsEnabled;
     }
 
-    public void setTheme(String theme) {
-        this.theme = theme;
-        notifyPropertyChanged(BR.theme);
+    // Helper methods
+    public boolean hasProfilePhoto() {
+        return imageUrl != null && !imageUrl.trim().isEmpty() && profilePhotoEnabled;
     }
 
-    public void addFriend(String friendId) {
-        if (!friends.contains(friendId)) {
-            friends.add(friendId);
-            notifyPropertyChanged(BR.friends);
+    public String getDisplayName() {
+        if (name != null && !name.trim().isEmpty()) {
+            return name;
+        } else if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
+            return phoneNumber;
+        } else if (email != null && !email.trim().isEmpty()) {
+            return email.split("@")[0];
         }
+        return "Unknown User";
     }
 
-    public void removeFriend(String friendId) {
-        if (friends.contains(friendId)) {
-            friends.remove(friendId);
-            notifyPropertyChanged(BR.friends);
+    public String getDisplayAbout() {
+        return aboutEnabled ? getAbout() : "";
+    }
+
+    public boolean shouldShowLastSeen() {
+        return lastSeenEnabled;
+    }
+
+    public boolean shouldShowProfilePhoto() {
+        return profilePhotoEnabled;
+    }
+
+    public boolean shouldShowReadReceipts() {
+        return readReceiptsEnabled;
+    }
+
+    public String getOnlineStatus() {
+        if (!lastSeenEnabled) {
+            return "";
         }
+
+        if (isOnline) {
+            return "online";
+        } else if (lastSeen > 0) {
+            long diff = System.currentTimeMillis() - lastSeen;
+            long minutes = diff / (1000 * 60);
+            long hours = minutes / 60;
+            long days = hours / 24;
+
+            if (minutes < 1) return "last seen just now";
+            if (minutes < 60) return "last seen " + minutes + " minute" + (minutes > 1 ? "s" : "") + " ago";
+            if (hours < 24) return "last seen " + hours + " hour" + (hours > 1 ? "s" : "") + " ago";
+            if (days < 7) return "last seen " + days + " day" + (days > 1 ? "s" : "") + " ago";
+            return "last seen a long time ago";
+        }
+        return "offline";
     }
 
+    // Validation methods
+    public boolean isValidEmail() {
+        return email != null && email.contains("@") && email.contains(".");
+    }
+
+    public boolean isValidPhoneNumber() {
+        return phoneNumber != null && phoneNumber.length() >= 10;
+    }
+
+    public boolean isComplete() {
+        return name != null && !name.trim().isEmpty() &&
+                (isValidEmail() || isValidPhoneNumber());
+    }
+
+    // Copy
+    public User copy() {
+        User copy = new User();
+        copy.id = this.id;
+        copy.name = this.name;
+        copy.email = this.email;
+        copy.phoneNumber = this.phoneNumber;
+        copy.imageUrl = this.imageUrl;
+        copy.about = this.about;
+        copy.isOnline = this.isOnline;
+        copy.lastSeen = this.lastSeen;
+        copy.fcmToken = this.fcmToken;
+        copy.profilePhotoEnabled = this.profilePhotoEnabled;
+        copy.lastSeenEnabled = this.lastSeenEnabled;
+        copy.aboutEnabled = this.aboutEnabled;
+        copy.readReceiptsEnabled = this.readReceiptsEnabled;
+        copy.joinedAt = this.joinedAt;
+        copy.status = this.status;
+        copy.isBlocked = this.isBlocked;
+        return copy;
+    }
+
+    // Equality
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (!(o instanceof User)) return false;
         User user = (User) o;
-        return Objects.equals(id, user.id);
+        return isOnline == user.isOnline &&
+                lastSeen == user.lastSeen &&
+                profilePhotoEnabled == user.profilePhotoEnabled &&
+                lastSeenEnabled == user.lastSeenEnabled &&
+                aboutEnabled == user.aboutEnabled &&
+                readReceiptsEnabled == user.readReceiptsEnabled &&
+                joinedAt == user.joinedAt &&
+                isBlocked == user.isBlocked &&
+                Objects.equals(id, user.id) &&
+                Objects.equals(name, user.name) &&
+                Objects.equals(email, user.email) &&
+                Objects.equals(phoneNumber, user.phoneNumber) &&
+                Objects.equals(imageUrl, user.imageUrl) &&
+                Objects.equals(about, user.about) &&
+                Objects.equals(fcmToken, user.fcmToken) &&
+                Objects.equals(status, user.status);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hash(id, name, email, phoneNumber, imageUrl, about, isOnline,
+                lastSeen, fcmToken, profilePhotoEnabled, lastSeenEnabled, aboutEnabled,
+                readReceiptsEnabled, joinedAt, status, isBlocked);
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "User{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", phoneNumber='" + phoneNumber + '\'' +
+                ", isOnline=" + isOnline +
+                ", lastSeen=" + lastSeen +
+                ", profilePhotoEnabled=" + profilePhotoEnabled +
+                ", lastSeenEnabled=" + lastSeenEnabled +
+                ", readReceiptsEnabled=" + readReceiptsEnabled +
+                ", isBlocked=" + isBlocked +
+                '}';
     }
 }

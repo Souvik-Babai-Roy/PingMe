@@ -20,6 +20,7 @@ public class AddFriendActivity extends AppCompatActivity {
     private ActivityAddFriendBinding binding;
     private String currentUserId;
     private User foundUser;
+    private User currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +32,7 @@ public class AddFriendActivity extends AppCompatActivity {
 
         setupToolbar();
         setupClickListeners();
+        loadCurrentUser();
     }
 
     private void setupToolbar() {
@@ -45,6 +47,21 @@ public class AddFriendActivity extends AppCompatActivity {
     private void setupClickListeners() {
         binding.btnSearch.setOnClickListener(v -> searchUserByEmail());
         binding.btnAddFriend.setOnClickListener(v -> addFriend());
+    }
+
+    private void loadCurrentUser() {
+        FirestoreUtil.getUserRef(currentUserId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        currentUser = documentSnapshot.toObject(User.class);
+                        if (currentUser != null) {
+                            currentUser.setId(documentSnapshot.getId());
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to load user data", Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void searchUserByEmail() {
@@ -79,8 +96,9 @@ public class AddFriendActivity extends AppCompatActivity {
 
                         if (foundUser != null) {
                             foundUser.setId(doc.getId());
-                            displayFoundUser(foundUser);
-                            checkFriendshipStatus(foundUser.getId());
+
+                            // Check if user is blocked
+                            checkIfBlocked(foundUser.getId());
                         }
                     } else {
                         showUserNotFound();
@@ -90,6 +108,26 @@ public class AddFriendActivity extends AppCompatActivity {
                     showLoading(false);
                     Toast.makeText(this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private void checkIfBlocked(String userId) {
+        FirestoreUtil.checkIfBlocked(currentUserId, userId, isBlocked -> {
+            if (isBlocked) {
+                Toast.makeText(this, "Cannot add this user", Toast.LENGTH_SHORT).show();
+                showUserNotFound();
+            } else {
+                // Check if user has blocked current user
+                FirestoreUtil.checkIfBlocked(userId, currentUserId, hasBlockedMe -> {
+                    if (hasBlockedMe) {
+                        Toast.makeText(this, "Cannot add this user", Toast.LENGTH_SHORT).show();
+                        showUserNotFound();
+                    } else {
+                        displayFoundUser(foundUser);
+                        checkFriendshipStatus(foundUser.getId());
+                    }
+                });
+            }
+        });
     }
 
     private void displayFoundUser(User user) {
@@ -115,6 +153,61 @@ public class AddFriendActivity extends AppCompatActivity {
         } else {
             binding.ivUserProfile.setImageResource(R.drawable.ic_profile);
         }
+
+        // Show online status only if user allows it
+        if (user.isLastSeenEnabled()) {
+            loadUserPresence(user);
+        } else {
+            binding.tvOnlineStatus.setVisibility(View.GONE);
+            binding.onlineIndicator.setVisibility(View.GONE);
+        }
+    }
+
+    private void loadUserPresence(User user) {
+        FirestoreUtil.getRealtimePresenceRef(user.getId())
+                .addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+                    @Override
+                    public void onDataChange(com.google.firebase.database.DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.exists()) {
+                            Boolean isOnline = dataSnapshot.child("online").getValue(Boolean.class);
+                            Long lastSeen = dataSnapshot.child("lastSeen").getValue(Long.class);
+
+                            if (isOnline != null && isOnline) {
+                                binding.tvOnlineStatus.setText("online");
+                                binding.tvOnlineStatus.setVisibility(View.VISIBLE);
+                                binding.onlineIndicator.setVisibility(View.VISIBLE);
+                            } else if (lastSeen != null && lastSeen > 0) {
+                                long diff = System.currentTimeMillis() - lastSeen;
+                                String lastSeenText = formatLastSeen(diff);
+                                binding.tvOnlineStatus.setText(lastSeenText);
+                                binding.tvOnlineStatus.setVisibility(View.VISIBLE);
+                                binding.onlineIndicator.setVisibility(View.GONE);
+                            } else {
+                                binding.tvOnlineStatus.setText("offline");
+                                binding.tvOnlineStatus.setVisibility(View.VISIBLE);
+                                binding.onlineIndicator.setVisibility(View.GONE);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(com.google.firebase.database.DatabaseError databaseError) {
+                        binding.tvOnlineStatus.setVisibility(View.GONE);
+                        binding.onlineIndicator.setVisibility(View.GONE);
+                    }
+                });
+    }
+
+    private String formatLastSeen(long diffMs) {
+        long minutes = diffMs / (1000 * 60);
+        long hours = minutes / 60;
+        long days = hours / 24;
+
+        if (minutes < 1) return "last seen just now";
+        if (minutes < 60) return "last seen " + minutes + " minute" + (minutes > 1 ? "s" : "") + " ago";
+        if (hours < 24) return "last seen " + hours + " hour" + (hours > 1 ? "s" : "") + " ago";
+        if (days < 7) return "last seen " + days + " day" + (days > 1 ? "s" : "") + " ago";
+        return "last seen a long time ago";
     }
 
     private void checkFriendshipStatus(String userId) {
@@ -144,7 +237,10 @@ public class AddFriendActivity extends AppCompatActivity {
     }
 
     private void addFriend() {
-        if (foundUser == null) return;
+        if (foundUser == null || currentUser == null) {
+            Toast.makeText(this, "Unable to add friend. Please try again.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         showLoading(true);
 
@@ -154,37 +250,23 @@ public class AddFriendActivity extends AppCompatActivity {
                 .set(foundUser)
                 .addOnSuccessListener(aVoid -> {
                     // Add current user to found user's friends list
-                    FirestoreUtil.getUserRef(currentUserId)
-                            .get()
-                            .addOnSuccessListener(documentSnapshot -> {
-                                User currentUser = documentSnapshot.toObject(User.class);
-                                if (currentUser != null) {
-                                    currentUser.setId(documentSnapshot.getId());
+                    FirestoreUtil.getFriendsRef(foundUser.getId())
+                            .document(currentUserId)
+                            .set(currentUser)
+                            .addOnSuccessListener(aVoid1 -> {
+                                // Create empty chat between users
+                                createChatBetweenUsers(currentUser, foundUser);
 
-                                    FirestoreUtil.getFriendsRef(foundUser.getId())
-                                            .document(currentUserId)
-                                            .set(currentUser)
-                                            .addOnSuccessListener(aVoid1 -> {
-                                                // Create chat between users in Realtime Database
-                                                createChatBetweenUsers(currentUser, foundUser);
-
-                                                showLoading(false);
-                                                Toast.makeText(this, "Friend added successfully!", Toast.LENGTH_SHORT).show();
-                                                binding.btnAddFriend.setText("Added");
-                                                binding.btnAddFriend.setEnabled(false);
-                                                binding.btnAddFriend.setBackgroundTintList(
-                                                        getColorStateList(android.R.color.darker_gray));
-                                            })
-                                            .addOnFailureListener(e -> {
-                                                showLoading(false);
-                                                Toast.makeText(this, "Failed to complete friend request: " + e.getMessage(),
-                                                        Toast.LENGTH_SHORT).show();
-                                            });
-                                }
+                                showLoading(false);
+                                Toast.makeText(this, "Friend added successfully!", Toast.LENGTH_SHORT).show();
+                                binding.btnAddFriend.setText("Added");
+                                binding.btnAddFriend.setEnabled(false);
+                                binding.btnAddFriend.setBackgroundTintList(
+                                        getColorStateList(android.R.color.darker_gray));
                             })
                             .addOnFailureListener(e -> {
                                 showLoading(false);
-                                Toast.makeText(this, "Failed to get current user: " + e.getMessage(),
+                                Toast.makeText(this, "Failed to complete friend request: " + e.getMessage(),
                                         Toast.LENGTH_SHORT).show();
                             });
                 })
@@ -197,10 +279,10 @@ public class AddFriendActivity extends AppCompatActivity {
     private void createChatBetweenUsers(User currentUser, User otherUser) {
         String chatId = FirestoreUtil.generateChatId(currentUser.getId(), otherUser.getId());
 
-        // Create chat in Realtime Database (this will automatically make it available in chat list)
-        FirestoreUtil.createNewChatInRealtime(chatId, currentUser.getId(), otherUser.getId());
+        // Create empty chat for friends (will appear in chat list)
+        FirestoreUtil.createEmptyFriendChat(currentUser.getId(), otherUser.getId());
 
-        Toast.makeText(this, "Chat created! You can now message " + otherUser.getName(), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "You can now chat with " + otherUser.getName(), Toast.LENGTH_SHORT).show();
     }
 
     private void showUserNotFound() {
@@ -215,5 +297,11 @@ public class AddFriendActivity extends AppCompatActivity {
         if (foundUser != null && binding.btnAddFriend.isEnabled()) {
             binding.btnAddFriend.setEnabled(!show);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        binding = null;
     }
 }

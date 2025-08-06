@@ -30,7 +30,7 @@
     <color name="error_red">#662C2C</color>
     <color name="success_green">#2C662C</color>
     <color name="warning_orange">#66542C</color>
-    <color name="navy_night">#2C3A66</color>
+    <color name="indigo_info">#3C4C8A</color> <!-- matched to navy_night style -->
 
     <!-- Tab Colors -->
     <color name="tab_selected">#E0E0E0</color>
@@ -38,16 +38,18 @@
 
     <!-- Message Status Colors -->
     <color name="message_sent">#999999</color>
-    <color name="message_delivered">#AAAAAA</color>
-    <color name="message_read">#F0F0F0</color>
+    <color name="message_delivered">#7E57C2</color> <!-- match light theme tone -->
+    <color name="message_read">#7986CB</color>
 
     <!-- Online Status -->
     <color name="graphite_black">#2F2F2F</color>
     <color name="dim_graphite">#444444</color>
+    <color name="online_status">#4CAF50</color>
+    <color name="offline_status">#757575</color>
 
     <!-- Notification and Badge Colors -->
     <color name="notification_badge">#3A3A3A</color>
-    <color name="unread_count_bg">#505050</color>
+    <color name="unread_count_bg">#6A1B9A</color>
 
     <!-- Stroke and Border Colors -->
     <color name="strokeColor">#2B2B2B</color>
@@ -62,10 +64,12 @@
     <!-- Date Header -->
     <color name="date_header_background">#2A2A2A</color>
     <color name="date_header_text">#B0B0B0</color>
+    <color name="date_header_bg">#2A2A2A</color> <!-- same as above -->
 
     <!-- Input Field Colors -->
     <color name="input_background">#1E1E1E</color>
     <color name="input_focused">#3A3A3A</color>
+    <color name="input_stroke_color">#3A3A3A</color>
 
     <!-- Shadow Colors -->
     <color name="shadow_light">#66000000</color>
@@ -73,12 +77,26 @@
 
     <!-- Attachment Colors -->
     <color name="attachment_bg">#1E1E1E</color>
-    <color name="document_icon_bg">#2D2D2D</color>
+    <color name="document_icon_bg">#512DA8</color>
 
     <!-- Legacy Colors (for compatibility) -->
     <color name="text_secondary">#A0A0A0</color>
 
-    <!-- Miscellaneous -->
-    <color name="input_stroke_color">#3A3A3A</color>
+    <!-- Misc -->
     <color name="colorBackground">#0A0A0A</color>
+    <color name="typing_color">#7C4DFF</color> <!-- keeping contrast from primary -->
+    <color name="typing_indicator">#7C4DFF</color> <!-- same as typing_color -->
+
+    <!-- Message bubble custom -->
+    <color name="message_sent_bg">#3C3C3C</color>
+    <color name="message_received_bg">#1A1A1A</color>
+
+    <!-- Status -->
+    <color name="status_sent">#999999</color>
+    <color name="status_delivered">#999999</color>
+    <color name="status_read">#4FC3F7</color>
+
+    <!-- Privacy indicator colors -->
+    <color name="privacy_enabled">#4CAF50</color>
+    <color name="privacy_disabled">#F44336</color>
 </resources>

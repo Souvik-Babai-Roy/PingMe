@@ -45,7 +45,7 @@
                         android:layout_height="120dp"
                         android:src="@drawable/ic_profile"
                         app:imageUrl="@{viewModel.user.imageUrl}"
-                        app:placeholder="@{@drawable/ic_profile}" />
+                        app:placeholderDrawable="@{@drawable/ic_baseline_person_24}" />
 
                     <TextView
                         android:layout_width="wrap_content"
