@@ -51,6 +51,12 @@ public class ChatsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // FIXED: Check for null user to prevent crash
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            Log.e(TAG, "User not authenticated, cannot load chats");
+            updateEmptyState(true);
+            return;
+        }
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         Log.d(TAG, "ChatsFragment created for user: " + currentUserId);
 
@@ -108,10 +114,11 @@ public class ChatsFragment extends Fragment {
                             String chatId = FirestoreUtil.generateChatId(currentUserId, friend.getId());
                             friendChat.setId(chatId);
                             friendChat.setOtherUser(friend);
-                            friendChat.setLastMessage("Tap to start messaging");
-                            friendChat.setLastMessageTimestamp(System.currentTimeMillis());
+                            // FIXED: Better initialization for friend chats
+                            friendChat.setLastMessage("");
+                            friendChat.setLastMessageTimestamp(0);
                             friendChat.setLastMessageSenderId("");
-                            friendChat.setLastMessageType("empty_chat");
+                            friendChat.setLastMessageType("friend_added");
                             friendChat.setUnreadCount(0);
                             friendChat.setActive(false); // Start as inactive
 
@@ -290,12 +297,14 @@ public class ChatsFragment extends Fragment {
                     Chat existingChat = findChatById(chatId);
                     if (existingChat != null) {
                         Log.d(TAG, "Updating existing chat: " + chatId);
-                        // Update existing chat with real data
-                        existingChat.setLastMessage(lastMessage != null ? lastMessage : "");
-                        existingChat.setLastMessageTimestamp(lastMessageTimestamp != null ? lastMessageTimestamp : 0);
-                        existingChat.setLastMessageSenderId(lastMessageSenderId != null ? lastMessageSenderId : "");
-                        existingChat.setLastMessageType(lastMessageType != null ? lastMessageType : "text");
-                        existingChat.setActive(isActive != null ? isActive : false);
+                        // FIXED: Only update if there's actual message data
+                        if (lastMessage != null && !lastMessage.trim().isEmpty()) {
+                            existingChat.setLastMessage(lastMessage);
+                            existingChat.setLastMessageTimestamp(lastMessageTimestamp != null ? lastMessageTimestamp : System.currentTimeMillis());
+                            existingChat.setLastMessageSenderId(lastMessageSenderId != null ? lastMessageSenderId : "");
+                            existingChat.setLastMessageType(lastMessageType != null ? lastMessageType : "text");
+                            existingChat.setActive(isActive != null ? isActive : true);
+                        }
 
                         calculateUnreadCount(existingChat);
                         updateChatInList(existingChat);
@@ -512,8 +521,26 @@ public class ChatsFragment extends Fragment {
             FirestoreUtil.updateUserPresence(currentUserId, true);
         }
 
-        // Refresh chat list
-        refreshChats();
+        // FIXED: Only refresh if we have data, otherwise do full reload
+        if (chatList.isEmpty()) {
+            loadChats();
+        } else {
+            // Just refresh existing data to update timestamps and presence
+            refreshExistingChats();
+        }
+    }
+
+    private void refreshExistingChats() {
+        // Update presence for all users in the chat list
+        for (Chat chat : chatList) {
+            if (chat.getOtherUser() != null) {
+                loadUserPresence(chat.getOtherUser(), () -> {
+                    if (adapter != null) {
+                        adapter.addOrUpdateChat(chat);
+                    }
+                });
+            }
+        }
     }
 
     @Override

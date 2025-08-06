@@ -166,9 +166,12 @@ public class Chat extends BaseObservable implements Comparable<Chat> {
 
     @Bindable
     public boolean isEmpty() {
+        // FIXED: Better logic for determining empty chats
         return "empty_chat".equals(lastMessageType) ||
+                "friend_added".equals(lastMessageType) ||
                 lastMessage == null ||
                 lastMessage.trim().isEmpty() ||
+                "Tap to start messaging".equals(lastMessage) ||
                 lastMessageTimestamp <= 0;
     }
 

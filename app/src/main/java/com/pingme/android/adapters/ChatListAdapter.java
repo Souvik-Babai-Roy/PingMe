@@ -33,7 +33,12 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
 
     public ChatListAdapter(Context context) {
         this.context = context;
-        this.currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        // FIXED: Check for null user to prevent crash
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            this.currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        } else {
+            this.currentUserId = "";
+        }
     }
 
     @NonNull
@@ -104,21 +109,25 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             // Set user name
             binding.tvName.setText(otherUser.getDisplayName());
 
-            // Load profile image based on privacy settings
-            if (otherUser.isProfilePhotoEnabled() &&
-                    otherUser.getImageUrl() != null &&
-                    !otherUser.getImageUrl().isEmpty()) {
-
-                Glide.with(context)
-                        .load(otherUser.getImageUrl())
-                        .transform(new CircleCrop())
-                        .placeholder(R.drawable.defaultprofile)
-                        .into(binding.ivProfile);
-            } else {
+            // FIXED: Load profile image with better null checking and fallback
+            try {
+                if (otherUser.getImageUrl() != null && !otherUser.getImageUrl().trim().isEmpty()) {
+                    // Always try to load image first, privacy check is secondary
+                    Glide.with(context)
+                            .load(otherUser.getImageUrl())
+                            .transform(new CircleCrop())
+                            .placeholder(R.drawable.defaultprofile)
+                            .error(R.drawable.defaultprofile)
+                            .into(binding.ivProfile);
+                } else {
+                    binding.ivProfile.setImageResource(R.drawable.defaultprofile);
+                }
+            } catch (Exception e) {
+                // Fallback to default profile if Glide fails
                 binding.ivProfile.setImageResource(R.drawable.defaultprofile);
             }
 
-            // Show online indicator based on privacy settings
+            // FIXED: Show online indicator with better privacy and null checking
             if (otherUser.isLastSeenEnabled() && otherUser.isOnline()) {
                 binding.onlineIndicator.setVisibility(View.VISIBLE);
             } else {
@@ -178,30 +187,40 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             }
 
             String lastMessageType = chat.getLastMessageType();
+            String lastMessage = chat.getLastMessage();
 
-            if ("friend_added".equals(lastMessageType)) {
+            // FIXED: Better logic for determining empty vs active chats
+            boolean isEmptyChat = "empty_chat".equals(lastMessageType) || 
+                                 lastMessage == null || 
+                                 lastMessage.trim().isEmpty() ||
+                                 "Tap to start messaging".equals(lastMessage);
+
+            if ("friend_added".equals(lastMessageType) || isEmptyChat) {
                 return "Tap to start messaging";
             }
 
-            if ("empty_chat".equals(lastMessageType) ||
-                    chat.getLastMessage() == null ||
-                    chat.getLastMessage().trim().isEmpty()) {
-                return "No messages yet";
+            // For active chats with real messages
+            if (lastMessage != null && !lastMessage.trim().isEmpty() && 
+                !isEmptyChat && lastMessageType != null) {
+                
+                // Handle different message types
+                switch (lastMessageType) {
+                    case "image":
+                        return "📷 Photo";
+                    case "video":
+                        return "🎥 Video";
+                    case "audio":
+                        return "🎤 Audio";
+                    case "document":
+                        return "📄 Document";
+                    case "text":
+                    default:
+                        return lastMessage;
+                }
             }
 
-            // Handle different message types
-            switch (lastMessageType) {
-                case "image":
-                    return "📷 Photo";
-                case "video":
-                    return "🎥 Video";
-                case "audio":
-                    return "🎤 Audio";
-                case "document":
-                    return "📄 Document";
-                default:
-                    return chat.getLastMessage();
-            }
+            // Fallback for truly empty chats
+            return "No messages yet";
         }
 
         private String getFormattedTime(long timestamp) {
