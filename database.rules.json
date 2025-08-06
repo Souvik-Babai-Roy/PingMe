@@ -1,0 +1,287 @@
+{
+  "rules": {
+    // ===== CHAT MESSAGES =====
+    "messages": {
+      "$chatId": {
+        // Only participants of the chat can read/write messages
+        ".read": "auth != null && (root.child('chats').child($chatId).child('participants').child(auth.uid).exists())",
+        ".write": "auth != null && (root.child('chats').child($chatId).child('participants').child(auth.uid).exists())",
+        
+        "$messageId": {
+          // Message structure validation
+          ".validate": "newData.hasChildren(['senderId', 'content', 'timestamp', 'type']) && 
+                       newData.child('senderId').val() == auth.uid &&
+                       newData.child('timestamp').val() is number &&
+                       newData.child('type').val() is string &&
+                       newData.child('content').val() is string",
+          
+          // Individual fields
+          "senderId": {
+            ".validate": "newData.val() == auth.uid"
+          },
+          "content": {
+            ".validate": "newData.val() is string && newData.val().length <= 5000"
+          },
+          "timestamp": {
+            ".validate": "newData.val() is number && newData.val() <= now"
+          },
+          "type": {
+            ".validate": "newData.val() matches /^(text|image|video|audio|document)$/"
+          },
+          "status": {
+            ".validate": "newData.val() is number && newData.val() >= 1 && newData.val() <= 3"
+          },
+          "imageUrl": {
+            ".validate": "newData.val() is string"
+          },
+          "fileName": {
+            ".validate": "newData.val() is string"
+          },
+          "fileSize": {
+            ".validate": "newData.val() is number"
+          },
+          "duration": {
+            ".validate": "newData.val() is number"
+          },
+          // No other fields allowed
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+
+    // ===== CHAT METADATA =====
+    "chats": {
+      "$chatId": {
+        // Only participants can read/write chat metadata
+        ".read": "auth != null && data.child('participants').child(auth.uid).exists()",
+        ".write": "auth != null && (data.child('participants').child(auth.uid).exists() || 
+                  newData.child('participants').child(auth.uid).exists())",
+        
+        // Chat structure validation
+        ".validate": "newData.hasChildren(['participants', 'createdAt']) &&
+                     newData.child('participants').hasChildren() &&
+                     newData.child('participants').numChildren() >= 2 &&
+                     newData.child('participants').child(auth.uid).exists()",
+        
+        "participants": {
+          "$userId": {
+            ".validate": "newData.val() == true"
+          }
+        },
+        "lastMessage": {
+          ".validate": "newData.val() is string && newData.val().length <= 1000"
+        },
+        "lastMessageTimestamp": {
+          ".validate": "newData.val() is number"
+        },
+        "lastMessageSenderId": {
+          ".validate": "newData.val() is string"
+        },
+        "lastMessageType": {
+          ".validate": "newData.val() matches /^(text|image|video|audio|document|empty_chat|friend_added)$/"
+        },
+        "createdAt": {
+          ".validate": "newData.val() is number && (data.exists() || newData.val() <= now)"
+        },
+        "isActive": {
+          ".validate": "newData.val() is boolean"
+        },
+        // No other fields allowed
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+
+    // ===== USER CHAT LISTS =====
+    "user_chats": {
+      "$userId": {
+        // Only the user can access their chat list
+        ".read": "auth != null && auth.uid == $userId",
+        ".write": "auth != null && auth.uid == $userId",
+        
+        "$chatId": {
+          // Value must be boolean (active/inactive)
+          ".validate": "newData.val() is boolean"
+        }
+      }
+    },
+
+    // ===== TYPING INDICATORS =====
+    "typing": {
+      "$chatId": {
+        // Only chat participants can read/write typing indicators
+        ".read": "auth != null && root.child('chats').child($chatId).child('participants').child(auth.uid).exists()",
+        ".write": "auth != null && root.child('chats').child($chatId).child('participants').child(auth.uid).exists()",
+        
+        "$userId": {
+          // Users can only update their own typing status
+          ".write": "auth != null && auth.uid == $userId",
+          ".validate": "newData.val() is number && newData.val() <= now + 10000" // Max 10 seconds in future
+        }
+      }
+    },
+
+    // ===== USER PRESENCE =====
+    "presence": {
+      "$userId": {
+        // Users can read any presence, but only write their own
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid == $userId",
+        
+        // Presence structure validation
+        ".validate": "newData.hasChildren(['online', 'lastSeen'])",
+        
+        "online": {
+          ".validate": "newData.val() is boolean"
+        },
+        "lastSeen": {
+          ".validate": "newData.val() is number && newData.val() <= now + 60000" // Max 1 minute in future
+        },
+        // No other fields allowed
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+
+    // ===== BLOCKED USERS =====
+    "blocked_users": {
+      "$userId": {
+        // Only the user can access their blocked list
+        ".read": "auth != null && auth.uid == $userId",
+        ".write": "auth != null && auth.uid == $userId",
+        
+        "$blockedUserId": {
+          // Value must be true (blocked) or null (unblocked)
+          ".validate": "newData.val() == true || newData.val() == null"
+        }
+      }
+    },
+
+    // ===== USER SETTINGS =====
+    "user_settings": {
+      "$userId": {
+        // Only the user can access their settings
+        ".read": "auth != null && auth.uid == $userId",
+        ".write": "auth != null && auth.uid == $userId",
+        
+        // Settings validation
+        "notifications": {
+          "messages": {
+            ".validate": "newData.val() is boolean"
+          },
+          "groups": {
+            ".validate": "newData.val() is boolean"
+          },
+          "calls": {
+            ".validate": "newData.val() is boolean"
+          }
+        },
+        "privacy": {
+          "lastSeen": {
+            ".validate": "newData.val() is boolean"
+          },
+          "profilePhoto": {
+            ".validate": "newData.val() is boolean"
+          },
+          "about": {
+            ".validate": "newData.val() is boolean"
+          },
+          "readReceipts": {
+            ".validate": "newData.val() is boolean"
+          }
+        },
+        "theme": {
+          ".validate": "newData.val() matches /^(light|dark|auto)$/"
+        },
+        // No other fields allowed at root level
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+
+    // ===== CALLS =====
+    "calls": {
+      "$callId": {
+        // Only participants can access call data
+        ".read": "auth != null && (newData.child('callerId').val() == auth.uid || 
+                 newData.child('receiverId').val() == auth.uid)",
+        ".write": "auth != null && (newData.child('callerId').val() == auth.uid || 
+                  newData.child('receiverId').val() == auth.uid)",
+        
+        // Call structure validation
+        ".validate": "newData.hasChildren(['callerId', 'receiverId', 'timestamp', 'type', 'status'])",
+        
+        "callerId": {
+          ".validate": "newData.val() is string && newData.val().length > 0"
+        },
+        "receiverId": {
+          ".validate": "newData.val() is string && newData.val().length > 0"
+        },
+        "timestamp": {
+          ".validate": "newData.val() is number && newData.val() <= now"
+        },
+        "type": {
+          ".validate": "newData.val() matches /^(voice|video)$/"
+        },
+        "status": {
+          ".validate": "newData.val() matches /^(calling|answered|declined|missed|ended)$/"
+        },
+        "duration": {
+          ".validate": "newData.val() is number && newData.val() >= 0"
+        },
+        // No other fields allowed
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+
+    // ===== STATUS UPDATES =====
+    "status_updates": {
+      "$statusId": {
+        // Public read access for status updates, only owner can write
+        ".read": "auth != null",
+        ".write": "auth != null && newData.child('userId').val() == auth.uid",
+        
+        // Status structure validation
+        ".validate": "newData.hasChildren(['userId', 'timestamp', 'type']) &&
+                     newData.child('userId').val() == auth.uid",
+        
+        "userId": {
+          ".validate": "newData.val() == auth.uid"
+        },
+        "content": {
+          ".validate": "newData.val() is string && newData.val().length <= 1000"
+        },
+        "mediaUrl": {
+          ".validate": "newData.val() is string"
+        },
+        "timestamp": {
+          ".validate": "newData.val() is number && newData.val() <= now"
+        },
+        "type": {
+          ".validate": "newData.val() matches /^(text|image|video)$/"
+        },
+        "expiresAt": {
+          ".validate": "newData.val() is number && newData.val() > now"
+        },
+        // No other fields allowed
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+
+    // ===== GLOBAL RULES =====
+    // Deny access to any other paths
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}
