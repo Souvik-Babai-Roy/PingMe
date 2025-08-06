@@ -96,4 +96,5 @@ dependencies {
     androidTestImplementation libs.androidx.espresso.core.v351
 
     implementation libs.circleimageview
+    implementation libs.photoview
 }

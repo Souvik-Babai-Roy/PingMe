@@ -13,7 +13,7 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@color/colorPrimary"
         android:elevation="4dp"
-        app:navigationIcon="@drawable/ic_arrow_back_24"
+        app:navigationIcon="@drawable/ic_arrow_back"
         app:navigationIconTint="@color/white"
         app:title="Blocked Users"
         app:titleTextColor="@color/white" />
@@ -46,7 +46,7 @@
                 android:layout_height="96dp"
                 android:layout_marginBottom="24dp"
                 android:alpha="0.6"
-                android:src="@drawable/ic_block_24"
+                android:src="@drawable/ic_block"
                 app:tint="@color/textColorSecondary" />
 
             <TextView

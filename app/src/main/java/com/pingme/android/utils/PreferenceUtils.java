@@ -9,6 +9,9 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class PreferenceUtils {
     // Preference keys
     private static final String PREF_THEME = "theme";

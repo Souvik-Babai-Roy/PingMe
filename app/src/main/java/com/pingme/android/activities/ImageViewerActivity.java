@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -70,7 +71,16 @@ public class ImageViewerActivity extends AppCompatActivity {
         // Make activity full screen
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                             WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        
+
+        // Handle back with dispatcher
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                finish();
+                overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
+            }
+        });
+
         binding = ActivityImageViewerBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
@@ -336,13 +346,6 @@ public class ImageViewerActivity extends AppCompatActivity {
     private void showMoreOptions() {
         // TODO: Implement more options (delete, set as wallpaper, etc.)
         Toast.makeText(this, "More options coming soon", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        // Add slide transition
-        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
     }
 
     @Override

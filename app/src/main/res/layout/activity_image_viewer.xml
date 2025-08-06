@@ -8,6 +8,7 @@
 
     <!-- Main Image Container -->
     <FrameLayout
+        android:id="@+id/image_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_centerInParent="true">
@@ -28,6 +29,53 @@
             android:layout_gravity="center"
             android:indeterminateTint="@color/white"
             android:visibility="visible" />
+
+        <!-- Loading Text -->
+        <TextView
+            android:id="@+id/tv_loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="80dp"
+            android:text="@string/loading_image"
+            android:textColor="@color/white_70"
+            android:textSize="14sp"
+            android:visibility="visible" />
+
+        <!-- Error Message -->
+        <LinearLayout
+            android:id="@+id/error_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_broken_image_24"
+                app:tint="@color/white_70" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/failed_to_load_image"
+                android:textColor="@color/white_70"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btn_retry"
+                style="@style/SecondaryButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/retry"
+                android:textColor="@color/white" />
+
+        </LinearLayout>
 
     </FrameLayout>
 
@@ -53,7 +101,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/back"
             android:padding="12dp"
-            android:src="@drawable/ic_arrow_back_24"
+            android:src="@drawable/ic_arrow_back"
             app:tint="@color/white" />
 
         <!-- User Info Container -->
@@ -148,54 +196,6 @@
             android:contentDescription="@string/forward"
             android:src="@drawable/ic_forward_24"
             app:tint="@color/white" />
-
-    </LinearLayout>
-
-    <!-- Loading Text -->
-    <TextView
-        android:id="@+id/tv_loading"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/progress_bar"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="16dp"
-        android:text="@string/loading_image"
-        android:textColor="@color/white_70"
-        android:textSize="14sp"
-        android:visibility="visible" />
-
-    <!-- Error Message -->
-    <LinearLayout
-        android:id="@+id/error_container"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <ImageView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:src="@drawable/ic_broken_image_24"
-            app:tint="@color/white_70" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/failed_to_load_image"
-            android:textColor="@color/white_70"
-            android:textSize="16sp" />
-
-        <Button
-            android:id="@+id/btn_retry"
-            style="@style/SecondaryButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/retry"
-            android:textColor="@color/white" />
 
     </LinearLayout>
 
