@@ -35,6 +35,11 @@
             android:title="About"
             android:summary="Show your about information to others"
             android:defaultValue="true" />
+
+        <Preference
+            android:key="blocked_users"
+            android:title="Blocked users"
+            android:summary="Manage blocked users" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="Notifications">

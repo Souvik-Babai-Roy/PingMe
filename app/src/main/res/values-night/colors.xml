@@ -15,10 +15,10 @@
     <color name="chat_background">#0A0A0A</color>
     <color name="surface_color">#1A1A1A</color>
 
-    <!-- Text Colors -->
-    <color name="textColorPrimary">#F0F0F0</color>
-    <color name="textColorSecondary">#B0B0B0</color>
-    <color name="textColorTertiary">#808080</color>
+    <!-- Text Colors - Improved for better readability -->
+    <color name="textColorPrimary">#F5F5F5</color>
+    <color name="textColorSecondary">#C0C0C0</color>
+    <color name="textColorTertiary">#909090</color>
 
     <!-- Message Bubble Colors -->
     <color name="sender_bubble">#262626</color>

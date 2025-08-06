@@ -172,6 +172,20 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     
+    // ===== BLOCKED USERS MANAGEMENT =====
+    match /blocked_users/{userId} {
+      // Users can read their own blocked list
+      allow read: if isOwner(userId);
+      
+      // Users can add/remove blocked users
+      allow write: if isOwner(userId);
+      
+      match /blocked/{blockedUserId} {
+        // Individual blocked user entries
+        allow read, write: if isOwner(userId) && blockedUserId != userId;
+      }
+    }
+    
     // ===== ANALYTICS (if needed) =====
     match /analytics/{document} {
       // Allow writing anonymous analytics data

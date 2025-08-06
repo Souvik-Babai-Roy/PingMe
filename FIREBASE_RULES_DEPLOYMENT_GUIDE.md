@@ -5,8 +5,7 @@ This guide covers the deployment and configuration of Firebase security rules fo
 ## 📁 Files Created
 
 1. **`database.rules.json`** - Realtime Database security rules
-2. **`firestore.rules`** - Firestore security rules  
-3. **`storage.rules`** - Firebase Storage security rules
+2. **`firestore.rules`** - Firestore security rules
 
 ## 🚀 Deployment Instructions
 
@@ -27,7 +26,7 @@ firebase init
 
 #### Deploy All Rules at Once:
 ```bash
-firebase deploy --only firestore:rules,database:rules,storage:rules
+firebase deploy --only firestore:rules,database:rules
 ```
 
 #### Deploy Individual Rule Sets:
@@ -37,9 +36,6 @@ firebase deploy --only firestore:rules
 
 # Deploy Realtime Database rules only  
 firebase deploy --only database:rules
-
-# Deploy Storage rules only
-firebase deploy --only storage:rules
 ```
 
 ### 3. Verify Deployment
@@ -48,8 +44,7 @@ firebase deploy --only storage:rules
 2. Select your project
 3. Check each service:
    - **Firestore Database** → Rules tab
-   - **Realtime Database** → Rules tab  
-   - **Storage** → Rules tab
+   - **Realtime Database** → Rules tab
 
 ## 🛡️ Security Overview
 
@@ -88,21 +83,7 @@ firebase deploy --only storage:rules
 - Protection against unauthorized access
 - Built-in blocking and privacy controls
 
-### Storage Rules (`storage.rules`)
-
-**Covers:**
-- ✅ Profile pictures and avatars
-- ✅ Chat media (images, videos, audio, documents)
-- ✅ Status media and temporary files
-- ✅ File type and size validation
-- ✅ User-specific folder access
-
-**Key Security Features:**
-- File type validation (images, videos, audio, documents)
-- Size limits per file type
-- User-specific folder access
-- Automatic file expiration for temporary content
-- Protection against unauthorized uploads
+**Note:** This app uses Cloudinary for image storage, so Firebase Storage rules are not needed.
 
 ## 🔐 Security Features Explained
 
