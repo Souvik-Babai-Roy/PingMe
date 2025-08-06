@@ -50,6 +50,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         mAuth = FirebaseAuth.getInstance();
+        // FIXED: Check for null user to prevent crash
+        if (mAuth.getCurrentUser() == null) {
+            // User not authenticated, redirect to auth
+            startActivity(new Intent(this, AuthActivity.class));
+            finish();
+            return;
+        }
         currentUserId = mAuth.getCurrentUser().getUid();
 
         // FIXED: Apply theme and sync preferences before setting up UI
@@ -88,11 +95,45 @@ public class MainActivity extends AppCompatActivity {
         adapter.addFragment(new CallsFragment(), "CALLS");
 
         binding.viewPager.setAdapter(adapter);
-        binding.viewPager.setOffscreenPageLimit(3);
+        // FIXED: Reduce offscreen limit to improve memory usage and tab switching
+        binding.viewPager.setOffscreenPageLimit(1);
 
         new TabLayoutMediator(binding.tabLayout, binding.viewPager,
                 (tab, position) -> tab.setText(adapter.getPageTitle(position))
         ).attach();
+
+        // FIXED: Add page change callback to refresh data when switching tabs
+        binding.viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                
+                // Refresh fragment data when switching to it
+                if (position == 0) { // Chats fragment
+                    // Get the fragment and refresh if it exists
+                    ChatsFragment chatsFragment = (ChatsFragment) adapter.getFragment(0);
+                    if (chatsFragment != null) {
+                        chatsFragment.refreshChats();
+                    }
+                }
+                
+                // Update FAB based on current tab (existing logic)
+                switch (position) {
+                    case 0: // Chats
+                        binding.fab.setImageResource(R.drawable.ic_chat_add);
+                        binding.fab.setContentDescription("Add Friend");
+                        break;
+                    case 1: // Status
+                        binding.fab.setImageResource(R.drawable.ic_camera);
+                        binding.fab.setContentDescription("Add Status");
+                        break;
+                    case 2: // Calls
+                        binding.fab.setImageResource(R.drawable.ic_baseline_person_24);
+                        binding.fab.setContentDescription("New Call");
+                        break;
+                }
+            }
+        });
 
         binding.viewPager.setCurrentItem(0);
     }
@@ -114,26 +155,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Update FAB icon based on current tab
-        binding.viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                switch (position) {
-                    case 0: // Chats
-                        binding.fab.setImageResource(R.drawable.ic_chat_add);
-                        binding.fab.setContentDescription("Add Friend");
-                        break;
-                    case 1: // Status
-                        binding.fab.setImageResource(R.drawable.ic_camera);
-                        binding.fab.setContentDescription("Add Status");
-                        break;
-                    case 2: // Calls
-                        binding.fab.setImageResource(R.drawable.ic_baseline_person_24);
-                        binding.fab.setContentDescription("New Call");
-                        break;
-                }
-            }
-        });
+
     }
 
     @Override

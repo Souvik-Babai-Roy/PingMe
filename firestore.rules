@@ -1,0 +1,197 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===== HELPER FUNCTIONS =====
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user is the owner of the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Check if user can access based on privacy settings
+    function canAccessProfile(userDoc) {
+      return userDoc.data.profilePhotoEnabled == true;
+    }
+    
+    // Check if users are friends
+    function areFriends(userId) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)/friends/$(userId));
+    }
+    
+    // Check if user is blocked
+    function isBlocked(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)/blocked/$(request.auth.uid)) ||
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)/blocked/$(userId));
+    }
+    
+    // Validate user data structure
+    function isValidUserData() {
+      return request.resource.data.keys().hasAll(['name', 'email']) &&
+             request.resource.data.name is string &&
+             request.resource.data.name.size() > 0 &&
+             request.resource.data.name.size() <= 50 &&
+             request.resource.data.email is string &&
+             request.resource.data.email.matches('.*@.*\\..*');
+    }
+    
+    // ===== USER DOCUMENTS =====
+    match /users/{userId} {
+      // Users can read their own profile and profiles of friends (with privacy restrictions)
+      allow read: if isOwner(userId) || 
+                     (isAuthenticated() && !isBlocked(userId));
+      
+      // Users can only write to their own profile
+      allow write: if isOwner(userId) && 
+                      isValidUserData() &&
+                      // Prevent changing critical fields maliciously
+                      (!resource.data.keys().hasAny(['id']) || 
+                       request.resource.data.id == resource.data.id);
+      
+      // Allow creation of new user document during registration
+      allow create: if isOwner(userId) && isValidUserData();
+      
+      // ===== USER'S FRIENDS SUBCOLLECTION =====
+      match /friends/{friendId} {
+        // Users can read their own friends list
+        allow read: if isOwner(userId);
+        
+        // Users can add/remove friends from their own list
+        allow write: if isOwner(userId) && 
+                        // Prevent self-friending
+                        friendId != userId &&
+                        // Ensure friend document exists
+                        exists(/databases/$(database)/documents/users/$(friendId));
+        
+        // Allow creating friend relationships
+        allow create: if isOwner(userId) && friendId != userId;
+      }
+      
+      // ===== USER'S BLOCKED USERS SUBCOLLECTION =====
+      match /blocked/{blockedUserId} {
+        // Users can only access their own blocked list
+        allow read, write: if isOwner(userId) && blockedUserId != userId;
+      }
+      
+      // ===== USER'S SETTINGS SUBCOLLECTION =====
+      match /settings/{settingId} {
+        // Users can only access their own settings
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // ===== STATUS UPDATES =====
+    match /status/{statusId} {
+      // Allow reading status from friends and non-blocked users
+      allow read: if isAuthenticated() && 
+                     !isBlocked(resource.data.userId) &&
+                     (areFriends(resource.data.userId) || resource.data.userId == request.auth.uid);
+      
+      // Users can only create/update their own status
+      allow write: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.keys().hasAll(['userId', 'timestamp', 'type']) &&
+                      request.resource.data.timestamp is timestamp &&
+                      request.resource.data.type in ['text', 'image', 'video'] &&
+                      // Content validation
+                      (!request.resource.data.keys().hasAny(['content']) || 
+                       (request.resource.data.content is string && 
+                        request.resource.data.content.size() <= 1000));
+      
+      // Allow creation of new status
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid;
+    }
+    
+    // ===== USER PRESENCE (for online/offline status) =====
+    match /presence/{userId} {
+      // All authenticated users can read presence info (subject to privacy)
+      allow read: if isAuthenticated() && !isBlocked(userId);
+      
+      // Users can only update their own presence
+      allow write: if isOwner(userId) &&
+                      request.resource.data.keys().hasAll(['online', 'lastSeen']) &&
+                      request.resource.data.online is bool &&
+                      request.resource.data.lastSeen is timestamp;
+    }
+    
+    // ===== CALL LOGS =====
+    match /calls/{callId} {
+      // Only participants can access call data
+      allow read: if isAuthenticated() && 
+                     (resource.data.callerId == request.auth.uid || 
+                      resource.data.receiverId == request.auth.uid);
+      
+      // Only participants can create/update call data
+      allow write: if isAuthenticated() && 
+                      (request.resource.data.callerId == request.auth.uid || 
+                       request.resource.data.receiverId == request.auth.uid) &&
+                      request.resource.data.keys().hasAll(['callerId', 'receiverId', 'timestamp', 'type', 'status']) &&
+                      request.resource.data.callerId is string &&
+                      request.resource.data.receiverId is string &&
+                      request.resource.data.timestamp is timestamp &&
+                      request.resource.data.type in ['voice', 'video'] &&
+                      request.resource.data.status in ['calling', 'answered', 'declined', 'missed', 'ended'];
+    }
+    
+    // ===== APP METADATA =====
+    match /app_metadata/{document} {
+      // Only allow reading app metadata
+      allow read: if isAuthenticated();
+      // Prevent writing to app metadata
+      allow write: if false;
+    }
+    
+    // ===== USER PREFERENCES (backup location) =====
+    match /user_preferences/{userId} {
+      // Users can only access their own preferences
+      allow read, write: if isOwner(userId);
+    }
+    
+    // ===== REPORTS AND FEEDBACK =====
+    match /reports/{reportId} {
+      // Users can create reports
+      allow create: if isAuthenticated() && 
+                       request.resource.data.reporterId == request.auth.uid &&
+                       request.resource.data.keys().hasAll(['reporterId', 'timestamp', 'type', 'description']) &&
+                       request.resource.data.type in ['user', 'content', 'bug', 'feedback'] &&
+                       request.resource.data.description is string &&
+                       request.resource.data.description.size() <= 2000;
+      
+      // Users can read their own reports
+      allow read: if isAuthenticated() && 
+                     resource.data.reporterId == request.auth.uid;
+      
+      // Prevent updating/deleting reports
+      allow update, delete: if false;
+    }
+    
+    // ===== ANALYTICS (if needed) =====
+    match /analytics/{document} {
+      // Allow writing anonymous analytics data
+      allow write: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      // Prevent reading analytics data
+      allow read: if false;
+    }
+    
+    // ===== ADMIN FUNCTIONS (if needed) =====
+    match /admin/{document} {
+      // Prevent all access to admin documents
+      allow read, write: if false;
+    }
+    
+    // ===== DEFAULT DENY =====
+    // Deny access to any other documents
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

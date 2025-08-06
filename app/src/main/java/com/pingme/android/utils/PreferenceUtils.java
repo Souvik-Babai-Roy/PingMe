@@ -118,17 +118,40 @@ public class PreferenceUtils {
     private static void updateFirestore(String key, Object value) {
         String userId = getCurrentUserId();
         if (userId != null) {
+            // FIXED: Map preference keys to proper User model fields
+            String userField = mapToUserField(key);
+            
             FirebaseFirestore.getInstance()
                     .collection("users")
                     .document(userId)
-                    .update(key, value)
+                    .update(userField, value)
                     .addOnFailureListener(e -> {
-                        // If update fails, try to set the field
+                        // If update fails, try to set the field with a Map
+                        Map<String, Object> data = new HashMap<>();
+                        data.put(userField, value);
                         FirebaseFirestore.getInstance()
-                                .collection("user_preferences")
+                                .collection("users")
                                 .document(userId)
-                                .update(key, value);
+                                .set(data, com.google.firebase.firestore.SetOptions.merge());
                     });
+        }
+    }
+
+    // FIXED: Map preference keys to User model fields
+    private static String mapToUserField(String prefKey) {
+        switch (prefKey) {
+            case "last_seen_enabled":
+                return "lastSeenEnabled";
+            case "read_receipts_enabled":
+                return "readReceiptsEnabled";
+            case "profile_photo_enabled":
+                return "profilePhotoEnabled";
+            case "about_enabled":
+                return "aboutEnabled";
+            case "theme":
+                return "theme";
+            default:
+                return prefKey;
         }
     }
 
@@ -182,11 +205,11 @@ public class PreferenceUtils {
             }
         }
 
-        // Privacy settings
-        updateBooleanPref(editor, snapshot, "last_seen_enabled", PREF_LAST_SEEN, DEFAULT_LAST_SEEN);
-        updateBooleanPref(editor, snapshot, "read_receipts_enabled", PREF_READ_RECEIPTS, DEFAULT_READ_RECEIPTS);
-        updateBooleanPref(editor, snapshot, "profile_photo_enabled", PREF_PROFILE_PHOTO, DEFAULT_PROFILE_PHOTO);
-        updateBooleanPref(editor, snapshot, "about_enabled", PREF_ABOUT, DEFAULT_ABOUT);
+        // FIXED: Privacy settings using proper User model field names
+        updateBooleanPref(editor, snapshot, "lastSeenEnabled", PREF_LAST_SEEN, DEFAULT_LAST_SEEN);
+        updateBooleanPref(editor, snapshot, "readReceiptsEnabled", PREF_READ_RECEIPTS, DEFAULT_READ_RECEIPTS);
+        updateBooleanPref(editor, snapshot, "profilePhotoEnabled", PREF_PROFILE_PHOTO, DEFAULT_PROFILE_PHOTO);
+        updateBooleanPref(editor, snapshot, "aboutEnabled", PREF_ABOUT, DEFAULT_ABOUT);
 
         editor.apply();
     }
