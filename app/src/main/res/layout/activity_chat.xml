@@ -7,6 +7,7 @@
         android:orientation="vertical"
         android:background="@color/chat_background">
 
+        <!-- Toolbar -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
@@ -27,6 +28,7 @@
                 android:focusable="true"
                 android:background="?attr/selectableItemBackgroundBorderless">
 
+                <!-- Profile Image Container -->
                 <FrameLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -53,11 +55,13 @@
 
                 </FrameLayout>
 
+                <!-- User Info -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
 
                     <TextView
                         android:id="@+id/tvUserName"
@@ -81,35 +85,44 @@
 
                 </LinearLayout>
 
-                <ImageView
-                    android:id="@+id/ivVideoCall"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:src="@drawable/ic_video_placeholder"
-                    android:padding="8dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:layout_marginEnd="8dp"
-                    app:tint="@android:color/white" />
+                <!-- Action Buttons -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
-                <ImageView
-                    android:id="@+id/ivAudioCall"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:src="@drawable/ic_baseline_arrow_forward_24"
-                    android:padding="8dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:layout_marginEnd="8dp"
-                    app:tint="@android:color/white" />
+                    <ImageView
+                        android:id="@+id/ivVideoCall"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/ic_video_placeholder"
+                        android:padding="8dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:layout_marginEnd="4dp"
+                        app:tint="@android:color/white" />
 
-                <ImageView
-                    android:id="@+id/ivMore"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:src="@drawable/ic_baseline_more_vert_24"
-                    android:padding="8dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:layout_marginEnd="16dp"
-                    app:tint="@android:color/white" />
+                    <ImageView
+                        android:id="@+id/ivAudioCall"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/ic_baseline_arrow_forward_24"
+                        android:padding="8dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:layout_marginEnd="4dp"
+                        app:tint="@android:color/white" />
+
+                    <ImageView
+                        android:id="@+id/ivMore"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/ic_baseline_more_vert_24"
+                        android:padding="8dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:layout_marginEnd="8dp"
+                        app:tint="@android:color/white" />
+
+                </LinearLayout>
 
             </LinearLayout>
 
@@ -123,7 +136,8 @@
             android:layout_weight="1"
             android:padding="8dp"
             android:clipToPadding="false"
-            android:scrollbars="vertical" />
+            android:scrollbars="vertical"
+            android:overScrollMode="never" />
 
         <!-- Typing Indicator -->
         <LinearLayout
@@ -133,9 +147,10 @@
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:padding="12dp"
+            android:background="@color/background_color"
             android:visibility="gone">
 
-            <ImageView
+            <de.hdodenhof.circleimageview.CircleImageView
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:src="@drawable/defaultprofile"
@@ -160,6 +175,7 @@
             android:background="@color/background_color"
             android:gravity="center_vertical">
 
+            <!-- Attachment Button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnAttach"
                 android:layout_width="48dp"
@@ -172,6 +188,7 @@
                 app:cornerRadius="24dp"
                 android:layout_marginEnd="8dp" />
 
+            <!-- Message Input -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -183,7 +200,8 @@
                 app:boxCornerRadiusBottomStart="24dp"
                 app:boxCornerRadiusBottomEnd="24dp"
                 app:boxStrokeWidth="1dp"
-                app:boxStrokeColor="@color/stroke_light">
+                app:boxStrokeColor="@color/stroke_light"
+                app:boxBackgroundColor="@color/input_background">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etMessage"
@@ -192,10 +210,13 @@
                     android:hint="@string/type_a_message"
                     android:maxLines="4"
                     android:textSize="16sp"
-                    android:padding="12dp" />
+                    android:padding="12dp"
+                    android:background="@android:color/transparent"
+                    android:textColor="@color/textColorPrimary" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Send Button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSend"
                 android:layout_width="48dp"
@@ -207,5 +228,15 @@
                 style="@style/Widget.MaterialComponents.Button" />
 
         </LinearLayout>
+
+        <!-- Progress Bar -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone"
+            android:layout_margin="16dp" />
+
     </LinearLayout>
 </layout>

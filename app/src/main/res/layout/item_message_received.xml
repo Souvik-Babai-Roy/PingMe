@@ -44,7 +44,7 @@
             android:orientation="vertical"
             android:padding="12dp"
             android:layout_marginBottom="4dp"
-            android:visibility="gone">
+            android:minWidth="80dp">
 
             <TextView
                 android:id="@+id/tvMessage"
@@ -53,7 +53,8 @@
                 android:text="Message text"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="16sp"
-                android:lineSpacingMultiplier="1.1" />
+                android:lineSpacingMultiplier="1.1"
+                android:textIsSelectable="true" />
 
             <TextView
                 android:id="@+id/tvTime"
@@ -83,7 +84,7 @@
                 android:layout_width="200dp"
                 android:layout_height="200dp"
                 android:scaleType="centerCrop"
-                android:background="@drawable/ic_launcher_background"
+                android:background="@color/background_color"
                 android:src="@drawable/ic_image_placeholder"
                 app:cornerRadius="8dp" />
 
@@ -132,7 +133,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:scaleType="centerCrop"
-                    android:background="@drawable/ic_launcher_background"
+                    android:background="@color/background_color"
                     android:src="@drawable/ic_video_placeholder"
                     app:cornerRadius="8dp" />
 
