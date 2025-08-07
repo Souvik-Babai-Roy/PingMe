@@ -188,9 +188,21 @@ public class ChatActivity extends AppCompatActivity {
 
     private void checkBlockStatus() {
         String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        FirestoreUtil.checkIfBlocked(currentUserId, receiverId, blocked -> {
-            isBlocked = blocked;
+        FirestoreUtil.checkMutualBlocking(currentUserId, receiverId, (user1BlockedUser2, user2BlockedUser1) -> {
+            isBlocked = user1BlockedUser2 || user2BlockedUser1;
             updateInputState();
+            
+            // FIXED: Update adapter with blocked status
+            if (adapter != null) {
+                adapter.setBlocked(isBlocked);
+            }
+            
+            if (isBlocked) {
+                // Show blocked status in toolbar
+                binding.tvUserStatus.setText(user1BlockedUser2 ? "You blocked this user" : "This user blocked you");
+                binding.tvUserStatus.setVisibility(View.VISIBLE);
+                binding.onlineIndicator.setVisibility(View.GONE);
+            }
         });
     }
 
@@ -199,7 +211,7 @@ public class ChatActivity extends AppCompatActivity {
             binding.etMessage.setEnabled(false);
             binding.btnSend.setEnabled(false);
             binding.btnAttach.setEnabled(false);
-            binding.etMessage.setHint("You have blocked this user");
+            binding.etMessage.setHint("You cannot send messages to this user");
         } else {
             binding.etMessage.setEnabled(true);
             binding.btnSend.setEnabled(true);
@@ -294,61 +306,113 @@ public class ChatActivity extends AppCompatActivity {
     private void setupMessageListener() {
         Log.d(TAG, "Setting up message listener for chat: " + chatId);
 
+        // FIXED: Use improved message loading with cleared chat support
+        FirestoreUtil.loadMessagesWithClearedCheck(chatId, currentUserId, new FirestoreUtil.MessagesCallback() {
+            @Override
+            public void onMessagesLoaded(List<Message> loadedMessages) {
+                messages.clear();
+                messages.addAll(loadedMessages);
+                updateMessagesWithDateHeaders();
+                adapter.notifyDataSetChanged();
+                
+                // Scroll to bottom if there are messages
+                if (messages.size() > 0) {
+                    binding.recyclerViewMessages.smoothScrollToPosition(adapter.getItemCount() - 1);
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "Failed to load messages: " + error);
+                Toast.makeText(ChatActivity.this, "Failed to load messages", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // Set up real-time listener for new messages
         messageListener = new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
                 Log.d(TAG, "Message added: " + dataSnapshot.getKey());
+                
+                // FIXED: Check if user is blocked before processing messages
+                if (isBlocked) {
+                    Log.d(TAG, "Skipping message processing - user is blocked");
+                    return;
+                }
 
                 Message message = dataSnapshot.getValue(Message.class);
                 if (message != null) {
                     message.setId(dataSnapshot.getKey());
-
-                    // Add message to list only if it's not already there
-                    boolean messageExists = false;
-                    for (Message existingMessage : messages) {
-                        if (existingMessage.getId().equals(message.getId())) {
-                            messageExists = true;
-                            break;
-                        }
+                    
+                    // FIXED: Check if message is from blocked user
+                    if (message.getSenderId().equals(receiverId) && isBlocked) {
+                        Log.d(TAG, "Skipping message from blocked user");
+                        return;
                     }
-
-                    if (!messageExists) {
-                        messages.add(message);
-                        updateMessagesWithDateHeaders();
-
-                        // Mark message as delivered if it's not from current user
-                        if (!message.getSenderId().equals(FirebaseAuth.getInstance().getUid())) {
-                            updateMessageStatus(message.getId(), Message.STATUS_DELIVERED);
+                    
+                    // Check if message is after user's cleared timestamp
+                    FirestoreUtil.getUserClearedTime(chatId, currentUserId, clearedAt -> {
+                        if (clearedAt == 0 || message.getTimestamp() > clearedAt) {
+                            messages.add(message);
+                            updateMessagesWithDateHeaders();
+                            adapter.notifyDataSetChanged();
+                            
+                            // Scroll to bottom for new messages
+                            if (binding.recyclerViewMessages.getAdapter() != null) {
+                                binding.recyclerViewMessages.smoothScrollToPosition(adapter.getItemCount() - 1);
+                            }
+                            
+                            // Mark as read if message is from other user
+                            if (!message.getSenderId().equals(currentUserId)) {
+                                updateMessageStatus(message.getId(), Message.STATUS_READ);
+                            }
                         }
-                    }
+                    });
                 }
             }
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String previousChildName) {
                 Log.d(TAG, "Message changed: " + dataSnapshot.getKey());
+                
+                // FIXED: Check if user is blocked before processing message updates
+                if (isBlocked) {
+                    return;
+                }
 
                 Message updatedMessage = dataSnapshot.getValue(Message.class);
                 if (updatedMessage != null) {
                     updatedMessage.setId(dataSnapshot.getKey());
-
+                    
+                    // Update existing message
                     for (int i = 0; i < messages.size(); i++) {
                         if (messages.get(i).getId().equals(updatedMessage.getId())) {
                             messages.set(i, updatedMessage);
+                            adapter.notifyItemChanged(i);
                             break;
                         }
                     }
-                    updateMessagesWithDateHeaders();
                 }
             }
 
             @Override
             public void onChildRemoved(DataSnapshot dataSnapshot) {
                 Log.d(TAG, "Message removed: " + dataSnapshot.getKey());
+                
+                // FIXED: Check if user is blocked before processing message removal
+                if (isBlocked) {
+                    return;
+                }
 
                 String messageId = dataSnapshot.getKey();
-                messages.removeIf(message -> message.getId().equals(messageId));
-                updateMessagesWithDateHeaders();
+                for (int i = 0; i < messages.size(); i++) {
+                    if (messages.get(i).getId().equals(messageId)) {
+                        messages.remove(i);
+                        updateMessagesWithDateHeaders();
+                        adapter.notifyDataSetChanged();
+                        break;
+                    }
+                }
             }
 
             @Override
@@ -357,7 +421,6 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onCancelled(DatabaseError databaseError) {
                 Log.e(TAG, "Message listener cancelled", databaseError.toException());
-                Toast.makeText(ChatActivity.this, "Failed to load messages", Toast.LENGTH_SHORT).show();
             }
         };
 
@@ -525,20 +588,24 @@ public class ChatActivity extends AppCompatActivity {
 
 
     private void sendTextMessage() {
-        if (isBlocked) {
-            Toast.makeText(this, "You cannot send messages to blocked users", Toast.LENGTH_SHORT).show();
+        String text = binding.etMessage.getText().toString().trim();
+        if (text.isEmpty() || isBlocked) {
             return;
         }
 
-        String text = binding.etMessage.getText().toString().trim();
-        if (text.isEmpty()) return;
-
-        Log.d(TAG, "Sending text message: " + text);
-
-        String senderId = FirebaseAuth.getInstance().getUid();
-        FirestoreUtil.sendMessageToRealtime(chatId, senderId, text, "text", null);
         binding.etMessage.setText("");
-        FirestoreUtil.setTyping(chatId, senderId, false);
+        
+        // FIXED: Check block status before sending
+        if (isBlocked) {
+            Toast.makeText(this, "You cannot send messages to this user", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // FIXED: Use improved message sending with block check
+        FirestoreUtil.sendMessageToRealtime(chatId, currentUserId, text, "text", null);
+        
+        // Stop typing indicator
+        FirestoreUtil.setTyping(chatId, currentUserId, false);
         isTyping = false;
     }
 
@@ -632,54 +699,69 @@ public class ChatActivity extends AppCompatActivity {
     private void clearChatHistory() {
         new AlertDialog.Builder(this)
                 .setTitle("Clear Chat")
-                .setMessage("Are you sure you want to clear all messages in this chat?")
+                .setMessage("Are you sure you want to clear this chat? This action cannot be undone.")
                 .setPositiveButton("Clear", (dialog, which) -> {
-                    FirestoreUtil.clearChatHistory(chatId);
+                    showLoading(true);
+                    
+                    // FIXED: Use one-sided chat clearing
+                    FirestoreUtil.clearChatHistoryForUser(chatId, currentUserId);
+                    
+                    // Clear local messages
                     messages.clear();
-                    items.clear();
+                    updateMessagesWithDateHeaders();
                     adapter.notifyDataSetChanged();
-                    Toast.makeText(this, "Chat history cleared", Toast.LENGTH_SHORT).show();
+                    
+                    showLoading(false);
+                    Toast.makeText(this, "Chat cleared", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
     private void showLoading(boolean show) {
-        binding.btnSend.setEnabled(!show && !isBlocked);
-        binding.btnAttach.setEnabled(!show && !isBlocked);
-        binding.etMessage.setEnabled(!show && !isBlocked);
+        if (show) {
+            binding.progressBar.setVisibility(View.VISIBLE);
+            binding.btnSend.setEnabled(false);
+            binding.btnAttach.setEnabled(false);
+        } else {
+            binding.progressBar.setVisibility(View.GONE);
+            binding.btnSend.setEnabled(!isBlocked);
+            binding.btnAttach.setEnabled(!isBlocked);
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Update user presence
+        
+        // Update user presence to online
         String currentUserId = FirebaseAuth.getInstance().getUid();
         FirestoreUtil.updateUserPresence(currentUserId, true);
-
-        // Mark messages as read when returning to chat
+        
+        // Mark messages as read
         markMessagesAsRead();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (isTyping) {
-            FirestoreUtil.setTyping(chatId, FirebaseAuth.getInstance().getUid(), false);
-            isTyping = false;
-        }
-
-        // Update user presence
+        
+        // Update user presence to offline
         String currentUserId = FirebaseAuth.getInstance().getUid();
         FirestoreUtil.updateUserPresence(currentUserId, false);
+        
+        // Stop typing if user was typing
+        if (isTyping) {
+            FirestoreUtil.setTyping(chatId, currentUserId, false);
+            isTyping = false;
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
-        Log.d(TAG, "ChatActivity destroyed, removing listeners");
-
+        
+        // Remove listeners
         if (messageListener != null) {
             FirestoreUtil.getMessagesRef(chatId).removeEventListener(messageListener);
         }
@@ -689,9 +771,9 @@ public class ChatActivity extends AppCompatActivity {
         if (onlineStatusListener != null) {
             FirestoreUtil.getRealtimePresenceRef(receiverId).removeEventListener(onlineStatusListener);
         }
-
-        if (isTyping) {
-            FirestoreUtil.setTyping(chatId, FirebaseAuth.getInstance().getUid(), false);
-        }
+        
+        // Update user presence to offline
+        String currentUserId = FirebaseAuth.getInstance().getUid();
+        FirestoreUtil.updateUserPresence(currentUserId, false);
     }
 }

@@ -63,6 +63,15 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         notifyDataSetChanged();
     }
 
+    public void setBlocked(boolean isBlocked) {
+        // If user is blocked, clear messages and show blocked state
+        if (isBlocked) {
+            items.clear();
+            messages.clear();
+            notifyDataSetChanged();
+        }
+    }
+
     @Override
     public int getItemViewType(int position) {
         Object item = items.get(position);
@@ -237,6 +246,11 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
 
         public void bind(Message message) {
+            // FIXED: Check if user is blocked before displaying messages
+            if (otherUser == null || otherUser.isBlocked()) {
+                return;
+            }
+
             hideAllLayouts();
 
             String messageType = message.getType();
@@ -381,9 +395,14 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
 
         public void bind(Message message) {
+            // FIXED: Check if user is blocked before displaying messages
+            if (otherUser == null || otherUser.isBlocked()) {
+                return;
+            }
+
             hideAllLayouts();
 
-            // Load profile image based on privacy settings
+            // FIXED: Load profile image based on privacy settings
             if (otherUserShowsProfilePhoto && otherUser != null &&
                     otherUser.getImageUrl() != null && !otherUser.getImageUrl().isEmpty()) {
                 Glide.with(context)

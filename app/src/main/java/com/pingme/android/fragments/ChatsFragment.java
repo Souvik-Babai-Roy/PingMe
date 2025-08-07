@@ -1,5 +1,6 @@
 package com.pingme.android.fragments;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -18,6 +19,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.pingme.android.activities.ChatActivity;
 import com.pingme.android.adapters.ChatListAdapter;
 import com.pingme.android.databinding.FragmentChatsBinding;
 import com.pingme.android.models.Chat;
@@ -297,14 +299,12 @@ public class ChatsFragment extends Fragment {
                     Chat existingChat = findChatById(chatId);
                     if (existingChat != null) {
                         Log.d(TAG, "Updating existing chat: " + chatId);
-                        // FIXED: Only update if there's actual message data
-                        if (lastMessage != null && !lastMessage.trim().isEmpty()) {
-                            existingChat.setLastMessage(lastMessage);
-                            existingChat.setLastMessageTimestamp(lastMessageTimestamp != null ? lastMessageTimestamp : System.currentTimeMillis());
-                            existingChat.setLastMessageSenderId(lastMessageSenderId != null ? lastMessageSenderId : "");
-                            existingChat.setLastMessageType(lastMessageType != null ? lastMessageType : "text");
-                            existingChat.setActive(isActive != null ? isActive : true);
-                        }
+                        // FIXED: Always update last message data, even if empty
+                        existingChat.setLastMessage(lastMessage != null ? lastMessage : "");
+                        existingChat.setLastMessageTimestamp(lastMessageTimestamp != null ? lastMessageTimestamp : System.currentTimeMillis());
+                        existingChat.setLastMessageSenderId(lastMessageSenderId != null ? lastMessageSenderId : "");
+                        existingChat.setLastMessageType(lastMessageType != null ? lastMessageType : "text");
+                        existingChat.setActive(isActive != null ? isActive : true);
 
                         calculateUnreadCount(existingChat);
                         updateChatInList(existingChat);
@@ -348,14 +348,13 @@ public class ChatsFragment extends Fragment {
                             // Load real-time presence from Realtime Database
                             loadUserPresence(otherUser, () -> {
                                 // Update or add chat to list
-                                updateChatInList(chat);
-                                calculateUnreadCount(chat);
+                                addOrUpdateChat(chat);
                             });
                         }
                     }
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to load other user details", e);
+                    Log.e(TAG, "Failed to load user details for: " + otherUserId, e);
                 });
     }
 
@@ -436,29 +435,8 @@ public class ChatsFragment extends Fragment {
     }
 
     private void updateChatInList(Chat chat) {
-        // Find existing chat and update or add new one
-        int existingIndex = -1;
-        for (int i = 0; i < chatList.size(); i++) {
-            if (chatList.get(i).getId().equals(chat.getId())) {
-                existingIndex = i;
-                break;
-            }
-        }
-
-        if (existingIndex != -1) {
-            chatList.set(existingIndex, chat);
-        } else {
-            chatList.add(chat);
-        }
-
-        // Sort chats (active chats first by timestamp, then empty chats by name)
-        Collections.sort(chatList);
-
-        updateEmptyState(chatList.isEmpty());
-
-        if (adapter != null) {
-            adapter.updateChats(chatList);
-        }
+        // FIXED: Use the improved addOrUpdateChat method
+        addOrUpdateChat(chat);
     }
 
     private Chat findChatById(String chatId) {
@@ -551,5 +529,46 @@ public class ChatsFragment extends Fragment {
         if (currentUserId != null) {
             FirestoreUtil.updateUserPresence(currentUserId, false);
         }
+    }
+
+    private void addOrUpdateChat(Chat chat) {
+        // Check if chat already exists
+        int existingIndex = -1;
+        for (int i = 0; i < chatList.size(); i++) {
+            if (chatList.get(i).getId().equals(chat.getId())) {
+                existingIndex = i;
+                break;
+            }
+        }
+
+        if (existingIndex >= 0) {
+            // Update existing chat
+            chatList.set(existingIndex, chat);
+            adapter.notifyItemChanged(existingIndex);
+        } else {
+            // Add new chat
+            chatList.add(chat);
+            adapter.notifyItemInserted(chatList.size() - 1);
+        }
+
+        // Sort chats by last message timestamp
+        sortChatsByTimestamp();
+        updateEmptyState(chatList.isEmpty());
+    }
+
+    private void sortChatsByTimestamp() {
+        Collections.sort(chatList, (c1, c2) -> {
+            // Put empty chats at the bottom
+            boolean c1IsEmpty = "empty_chat".equals(c1.getLastMessageType()) || c1.getLastMessageTimestamp() == 0;
+            boolean c2IsEmpty = "empty_chat".equals(c2.getLastMessageType()) || c2.getLastMessageTimestamp() == 0;
+            
+            if (c1IsEmpty && !c2IsEmpty) return 1;
+            if (!c1IsEmpty && c2IsEmpty) return -1;
+            if (c1IsEmpty && c2IsEmpty) return 0;
+            
+            // Sort by timestamp (newest first)
+            return Long.compare(c2.getLastMessageTimestamp(), c1.getLastMessageTimestamp());
+        });
+        adapter.notifyDataSetChanged();
     }
 }

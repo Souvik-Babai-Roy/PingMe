@@ -109,10 +109,9 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             // Set user name
             binding.tvName.setText(otherUser.getDisplayName());
 
-            // FIXED: Load profile image with better null checking and fallback
+            // FIXED: Load profile image with better null checking and privacy settings
             try {
-                if (otherUser.getImageUrl() != null && !otherUser.getImageUrl().trim().isEmpty()) {
-                    // Always try to load image first, privacy check is secondary
+                if (otherUser.shouldShowProfilePhoto() && otherUser.getImageUrl() != null && !otherUser.getImageUrl().trim().isEmpty()) {
                     Glide.with(context)
                             .load(otherUser.getImageUrl())
                             .transform(new CircleCrop())
@@ -199,28 +198,30 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                 return "Tap to start messaging";
             }
 
-            // For active chats with real messages
-            if (lastMessage != null && !lastMessage.trim().isEmpty() && 
-                !isEmptyChat && lastMessageType != null) {
-                
-                // Handle different message types
-                switch (lastMessageType) {
-                    case "image":
-                        return "📷 Photo";
-                    case "video":
-                        return "🎥 Video";
-                    case "audio":
-                        return "🎤 Audio";
-                    case "document":
-                        return "📄 Document";
-                    case "text":
-                    default:
+            // Handle different message types
+            switch (lastMessageType) {
+                case "image":
+                    return "📷 Photo";
+                case "video":
+                    return "🎥 Video";
+                case "audio":
+                    return "🎵 Audio";
+                case "document":
+                    return "📄 Document";
+                case "location":
+                    return "📍 Location";
+                default:
+                    // For text messages, show preview
+                    if (lastMessage != null && !lastMessage.trim().isEmpty()) {
+                        // Truncate long messages
+                        if (lastMessage.length() > 50) {
+                            return lastMessage.substring(0, 47) + "...";
+                        }
                         return lastMessage;
-                }
+                    } else {
+                        return "Tap to start messaging";
+                    }
             }
-
-            // Fallback for truly empty chats
-            return "No messages yet";
         }
 
         private String getFormattedTime(long timestamp) {

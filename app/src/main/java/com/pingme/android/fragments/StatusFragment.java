@@ -22,6 +22,11 @@ import com.google.firebase.firestore.Query;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
+import android.util.Log;
+import com.pingme.android.R;
+
 public class StatusFragment extends Fragment {
 
     private FragmentStatusBinding binding;
@@ -103,9 +108,24 @@ public class StatusFragment extends Fragment {
                         User user = documentSnapshot.toObject(User.class);
                         if (user != null) {
                             binding.tvMyStatusName.setText(user.getName());
-                            // TODO: Load profile image using Glide
+                            
+                            // FIXED: Load profile image using Glide
+                            if (user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
+                                Glide.with(this)
+                                        .load(user.getImageUrl())
+                                        .transform(new CircleCrop())
+                                        .placeholder(R.drawable.defaultprofile)
+                                        .error(R.drawable.defaultprofile)
+                                        .into(binding.ivMyStatusProfile);
+                            } else {
+                                binding.ivMyStatusProfile.setImageResource(R.drawable.defaultprofile);
+                            }
                         }
                     }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("StatusFragment", "Failed to load user info", e);
+                    binding.ivMyStatusProfile.setImageResource(R.drawable.defaultprofile);
                 });
     }
 
@@ -117,6 +137,7 @@ public class StatusFragment extends Fragment {
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener((queryDocumentSnapshots, e) -> {
                     if (e != null) {
+                        Log.e("StatusFragment", "Error loading statuses", e);
                         return;
                     }
 

@@ -9,8 +9,12 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.pingme.android.R;
 import com.pingme.android.models.Status;
+import com.pingme.android.models.User;
+import com.pingme.android.utils.FirestoreUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -59,18 +63,38 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusView
         }
 
         void bind(Status status) {
-            // TODO: Replace with actual user name lookup from User model
-            tvName.setText(status.getUserId());
+            // Load user details to show name and profile picture
+            FirestoreUtil.getUserRef(status.getUserId())
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            User user = documentSnapshot.toObject(User.class);
+                            if (user != null) {
+                                tvName.setText(user.getName());
+                                
+                                // FIXED: Load profile image using Glide with privacy check
+                                if (user.shouldShowProfilePhoto() && user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
+                                    Glide.with(itemView.getContext())
+                                            .load(user.getImageUrl())
+                                            .transform(new CircleCrop())
+                                            .placeholder(R.drawable.defaultprofile)
+                                            .error(R.drawable.defaultprofile)
+                                            .into(ivProfile);
+                                } else {
+                                    ivProfile.setImageResource(R.drawable.defaultprofile);
+                                }
+                            }
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        // Fallback to user ID if user details can't be loaded
+                        tvName.setText(status.getUserId());
+                        ivProfile.setImageResource(R.drawable.defaultprofile);
+                    });
+
             tvContent.setText(status.getContent());
             SimpleDateFormat sdf = new SimpleDateFormat("h:mm a", Locale.getDefault());
             tvTime.setText(sdf.format(status.getTimestamp()));
-
-            // TODO: Load profile image using Glide if available
-            // Glide.with(itemView.getContext())
-            //     .load(status.getUserImageUrl())
-            //     .circleCrop()
-            //     .placeholder(R.drawable.ic_profile)
-            //     .into(ivProfile);
 
             itemView.setOnClickListener(v -> statusClickListener.onStatusClick(status));
         }
