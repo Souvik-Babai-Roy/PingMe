@@ -2,6 +2,7 @@ package com.pingme.android.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -22,9 +23,12 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "MainActivity";
+    
     private ActivityMainBinding binding;
     private FirebaseAuth mAuth;
     private String currentUserId;
+    private ViewPagerAdapter adapter;
 
     // FIXED: Add result launcher for settings/profile activities
     private final ActivityResultLauncher<Intent> settingsLauncher =
@@ -46,202 +50,304 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+        
+        try {
+            binding = ActivityMainBinding.inflate(getLayoutInflater());
+            setContentView(binding.getRoot());
 
-        mAuth = FirebaseAuth.getInstance();
-        // FIXED: Check for null user to prevent crash
-        if (mAuth.getCurrentUser() == null) {
-            // User not authenticated, redirect to auth
+            mAuth = FirebaseAuth.getInstance();
+            
+            // FIXED: Check for null user to prevent crash
+            if (mAuth.getCurrentUser() == null) {
+                Log.w(TAG, "User not authenticated, redirecting to auth");
+                // User not authenticated, redirect to auth
+                startActivity(new Intent(this, AuthActivity.class));
+                finish();
+                return;
+            }
+            
+            currentUserId = mAuth.getCurrentUser().getUid();
+            Log.d(TAG, "MainActivity created for user: " + currentUserId);
+
+            // FIXED: Apply theme and sync preferences before setting up UI
+            applyCurrentTheme();
+            syncUserPreferences();
+
+            setupToolbar();
+            setupViewPager();
+            setupFAB();
+            updateUserPresence();
+            updateFCMToken();
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onCreate", e);
+            // If there's any error, redirect to auth
             startActivity(new Intent(this, AuthActivity.class));
             finish();
-            return;
         }
-        currentUserId = mAuth.getCurrentUser().getUid();
-
-        // FIXED: Apply theme and sync preferences before setting up UI
-        applyCurrentTheme();
-        syncUserPreferences();
-
-        setupToolbar();
-        setupViewPager();
-        setupFAB();
-        updateUserPresence();
-        updateFCMToken();
     }
 
     // FIXED: Apply current theme
     private void applyCurrentTheme() {
-        String savedTheme = PreferenceUtils.getThemePreference(this);
-        PreferenceUtils.applyTheme(savedTheme);
+        try {
+            String savedTheme = PreferenceUtils.getThemePreference(this);
+            PreferenceUtils.applyTheme(savedTheme);
+        } catch (Exception e) {
+            Log.e(TAG, "Error applying theme", e);
+        }
     }
 
     // FIXED: Sync user preferences from Firestore
     private void syncUserPreferences() {
-        PreferenceUtils.syncPreferencesFromFirestore(this);
+        try {
+            PreferenceUtils.syncPreferencesFromFirestore(this);
+        } catch (Exception e) {
+            Log.e(TAG, "Error syncing preferences", e);
+        }
     }
 
     private void setupToolbar() {
-        setSupportActionBar(binding.toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("PingMe");
+        try {
+            setSupportActionBar(binding.toolbar);
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle("PingMe");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting up toolbar", e);
         }
     }
 
     private void setupViewPager() {
-        ViewPagerAdapter adapter = new ViewPagerAdapter(this);
-        adapter.addFragment(new ChatsFragment(), "CHATS");
-        adapter.addFragment(new StatusFragment(), "STATUS");
-        adapter.addFragment(new CallsFragment(), "CALLS");
+        try {
+            adapter = new ViewPagerAdapter(this);
+            
+            // FIXED: Create fragments with proper error handling
+            ChatsFragment chatsFragment = new ChatsFragment();
+            StatusFragment statusFragment = new StatusFragment();
+            CallsFragment callsFragment = new CallsFragment();
+            
+            adapter.addFragment(chatsFragment, "CHATS");
+            adapter.addFragment(statusFragment, "STATUS");
+            adapter.addFragment(callsFragment, "CALLS");
 
-        binding.viewPager.setAdapter(adapter);
-        // FIXED: Reduce offscreen limit to improve memory usage and tab switching
-        binding.viewPager.setOffscreenPageLimit(1);
+            binding.viewPager.setAdapter(adapter);
+            // FIXED: Reduce offscreen limit to improve memory usage and tab switching
+            binding.viewPager.setOffscreenPageLimit(1);
 
-        new TabLayoutMediator(binding.tabLayout, binding.viewPager,
-                (tab, position) -> tab.setText(adapter.getPageTitle(position))
-        ).attach();
+            new TabLayoutMediator(binding.tabLayout, binding.viewPager,
+                    (tab, position) -> {
+                        try {
+                            tab.setText(adapter.getPageTitle(position));
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error setting tab title", e);
+                        }
+                    }
+            ).attach();
 
-        // FIXED: Add page change callback to refresh data when switching tabs
-        binding.viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                super.onPageSelected(position);
-                
-                // Refresh fragment data when switching to it
-                if (position == 0) { // Chats fragment
-                    // Get the fragment and refresh if it exists
-                    ChatsFragment chatsFragment = (ChatsFragment) adapter.getFragment(0);
-                    if (chatsFragment != null) {
-                        chatsFragment.refreshChats();
+            // FIXED: Add page change callback to refresh data when switching tabs
+            binding.viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+                @Override
+                public void onPageSelected(int position) {
+                    super.onPageSelected(position);
+                    
+                    try {
+                        // Refresh fragment data when switching to it
+                        if (position == 0) { // Chats fragment
+                            // Get the fragment and refresh if it exists
+                            ChatsFragment chatsFragment = (ChatsFragment) adapter.getFragment(0);
+                            if (chatsFragment != null && chatsFragment.isAdded()) {
+                                chatsFragment.refreshChats();
+                            }
+                        }
+                        
+                        // Update FAB based on current tab (existing logic)
+                        switch (position) {
+                            case 0: // Chats
+                                binding.fab.setImageResource(R.drawable.ic_chat_add);
+                                binding.fab.setContentDescription("Add Friend");
+                                break;
+                            case 1: // Status
+                                binding.fab.setImageResource(R.drawable.ic_camera);
+                                binding.fab.setContentDescription("Add Status");
+                                break;
+                            case 2: // Calls
+                                binding.fab.setImageResource(R.drawable.ic_baseline_person_24);
+                                binding.fab.setContentDescription("New Call");
+                                break;
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error in page change callback", e);
                     }
                 }
-                
-                // Update FAB based on current tab (existing logic)
-                switch (position) {
-                    case 0: // Chats
-                        binding.fab.setImageResource(R.drawable.ic_chat_add);
-                        binding.fab.setContentDescription("Add Friend");
-                        break;
-                    case 1: // Status
-                        binding.fab.setImageResource(R.drawable.ic_camera);
-                        binding.fab.setContentDescription("Add Status");
-                        break;
-                    case 2: // Calls
-                        binding.fab.setImageResource(R.drawable.ic_baseline_person_24);
-                        binding.fab.setContentDescription("New Call");
-                        break;
-                }
-            }
-        });
+            });
 
-        binding.viewPager.setCurrentItem(0);
+            binding.viewPager.setCurrentItem(0);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting up ViewPager", e);
+        }
     }
 
     private void setupFAB() {
-        // FAB for adding friends (visible on Chats tab)
-        binding.fab.setOnClickListener(v -> {
-            int currentTab = binding.viewPager.getCurrentItem();
-            switch (currentTab) {
-                case 0: // Chats tab
-                    startActivity(new Intent(this, AddFriendActivity.class));
-                    break;
-                case 1: // Status tab
-                    // TODO: Add status creation
-                    break;
-                case 2: // Calls tab
-                    // TODO: Start new call
-                    break;
-            }
-        });
-
-
+        try {
+            // FAB for adding friends (visible on Chats tab)
+            binding.fab.setOnClickListener(v -> {
+                try {
+                    int currentTab = binding.viewPager.getCurrentItem();
+                    switch (currentTab) {
+                        case 0: // Chats tab
+                            startActivity(new Intent(this, AddFriendActivity.class));
+                            break;
+                        case 1: // Status tab
+                            // TODO: Add status creation
+                            break;
+                        case 2: // Calls tab
+                            // TODO: Start new call
+                            break;
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error in FAB click", e);
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting up FAB", e);
+        }
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
+        try {
+            getMenuInflater().inflate(R.menu.main_menu, menu);
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating options menu", e);
+            return false;
+        }
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        int itemId = item.getItemId();
+        try {
+            int itemId = item.getItemId();
 
-        if (itemId == R.id.menu_account) {
-            // FIXED: Use result launcher instead of direct startActivity
-            Intent intent = new Intent(this, EditProfileActivity.class);
-            profileLauncher.launch(intent);
-            return true;
-        } else if (itemId == R.id.menu_settings) {
-            // FIXED: Use result launcher for settings
-            Intent intent = new Intent(this, SettingsActivity.class);
-            settingsLauncher.launch(intent);
-            return true;
-        } else if (itemId == R.id.menu_logout) {
-            logout();
-            return true;
+            if (itemId == R.id.menu_account) {
+                // FIXED: Use result launcher instead of direct startActivity
+                Intent intent = new Intent(this, EditProfileActivity.class);
+                profileLauncher.launch(intent);
+                return true;
+            } else if (itemId == R.id.menu_settings) {
+                // FIXED: Use result launcher for settings
+                Intent intent = new Intent(this, SettingsActivity.class);
+                settingsLauncher.launch(intent);
+                return true;
+            } else if (itemId == R.id.menu_logout) {
+                logout();
+                return true;
+            }
+
+            return super.onOptionsItemSelected(item);
+        } catch (Exception e) {
+            Log.e(TAG, "Error in options item selected", e);
+            return false;
         }
-
-        return super.onOptionsItemSelected(item);
     }
 
     private void logout() {
-        // Set user offline before logout
-        FirestoreUtil.updateUserPresence(currentUserId, false);
+        try {
+            // Set user offline before logout
+            if (currentUserId != null) {
+                FirestoreUtil.updateUserPresence(currentUserId, false);
+            }
 
-        FirebaseAuth.getInstance().signOut();
-        startActivity(new Intent(this, AuthActivity.class));
-        finish();
+            FirebaseAuth.getInstance().signOut();
+            startActivity(new Intent(this, AuthActivity.class));
+            finish();
+        } catch (Exception e) {
+            Log.e(TAG, "Error during logout", e);
+            // Force logout even if there's an error
+            FirebaseAuth.getInstance().signOut();
+            startActivity(new Intent(this, AuthActivity.class));
+            finish();
+        }
     }
 
     private void updateUserPresence() {
-        if (currentUserId != null) {
-            FirestoreUtil.updateUserPresence(currentUserId, true);
+        try {
+            if (currentUserId != null) {
+                FirestoreUtil.updateUserPresence(currentUserId, true);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating user presence", e);
         }
     }
 
     private void setUserOffline() {
-        if (currentUserId != null) {
-            FirestoreUtil.updateUserPresence(currentUserId, false);
+        try {
+            if (currentUserId != null) {
+                FirestoreUtil.updateUserPresence(currentUserId, false);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting user offline", e);
         }
     }
 
     private void updateFCMToken() {
-        FirebaseMessaging.getInstance().getToken()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && task.getResult() != null) {
-                        String token = task.getResult();
-                        FirestoreUtil.updateFCMToken(currentUserId, token);
-                    }
-                });
+        try {
+            FirebaseMessaging.getInstance().getToken()
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            String token = task.getResult();
+                            if (currentUserId != null) {
+                                FirestoreUtil.updateFCMToken(currentUserId, token);
+                            }
+                        }
+                    });
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating FCM token", e);
+        }
     }
 
-    // FIXED: Helper method to recreate activity if theme changed
     private void recreateIfNeeded() {
-        // This will be called when returning from settings
-        // The PreferenceUtils will handle recreation if theme changed
+        try {
+            // Recreate activity if theme or preferences changed
+            recreate();
+        } catch (Exception e) {
+            Log.e(TAG, "Error recreating activity", e);
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        updateUserPresence();
-
-        // FIXED: Recheck theme in case it was changed in settings
-        String currentTheme = PreferenceUtils.getThemePreference(this);
-        PreferenceUtils.applyTheme(currentTheme);
+        try {
+            // Update user presence to online
+            if (currentUserId != null) {
+                FirestoreUtil.updateUserPresence(currentUserId, true);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onResume", e);
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        setUserOffline();
+        try {
+            // Update user presence to offline
+            setUserOffline();
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onPause", e);
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        setUserOffline();
+        try {
+            // Set user offline before destroying
+            setUserOffline();
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onDestroy", e);
+        }
     }
 }

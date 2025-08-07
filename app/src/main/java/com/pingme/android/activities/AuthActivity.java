@@ -31,6 +31,7 @@ import com.pingme.android.utils.FirestoreUtil;
 import android.widget.ProgressBar;
 
 public class AuthActivity extends AppCompatActivity {
+    private static final String TAG = "AuthActivity";
 
     private ActivityAuthBinding binding;
     private FirebaseAuth mAuth;
@@ -209,21 +210,46 @@ public class AuthActivity extends AppCompatActivity {
     }
 
     private void checkUserProfile() {
-        if (mAuth.getCurrentUser() == null) {
-            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        try {
+            if (mAuth.getCurrentUser() == null) {
+                Log.e(TAG, "User not logged in");
+                Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-        String userId = mAuth.getCurrentUser().getUid();
-        FirestoreUtil.getUserRef(userId).get().addOnCompleteListener(task -> {
-            if (task.isSuccessful() && task.getResult().exists()) {
-                startActivity(new Intent(AuthActivity.this, MainActivity.class));
-                finish();
-            } else {
+            String userId = mAuth.getCurrentUser().getUid();
+            Log.d(TAG, "Checking user profile for: " + userId);
+            
+            FirestoreUtil.getUserRef(userId).get().addOnCompleteListener(task -> {
+                try {
+                    if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
+                        Log.d(TAG, "User profile exists, starting MainActivity");
+                        startActivity(new Intent(AuthActivity.this, MainActivity.class));
+                        finish();
+                    } else {
+                        Log.d(TAG, "User profile does not exist, starting SetupProfileActivity");
+                        startActivity(new Intent(AuthActivity.this, SetupProfileActivity.class));
+                        finish();
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error checking user profile", e);
+                    // Default to setup profile on error
+                    startActivity(new Intent(AuthActivity.this, SetupProfileActivity.class));
+                    finish();
+                }
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "Failed to check user profile", e);
+                // Default to setup profile on failure
                 startActivity(new Intent(AuthActivity.this, SetupProfileActivity.class));
                 finish();
-            }
-        });
+            });
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error in checkUserProfile", e);
+            // Default to setup profile on error
+            startActivity(new Intent(this, SetupProfileActivity.class));
+            finish();
+        }
     }
 
     private void showForgotPasswordDialog() {
