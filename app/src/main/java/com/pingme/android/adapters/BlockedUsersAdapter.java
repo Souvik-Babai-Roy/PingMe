@@ -62,31 +62,39 @@ public class BlockedUsersAdapter extends RecyclerView.Adapter<BlockedUsersAdapte
         }
 
         public void bind(User user, int position) {
-            // Set user name
-            binding.tvName.setText(user.getDisplayName());
+            // Set user name - display appropriate name based on privacy settings
+            String displayName = user.getDisplayName();
+            if (displayName == null || displayName.trim().isEmpty()) {
+                displayName = "Unknown User";
+            }
+            binding.tvName.setText(displayName);
 
-            // Format blocked date
+            // Format blocked date - use blocked timestamp properly
             if (user.getLastSeen() > 0) {
-                SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+                SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy 'at' h:mm a", Locale.getDefault());
                 String blockedDate = "Blocked on " + dateFormat.format(new Date(user.getLastSeen()));
                 binding.tvBlockedDate.setText(blockedDate);
             } else {
                 binding.tvBlockedDate.setText("Blocked recently");
             }
 
-            // Load profile image
-            if (user.getImageUrl() != null && !user.getImageUrl().trim().isEmpty()) {
-                Glide.with(context)
-                        .load(user.getImageUrl())
-                        .transform(new CircleCrop())
-                        .placeholder(R.drawable.defaultprofile)
-                        .error(R.drawable.defaultprofile)
-                        .into(binding.ivProfile);
+            // Load profile image - respect privacy settings even for blocked users
+            if (user.isProfilePhotoEnabled() && user.getImageUrl() != null && !user.getImageUrl().trim().isEmpty()) {
+                try {
+                    Glide.with(context)
+                            .load(user.getImageUrl())
+                            .transform(new CircleCrop())
+                            .placeholder(R.drawable.defaultprofile)
+                            .error(R.drawable.defaultprofile)
+                            .into(binding.ivProfile);
+                } catch (Exception e) {
+                    binding.ivProfile.setImageResource(R.drawable.defaultprofile);
+                }
             } else {
                 binding.ivProfile.setImageResource(R.drawable.defaultprofile);
             }
 
-            // Unblock button click
+            // Unblock button click with confirmation
             binding.btnUnblock.setOnClickListener(v -> {
                 if (onUnblockListener != null) {
                     onUnblockListener.onUnblock(user, position);

@@ -109,145 +109,218 @@ public class FirestoreUtil {
     public static void createNewChatInRealtime(String chatId, String user1Id, String user2Id) {
         Log.d(TAG, "Creating new chat: " + chatId + " between " + user1Id + " and " + user2Id);
 
-        DatabaseReference chatRef = getChatRef(chatId);
+        // First check if either user has blocked the other
+        checkMutualBlocking(user1Id, user2Id, (user1BlockedUser2, user2BlockedUser1) -> {
+            if (user1BlockedUser2 || user2BlockedUser1) {
+                Log.d(TAG, "Cannot create chat - users have blocked each other");
+                return;
+            }
 
-        Map<String, Object> chatData = new HashMap<>();
-        chatData.put("id", chatId);
+            DatabaseReference chatRef = getChatRef(chatId);
 
-        // Participants as a map for easier querying
-        Map<String, Boolean> participants = new HashMap<>();
-        participants.put(user1Id, true);
-        participants.put(user2Id, true);
-        chatData.put("participants", participants);
+            Map<String, Object> chatData = new HashMap<>();
+            chatData.put("id", chatId);
 
-        chatData.put("lastMessage", "");
-        chatData.put("lastMessageTimestamp", System.currentTimeMillis());
-        chatData.put("lastMessageSenderId", "");
-        chatData.put("lastMessageType", "empty_chat");
-        chatData.put("createdAt", System.currentTimeMillis());
-        chatData.put("type", "direct");
-        chatData.put("isActive", true); // Make it active immediately
+            // Participants as a map for easier querying
+            Map<String, Boolean> participants = new HashMap<>();
+            participants.put(user1Id, true);
+            participants.put(user2Id, true);
+            chatData.put("participants", participants);
 
-        // Create chat and update user chat references atomically
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("chats/" + chatId, chatData);
-        updates.put("user_chats/" + user1Id + "/" + chatId, true);
-        updates.put("user_chats/" + user2Id + "/" + chatId, true);
+            chatData.put("lastMessage", "");
+            chatData.put("lastMessageTimestamp", System.currentTimeMillis());
+            chatData.put("lastMessageSenderId", "");
+            chatData.put("lastMessageType", "empty_chat");
+            chatData.put("createdAt", System.currentTimeMillis());
+            chatData.put("type", "direct");
+            chatData.put("isActive", true);
 
-        getRealtimeDatabase().updateChildren(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Chat created successfully: " + chatId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to create chat: " + chatId, e);
-                });
+            // Create chat and update user chat references atomically
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("chats/" + chatId, chatData);
+            updates.put("user_chats/" + user1Id + "/" + chatId, true);
+            updates.put("user_chats/" + user2Id + "/" + chatId, true);
+
+            getRealtimeDatabase().updateChildren(updates)
+                    .addOnSuccessListener(aVoid -> {
+                        Log.d(TAG, "Chat created successfully: " + chatId);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to create chat: " + chatId, e);
+                    });
+        });
     }
 
     public static void createEmptyFriendChat(String currentUserId, String friendId) {
         String chatId = generateChatId(currentUserId, friendId);
         Log.d(TAG, "Creating empty friend chat: " + chatId);
 
-        // Create an empty chat for new friends
-        Map<String, Object> chatData = new HashMap<>();
-        chatData.put("id", chatId);
+        // Check if either user has blocked the other before creating chat
+        checkMutualBlocking(currentUserId, friendId, (currentUserBlocked, friendBlocked) -> {
+            if (currentUserBlocked || friendBlocked) {
+                Log.d(TAG, "Cannot create friend chat - users have blocked each other");
+                return;
+            }
 
-        Map<String, Boolean> participants = new HashMap<>();
-        participants.put(currentUserId, true);
-        participants.put(friendId, true);
-        chatData.put("participants", participants);
+            Map<String, Object> chatData = new HashMap<>();
+            chatData.put("id", chatId);
 
-        chatData.put("lastMessage", "");
-        chatData.put("lastMessageTimestamp", System.currentTimeMillis());
-        chatData.put("lastMessageSenderId", "");
-        chatData.put("lastMessageType", "friend_added");
-        chatData.put("createdAt", System.currentTimeMillis());
-        chatData.put("type", "direct");
-        chatData.put("isActive", true); // Make it active so messages can be sent
+            Map<String, Boolean> participants = new HashMap<>();
+            participants.put(currentUserId, true);
+            participants.put(friendId, true);
+            chatData.put("participants", participants);
 
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("chats/" + chatId, chatData);
-        updates.put("user_chats/" + currentUserId + "/" + chatId, true);
-        updates.put("user_chats/" + friendId + "/" + chatId, true);
+            chatData.put("lastMessage", "");
+            chatData.put("lastMessageTimestamp", System.currentTimeMillis());
+            chatData.put("lastMessageSenderId", "");
+            chatData.put("lastMessageType", "friend_added");
+            chatData.put("createdAt", System.currentTimeMillis());
+            chatData.put("type", "direct");
+            chatData.put("isActive", true);
 
-        getRealtimeDatabase().updateChildren(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Friend chat created successfully: " + chatId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to create friend chat: " + chatId, e);
-                });
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("chats/" + chatId, chatData);
+            updates.put("user_chats/" + currentUserId + "/" + chatId, true);
+            updates.put("user_chats/" + friendId + "/" + chatId, true);
+
+            getRealtimeDatabase().updateChildren(updates)
+                    .addOnSuccessListener(aVoid -> {
+                        Log.d(TAG, "Friend chat created successfully: " + chatId);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to create friend chat: " + chatId, e);
+                    });
+        });
     }
 
     public static void updateChatLastMessage(String chatId, String message, String senderId, String messageType) {
         Log.d(TAG, "Updating last message for chat: " + chatId);
 
-        DatabaseReference chatRef = getChatRef(chatId);
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("lastMessage", message);
-        updates.put("lastMessageTimestamp", System.currentTimeMillis());
-        updates.put("lastMessageSenderId", senderId);
-        updates.put("lastMessageType", messageType != null ? messageType : "text");
-        updates.put("isActive", true); // Mark chat as active when message is sent
+        // Get chat participants first to check for blocking
+        getChatRef(chatId).child("participants").addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+            @Override
+            public void onDataChange(com.google.firebase.database.DataSnapshot dataSnapshot) {
+                if (!dataSnapshot.exists()) return;
 
-        chatRef.updateChildren(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Chat last message updated successfully: " + chatId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to update chat last message: " + chatId, e);
+                String otherUserId = null;
+                for (com.google.firebase.database.DataSnapshot participantSnapshot : dataSnapshot.getChildren()) {
+                    String participantId = participantSnapshot.getKey();
+                    if (participantId != null && !participantId.equals(senderId)) {
+                        otherUserId = participantId;
+                        break;
+                    }
+                }
+
+                if (otherUserId == null) return;
+
+                // Check if sender is blocked by receiver
+                final String finalOtherUserId = otherUserId;
+                checkIfBlocked(finalOtherUserId, senderId, isBlocked -> {
+                    if (isBlocked) {
+                        Log.d(TAG, "Not updating chat - sender is blocked by receiver");
+                        return;
+                    }
+
+                    DatabaseReference chatRef = getChatRef(chatId);
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("lastMessage", message);
+                    updates.put("lastMessageTimestamp", System.currentTimeMillis());
+                    updates.put("lastMessageSenderId", senderId);
+                    updates.put("lastMessageType", messageType != null ? messageType : "text");
+                    updates.put("isActive", true);
+
+                    chatRef.updateChildren(updates)
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "Chat last message updated successfully: " + chatId);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Failed to update chat last message: " + chatId, e);
+                            });
                 });
+            }
+
+            @Override
+            public void onCancelled(com.google.firebase.database.DatabaseError databaseError) {
+                Log.e(TAG, "Failed to get chat participants", databaseError.toException());
+            }
+        });
     }
 
     public static void sendMessageToRealtime(String chatId, String senderId, String text,
                                              String messageType, Map<String, Object> mediaData) {
         Log.d(TAG, "Sending message to chat: " + chatId + " from: " + senderId);
 
-        // First ensure the chat exists and is active
-        getChatRef(chatId).addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+        // First check if the sender can send messages (not blocked)
+        getChatRef(chatId).child("participants").addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
             @Override
-            public void onDataChange(com.google.firebase.database.DataSnapshot dataSnapshot) {
-                if (!dataSnapshot.exists()) {
-                    Log.d(TAG, "Chat doesn't exist, this should not happen: " + chatId);
+            public void onDataChange(com.google.firebase.database.DataSnapshot participantsSnapshot) {
+                if (!participantsSnapshot.exists()) {
+                    Log.d(TAG, "Chat doesn't exist: " + chatId);
                     return;
                 }
 
-                // Chat exists, now send the message
-                DatabaseReference messagesRef = getMessagesRef(chatId);
-                String messageId = messagesRef.push().getKey();
+                String otherUserId = null;
+                for (com.google.firebase.database.DataSnapshot participantSnapshot : participantsSnapshot.getChildren()) {
+                    String participantId = participantSnapshot.getKey();
+                    if (participantId != null && !participantId.equals(senderId)) {
+                        otherUserId = participantId;
+                        break;
+                    }
+                }
 
-                if (messageId == null) {
-                    Log.e(TAG, "Failed to generate message ID");
+                if (otherUserId == null) {
+                    Log.e(TAG, "Could not find other participant");
                     return;
                 }
 
-                Map<String, Object> messageData = new HashMap<>();
-                messageData.put("id", messageId);
-                messageData.put("senderId", senderId);
-                messageData.put("text", text);
-                messageData.put("timestamp", System.currentTimeMillis());
-                messageData.put("status", Message.STATUS_SENT);
-                messageData.put("type", messageType);
+                final String finalOtherUserId = otherUserId;
 
-                // Add media data if provided
-                if (mediaData != null) {
-                    messageData.putAll(mediaData);
-                }
+                // Check if sender is blocked by receiver
+                checkMutualBlocking(senderId, finalOtherUserId, (senderBlocked, receiverBlocked) -> {
+                    if (receiverBlocked) {
+                        Log.d(TAG, "Cannot send message - sender is blocked by receiver");
+                        // Message will be sent but won't update chat for receiver
+                        return;
+                    }
 
-                Log.d(TAG, "Sending message with ID: " + messageId + " to chat: " + chatId);
+                    // Chat exists and no blocking, now send the message
+                    DatabaseReference messagesRef = getMessagesRef(chatId);
+                    String messageId = messagesRef.push().getKey();
 
-                // Send message and update chat's last message
-                Map<String, Object> updates = new HashMap<>();
-                updates.put("messages/" + chatId + "/" + messageId, messageData);
+                    if (messageId == null) {
+                        Log.e(TAG, "Failed to generate message ID");
+                        return;
+                    }
 
-                getRealtimeDatabase().updateChildren(updates)
-                        .addOnSuccessListener(aVoid -> {
-                            Log.d(TAG, "Message sent successfully: " + messageId);
-                            // Update chat's last message after message is sent
-                            updateChatLastMessage(chatId, text, senderId, messageType);
-                        })
-                        .addOnFailureListener(e -> {
-                            Log.e(TAG, "Failed to send message: " + messageId, e);
-                        });
+                    Map<String, Object> messageData = new HashMap<>();
+                    messageData.put("id", messageId);
+                    messageData.put("senderId", senderId);
+                    messageData.put("text", text);
+                    messageData.put("timestamp", System.currentTimeMillis());
+                    messageData.put("status", Message.STATUS_SENT);
+                    messageData.put("type", messageType);
+
+                    // Add media data if provided
+                    if (mediaData != null) {
+                        messageData.putAll(mediaData);
+                    }
+
+                    Log.d(TAG, "Sending message with ID: " + messageId + " to chat: " + chatId);
+
+                    // Send message and update chat's last message
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("messages/" + chatId + "/" + messageId, messageData);
+
+                    getRealtimeDatabase().updateChildren(updates)
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "Message sent successfully: " + messageId);
+                                // Update chat's last message after message is sent (only if receiver hasn't blocked sender)
+                                updateChatLastMessage(chatId, text, senderId, messageType);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Failed to send message: " + messageId, e);
+                            });
+                });
             }
 
             @Override
@@ -348,31 +421,39 @@ public class FirestoreUtil {
     public static void addFriend(String currentUserId, String friendId, User currentUser, User friendUser) {
         Log.d(TAG, "Adding friend: " + friendId + " to user: " + currentUserId);
 
-        // Add friend to both users' friend lists in Firestore
-        Map<String, Object> friendData = new HashMap<>();
-        friendData.put("addedAt", System.currentTimeMillis());
-        friendData.put("userId", friendId);
+        // First check if either user has blocked the other
+        checkMutualBlocking(currentUserId, friendId, (currentUserBlocked, friendBlocked) -> {
+            if (currentUserBlocked || friendBlocked) {
+                Log.d(TAG, "Cannot add friend - users have blocked each other");
+                return;
+            }
 
-        Map<String, Object> currentUserData = new HashMap<>();
-        currentUserData.put("addedAt", System.currentTimeMillis());
-        currentUserData.put("userId", currentUserId);
+            // Add friend to both users' friend lists in Firestore
+            Map<String, Object> friendData = new HashMap<>();
+            friendData.put("addedAt", System.currentTimeMillis());
+            friendData.put("userId", friendId);
 
-        // Batch write to add both friendships
-        getFriendsRef(currentUserId).document(friendId).set(friendData)
-                .addOnSuccessListener(aVoid -> {
-                    getFriendsRef(friendId).document(currentUserId).set(currentUserData)
-                            .addOnSuccessListener(aVoid1 -> {
-                                Log.d(TAG, "Friendship created successfully between " + currentUserId + " and " + friendId);
-                                // Create chat for friends
-                                createEmptyFriendChat(currentUserId, friendId);
-                            })
-                            .addOnFailureListener(e -> {
-                                Log.e(TAG, "Failed to add friend for friendUser", e);
-                            });
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to add friend for currentUser", e);
-                });
+            Map<String, Object> currentUserData = new HashMap<>();
+            currentUserData.put("addedAt", System.currentTimeMillis());
+            currentUserData.put("userId", currentUserId);
+
+            // Batch write to add both friendships
+            getFriendsRef(currentUserId).document(friendId).set(friendData)
+                    .addOnSuccessListener(aVoid -> {
+                        getFriendsRef(friendId).document(currentUserId).set(currentUserData)
+                                .addOnSuccessListener(aVoid1 -> {
+                                    Log.d(TAG, "Friendship created successfully between " + currentUserId + " and " + friendId);
+                                    // Create chat for friends
+                                    createEmptyFriendChat(currentUserId, friendId);
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Failed to add friend for friendUser", e);
+                                });
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to add friend for currentUser", e);
+                    });
+        });
     }
 
     public static void removeFriend(String currentUserId, String friendId) {
@@ -382,22 +463,50 @@ public class FirestoreUtil {
         getFriendsRef(currentUserId).document(friendId).delete();
         getFriendsRef(friendId).document(currentUserId).delete();
 
-        // Remove chat
+        // Remove chat for both users
         String chatId = generateChatId(currentUserId, friendId);
         getUserChatsRef(currentUserId).child(chatId).removeValue();
         getUserChatsRef(friendId).child(chatId).removeValue();
         getChatRef(chatId).removeValue();
         getMessagesRef(chatId).removeValue();
+        getTypingRef(chatId).removeValue();
     }
 
     // ===== TYPING INDICATORS =====
 
     public static void setTyping(String chatId, String userId, boolean isTyping) {
-        if (isTyping) {
-            getTypingRef(chatId).child(userId).setValue(System.currentTimeMillis());
-        } else {
-            getTypingRef(chatId).child(userId).removeValue();
-        }
+        // Check if user is allowed to send typing indicators (not blocked)
+        getChatRef(chatId).child("participants").addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+            @Override
+            public void onDataChange(com.google.firebase.database.DataSnapshot dataSnapshot) {
+                String otherUserId = null;
+                for (com.google.firebase.database.DataSnapshot participantSnapshot : dataSnapshot.getChildren()) {
+                    String participantId = participantSnapshot.getKey();
+                    if (participantId != null && !participantId.equals(userId)) {
+                        otherUserId = participantId;
+                        break;
+                    }
+                }
+
+                if (otherUserId == null) return;
+
+                final String finalOtherUserId = otherUserId;
+                checkIfBlocked(finalOtherUserId, userId, blocked -> {
+                    if (!blocked) {
+                        if (isTyping) {
+                            getTypingRef(chatId).child(userId).setValue(System.currentTimeMillis());
+                        } else {
+                            getTypingRef(chatId).child(userId).removeValue();
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onCancelled(com.google.firebase.database.DatabaseError databaseError) {
+                // Ignore errors for typing indicators
+            }
+        });
     }
 
     public static DatabaseReference getTypingIndicatorRef(String chatId, String userId) {
@@ -412,17 +521,17 @@ public class FirestoreUtil {
         // Add to blocked users in Realtime Database
         updates.put("blocked_users/" + currentUserId + "/" + userToBlockId, System.currentTimeMillis());
 
-        // Hide active chats (don't delete, just mark as inactive)
+        // Hide active chats (don't delete, just mark as inactive for current user only)
         String chatId = generateChatId(currentUserId, userToBlockId);
         updates.put("user_chats/" + currentUserId + "/" + chatId, false);
-        
+
         getRealtimeDatabase().updateChildren(updates);
 
         // Add to Firestore blocked users collection
         Map<String, Object> blockData = new HashMap<>();
         blockData.put("blockedAt", System.currentTimeMillis());
         blockData.put("blockedUserId", userToBlockId);
-        
+
         FirebaseFirestore.getInstance()
                 .collection("blocked_users")
                 .document(currentUserId)
@@ -437,7 +546,7 @@ public class FirestoreUtil {
     public static void unblockUser(String currentUserId, String userToUnblockId) {
         // Remove from Realtime Database
         getBlockedUsersRef(currentUserId).child(userToUnblockId).removeValue();
-        
+
         // Remove from Firestore
         FirebaseFirestore.getInstance()
                 .collection("blocked_users")
@@ -511,58 +620,19 @@ public class FirestoreUtil {
         getStatusCollectionRef().add(statusData);
     }
 
-    // ===== CALLBACKS =====
-
-    public interface FriendshipCallback {
-        void onResult(boolean areFriends);
-    }
-
-    public interface UserCallback {
-        void onResult(User user);
-    }
-
-    public interface BlockStatusCallback {
-        void onResult(boolean isBlocked);
-    }
-
-    public interface BlockedUsersCallback {
-        void onBlockedUsersLoaded(com.google.firebase.firestore.QuerySnapshot querySnapshot);
-        void onError(String error);
-    }
-
-    public interface MutualBlockCallback {
-        void onResult(boolean user1BlockedUser2, boolean user2BlockedUser1);
-    }
-
     // ===== UTILITY METHODS =====
 
     public static void deleteChat(String chatId, String currentUserId) {
-        // Remove from user's chat list
-        getUserChatsRef(currentUserId).child(chatId).removeValue();
-
-        // Check if both users have removed the chat, then delete the entire chat
-        getChatRef(chatId).child("participants").addListenerForSingleValueEvent(
-                new com.google.firebase.database.ValueEventListener() {
-                    @Override
-                    public void onDataChange(com.google.firebase.database.DataSnapshot dataSnapshot) {
-                        // Implementation to check if chat should be completely deleted
-                    }
-
-                    @Override
-                    public void onCancelled(com.google.firebase.database.DatabaseError databaseError) {
-                    }
-                });
+        // Only remove from current user's chat list - don't affect other user
+        getUserChatsRef(currentUserId).child(chatId).setValue(false);
+        Log.d(TAG, "Chat hidden from user: " + currentUserId);
     }
 
+    // FIXED: One-sided chat clearing - only affects the user who clears
     public static void clearChatHistoryForUser(String chatId, String userId) {
         Log.d(TAG, "Clearing chat history for user: " + userId + " in chat: " + chatId);
 
-        // Create user-specific cleared messages reference
-        Map<String, Object> userClearData = new HashMap<>();
-        userClearData.put("clearedAt", System.currentTimeMillis());
-        userClearData.put("userId", userId);
-
-        // Store when user cleared their chat
+        // Store when user cleared their chat - this only affects their view
         getRealtimeDatabase()
                 .child("cleared_chats")
                 .child(chatId)
@@ -570,6 +640,14 @@ public class FirestoreUtil {
                 .setValue(System.currentTimeMillis())
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "Chat history cleared for user: " + userId);
+
+                    // Update the user's chat to show "You cleared this chat"
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("user_specific_chats/" + userId + "/" + chatId + "/lastMessage", "You cleared this chat");
+                    updates.put("user_specific_chats/" + userId + "/" + chatId + "/lastMessageType", "chat_cleared");
+                    updates.put("user_specific_chats/" + userId + "/" + chatId + "/clearedAt", System.currentTimeMillis());
+
+                    getRealtimeDatabase().updateChildren(updates);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to clear chat history for user", e);
@@ -592,9 +670,10 @@ public class FirestoreUtil {
                     updates.put("lastMessageType", "empty_chat");
 
                     getChatRef(chatId).updateChildren(updates);
-                    
+
                     // Clear the cleared_chats data since all messages are deleted
                     getRealtimeDatabase().child("cleared_chats").child(chatId).removeValue();
+                    getRealtimeDatabase().child("user_specific_chats").child(chatId).removeValue();
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to clear chat history", e);
@@ -637,6 +716,29 @@ public class FirestoreUtil {
                 callback.onError(databaseError.getMessage());
             }
         });
+    }
+
+    // ===== CALLBACKS =====
+
+    public interface FriendshipCallback {
+        void onResult(boolean areFriends);
+    }
+
+    public interface UserCallback {
+        void onResult(User user);
+    }
+
+    public interface BlockStatusCallback {
+        void onResult(boolean isBlocked);
+    }
+
+    public interface BlockedUsersCallback {
+        void onBlockedUsersLoaded(com.google.firebase.firestore.QuerySnapshot querySnapshot);
+        void onError(String error);
+    }
+
+    public interface MutualBlockCallback {
+        void onResult(boolean user1BlockedUser2, boolean user2BlockedUser1);
     }
 
     public interface ChatListCallback {

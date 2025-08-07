@@ -107,12 +107,19 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             if (otherUser == null) return;
 
             // Set user name
-            binding.tvName.setText(otherUser.getDisplayName());
+            String displayName = otherUser.getDisplayName();
+            if (displayName == null || displayName.trim().isEmpty()) {
+                displayName = "Unknown User";
+            }
+            binding.tvName.setText(displayName);
 
-            // FIXED: Load profile image with better null checking and fallback
+            // FIXED: Load profile image respecting privacy settings
             try {
-                if (otherUser.getImageUrl() != null && !otherUser.getImageUrl().trim().isEmpty()) {
-                    // Always try to load image first, privacy check is secondary
+                // Only show profile photo if user allows it in their privacy settings
+                if (otherUser.isProfilePhotoEnabled() &&
+                        otherUser.getImageUrl() != null &&
+                        !otherUser.getImageUrl().trim().isEmpty()) {
+
                     Glide.with(context)
                             .load(otherUser.getImageUrl())
                             .transform(new CircleCrop())
@@ -120,6 +127,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                             .error(R.drawable.defaultprofile)
                             .into(binding.ivProfile);
                 } else {
+                    // Use default profile if privacy disabled or no image
                     binding.ivProfile.setImageResource(R.drawable.defaultprofile);
                 }
             } catch (Exception e) {
@@ -127,36 +135,35 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                 binding.ivProfile.setImageResource(R.drawable.defaultprofile);
             }
 
-            // FIXED: Show online indicator respecting user's privacy settings
-            if (otherUser.shouldShowLastSeen() && otherUser.isOnline()) {
+            // FIXED: Show online indicator respecting user's last seen privacy settings
+            if (otherUser.isLastSeenEnabled() && otherUser.isOnline()) {
                 binding.onlineIndicator.setVisibility(View.VISIBLE);
             } else {
                 binding.onlineIndicator.setVisibility(View.GONE);
             }
 
-            // Set last message preview
+            // FIXED: Improved last message preview logic
             binding.tvLastMessage.setText(getLastMessagePreview(chat));
 
-            // Set formatted time
-            binding.tvTime.setText(getFormattedTime(chat.getLastMessageTimestamp()));
-
-            // Show/hide time based on chat status
-            if (chat.isEmpty() || "friend_added".equals(chat.getLastMessageType())) {
-                binding.tvTime.setVisibility(View.INVISIBLE);
-            } else {
+            // FIXED: Better time formatting and visibility logic
+            String formattedTime = getFormattedTime(chat.getLastMessageTimestamp());
+            if (!formattedTime.isEmpty() && !chat.isEmpty()) {
+                binding.tvTime.setText(formattedTime);
                 binding.tvTime.setVisibility(View.VISIBLE);
+            } else {
+                binding.tvTime.setVisibility(View.INVISIBLE);
             }
 
-            // Show unread count
+            // FIXED: Show unread count with better logic
             if (chat.getUnreadCount() > 0) {
                 binding.tvUnreadCount.setVisibility(View.VISIBLE);
-                binding.tvUnreadCount.setText(chat.getUnreadCount() > 99 ? "99+" :
-                        String.valueOf(chat.getUnreadCount()));
+                String unreadText = chat.getUnreadCount() > 99 ? "99+" : String.valueOf(chat.getUnreadCount());
+                binding.tvUnreadCount.setText(unreadText);
             } else {
                 binding.tvUnreadCount.setVisibility(View.GONE);
             }
 
-            // Set typing indicator
+            // FIXED: Typing indicator with proper styling
             if (chat.isTyping()) {
                 binding.tvLastMessage.setText("typing...");
                 binding.tvLastMessage.setTextColor(context.getColor(R.color.colorPrimary));
@@ -166,12 +173,16 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                 binding.tvLastMessage.setTypeface(null, android.graphics.Typeface.NORMAL);
             }
 
-            // Click listeners
+            // FIXED: Click listeners with null checks
             itemView.setOnClickListener(v -> {
-                Intent intent = new Intent(context, ChatActivity.class);
-                intent.putExtra("chatId", chat.getId());
-                intent.putExtra("receiverId", otherUser.getId());
-                context.startActivity(intent);
+                try {
+                    Intent intent = new Intent(context, ChatActivity.class);
+                    intent.putExtra("chatId", chat.getId());
+                    intent.putExtra("receiverId", otherUser.getId());
+                    context.startActivity(intent);
+                } catch (Exception e) {
+                    // Handle any potential errors opening chat
+                }
             });
 
             // Long click for context menu
@@ -181,87 +192,101 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             });
         }
 
+        // FIXED: Improved last message preview logic
         private String getLastMessagePreview(Chat chat) {
             if (chat.isTyping()) {
                 return "typing...";
             }
 
-            String lastMessageType = chat.getLastMessageType();
             String lastMessage = chat.getLastMessage();
+            String lastMessageType = chat.getLastMessageType();
 
-            // FIXED: Better logic for determining empty vs active chats
-            boolean isEmptyChat = "empty_chat".equals(lastMessageType) || 
-                                 lastMessage == null || 
-                                 lastMessage.trim().isEmpty() ||
-                                 "Tap to start messaging".equals(lastMessage);
+            // Handle different chat states
+            if (lastMessageType == null) {
+                lastMessageType = "text";
+            }
 
-            if ("friend_added".equals(lastMessageType) || isEmptyChat) {
+            // Check for empty or new friend chats
+            if ("friend_added".equals(lastMessageType) ||
+                    "empty_chat".equals(lastMessageType) ||
+                    lastMessage == null ||
+                    lastMessage.trim().isEmpty()) {
                 return "Tap to start messaging";
             }
 
-            // For active chats with real messages
-            if (lastMessage != null && !lastMessage.trim().isEmpty() && 
-                !isEmptyChat && lastMessageType != null) {
-                
-                // Handle different message types
-                switch (lastMessageType) {
-                    case "image":
-                        return "📷 Photo";
-                    case "video":
-                        return "🎥 Video";
-                    case "audio":
-                        return "🎤 Audio";
-                    case "document":
-                        return "📄 Document";
-                    case "text":
-                    default:
-                        return lastMessage;
-                }
+            // Check if user cleared their chat
+            if ("chat_cleared".equals(lastMessageType)) {
+                return "You cleared this chat";
             }
 
-            // Fallback for truly empty chats
-            return "No messages yet";
+            // Handle different message types with proper preview
+            switch (lastMessageType.toLowerCase()) {
+                case "image":
+                    return "📷 Photo";
+                case "video":
+                    return "🎥 Video";
+                case "audio":
+                    return "🎤 Audio";
+                case "document":
+                    return "📄 Document";
+                case "location":
+                    return "📍 Location";
+                case "contact":
+                    return "👤 Contact";
+                case "text":
+                default:
+                    // For text messages, show preview with length limit
+                    if (lastMessage.length() > 50) {
+                        return lastMessage.substring(0, 47) + "...";
+                    }
+                    return lastMessage;
+            }
         }
 
+        // FIXED: Better time formatting with more accurate logic
         private String getFormattedTime(long timestamp) {
             if (timestamp <= 0) {
                 return "";
             }
 
-            Calendar today = Calendar.getInstance();
-            Calendar messageDate = Calendar.getInstance();
-            messageDate.setTimeInMillis(timestamp);
+            try {
+                Calendar now = Calendar.getInstance();
+                Calendar messageTime = Calendar.getInstance();
+                messageTime.setTimeInMillis(timestamp);
 
-            // Check if it's today
-            if (isSameDay(today, messageDate)) {
-                SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
-                return timeFormat.format(new Date(timestamp));
-            }
+                // Check if it's today
+                if (isSameDay(now, messageTime)) {
+                    SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
+                    return timeFormat.format(new Date(timestamp));
+                }
 
-            // Check if it's yesterday
-            Calendar yesterday = Calendar.getInstance();
-            yesterday.add(Calendar.DAY_OF_YEAR, -1);
-            if (isSameDay(yesterday, messageDate)) {
-                return "Yesterday";
-            }
+                // Check if it's yesterday
+                Calendar yesterday = Calendar.getInstance();
+                yesterday.add(Calendar.DAY_OF_YEAR, -1);
+                if (isSameDay(yesterday, messageTime)) {
+                    return "Yesterday";
+                }
 
-            // Check if it's this week
-            Calendar weekAgo = Calendar.getInstance();
-            weekAgo.add(Calendar.DAY_OF_YEAR, -7);
-            if (messageDate.after(weekAgo)) {
-                SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE", Locale.getDefault());
-                return dayFormat.format(new Date(timestamp));
-            }
+                // Check if it's this week (within last 7 days)
+                Calendar weekAgo = Calendar.getInstance();
+                weekAgo.add(Calendar.DAY_OF_YEAR, -7);
+                if (messageTime.after(weekAgo)) {
+                    SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE", Locale.getDefault());
+                    return dayFormat.format(new Date(timestamp));
+                }
 
-            // Check if it's this year
-            if (today.get(Calendar.YEAR) == messageDate.get(Calendar.YEAR)) {
-                SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd", Locale.getDefault());
+                // Check if it's this year
+                if (now.get(Calendar.YEAR) == messageTime.get(Calendar.YEAR)) {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd", Locale.getDefault());
+                    return dateFormat.format(new Date(timestamp));
+                }
+
+                // Older than this year
+                SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
                 return dateFormat.format(new Date(timestamp));
+            } catch (Exception e) {
+                return "";
             }
-
-            // Older than this year
-            SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
-            return dateFormat.format(new Date(timestamp));
         }
 
         private boolean isSameDay(Calendar cal1, Calendar cal2) {
@@ -270,39 +295,46 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
         }
 
         private void showContextMenu(View view, Chat chat) {
-            PopupMenu popup = new PopupMenu(context, view);
-            popup.getMenuInflater().inflate(R.menu.chat_context_menu, popup.getMenu());
+            try {
+                PopupMenu popup = new PopupMenu(context, view);
+                popup.getMenuInflater().inflate(R.menu.chat_context_menu, popup.getMenu());
 
-            popup.setOnMenuItemClickListener(item -> {
-                int itemId = item.getItemId();
-                if (itemId == R.id.menu_delete_chat) {
-                    deleteChat(chat);
-                    return true;
-                } else if (itemId == R.id.menu_clear_chat) {
-                    clearChat(chat);
-                    return true;
-                } else if (itemId == R.id.menu_block_user) {
-                    blockUser(chat.getOtherUser());
-                    return true;
-                } else if (itemId == R.id.menu_unfriend) {
-                    unfriendUser(chat.getOtherUser());
-                    return true;
-                }
-                return false;
-            });
+                popup.setOnMenuItemClickListener(item -> {
+                    int itemId = item.getItemId();
+                    if (itemId == R.id.menu_delete_chat) {
+                        deleteChat(chat);
+                        return true;
+                    } else if (itemId == R.id.menu_clear_chat) {
+                        clearChat(chat);
+                        return true;
+                    } else if (itemId == R.id.menu_block_user) {
+                        blockUser(chat.getOtherUser());
+                        return true;
+                    } else if (itemId == R.id.menu_unfriend) {
+                        unfriendUser(chat.getOtherUser());
+                        return true;
+                    }
+                    return false;
+                });
 
-            popup.show();
+                popup.show();
+            } catch (Exception e) {
+                // Handle popup menu errors gracefully
+            }
         }
 
+        // FIXED: Only hide chat for current user, don't affect other participant
         private void deleteChat(Chat chat) {
             FirestoreUtil.deleteChat(chat.getId(), currentUserId);
             removeChat(chat.getId());
         }
 
+        // FIXED: One-sided chat clearing
         private void clearChat(Chat chat) {
-            // Clear chat only for current user
+            // Clear chat only for current user - other user's chat remains intact
             FirestoreUtil.clearChatHistoryForUser(chat.getId(), currentUserId);
-            // Update the chat to show empty state for this user
+
+            // Update the chat to show cleared state for this user only
             chat.setLastMessage("You cleared this chat");
             chat.setLastMessageType("chat_cleared");
             chat.setUnreadCount(0);
@@ -311,7 +343,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
 
         private void blockUser(User user) {
             FirestoreUtil.blockUser(currentUserId, user.getId());
-            // Hide the chat from the list (it will be hidden by the blocking logic)
+            // Remove the chat from the list since it will be hidden
             for (int i = 0; i < chats.size(); i++) {
                 if (chats.get(i).getOtherUser().getId().equals(user.getId())) {
                     chats.remove(i);
