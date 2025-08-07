@@ -109,7 +109,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             // Set user name
             binding.tvName.setText(otherUser.getDisplayName());
 
-            // FIXED: Load profile image with better null checking and privacy settings
+            // FIXED: Load profile image respecting user's privacy settings
             try {
                 if (otherUser.shouldShowProfilePhoto() && otherUser.getImageUrl() != null && !otherUser.getImageUrl().trim().isEmpty()) {
                     Glide.with(context)
@@ -119,6 +119,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                             .error(R.drawable.defaultprofile)
                             .into(binding.ivProfile);
                 } else {
+                    // Show default avatar if user has disabled profile photo visibility
                     binding.ivProfile.setImageResource(R.drawable.defaultprofile);
                 }
             } catch (Exception e) {

@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/background_color">
+
+        <!-- Toolbar -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/colorPrimary"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:navigationIconTint="@android:color/white"
+            app:title="Contact Info"
+            app:titleTextColor="@android:color/white" />
+
+        <!-- Profile Content -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Profile Image Section -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:layout_marginBottom="24dp">
+
+                    <FrameLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp">
+
+                        <de.hdodenhof.circleimageview.CircleImageView
+                            android:id="@+id/ivProfileImage"
+                            android:layout_width="120dp"
+                            android:layout_height="120dp"
+                            android:src="@drawable/defaultprofile"
+                            app:civ_border_width="3dp"
+                            app:civ_border_color="@color/colorPrimary" />
+
+                        <!-- Online Status Indicator -->
+                        <View
+                            android:id="@+id/onlineIndicator"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="bottom|end"
+                            android:layout_marginEnd="8dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@drawable/online_indicator"
+                            android:visibility="gone" />
+
+                    </FrameLayout>
+
+                    <!-- User Name -->
+                    <TextView
+                        android:id="@+id/tvUserName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="User Name"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/textColorPrimary"
+                        android:gravity="center" />
+
+                    <!-- Online Status -->
+                    <TextView
+                        android:id="@+id/tvOnlineStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="online"
+                        android:textSize="14sp"
+                        android:textColor="@color/textColorSecondary"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center" />
+
+                </LinearLayout>
+
+                <!-- Action Buttons -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="24dp">
+
+                    <!-- Message Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnMessage"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="Message"
+                        android:textColor="@android:color/white"
+                        android:backgroundTint="@color/soft_lavender"
+                        app:cornerRadius="24dp"
+                        android:layout_marginEnd="8dp" />
+
+                    <!-- Voice Call Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnVoiceCall"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        app:icon="@drawable/ic_baseline_call_24"
+                        app:iconTint="@android:color/white"
+                        android:backgroundTint="@color/colorPrimary"
+                        app:cornerRadius="24dp"
+                        style="@style/Widget.MaterialComponents.Button"
+                        android:layout_marginEnd="8dp" />
+
+                    <!-- Video Call Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnVideoCall"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        app:icon="@drawable/ic_video_placeholder"
+                        app:iconTint="@android:color/white"
+                        android:backgroundTint="@color/colorPrimary"
+                        app:cornerRadius="24dp"
+                        style="@style/Widget.MaterialComponents.Button" />
+
+                </LinearLayout>
+
+                <!-- Contact Information -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@color/surface_color"
+                    app:cardCornerRadius="12dp"
+                    android:elevation="2dp"
+                    android:layout_marginBottom="16dp">
+
+                    <!-- About Section -->
+                    <LinearLayout
+                        android:id="@+id/layoutAbout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:background="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="About"
+                            android:textSize="12sp"
+                            android:textColor="@color/textColorTertiary"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:id="@+id/tvAbout"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Hey there! I am using PingMe."
+                            android:textSize="16sp"
+                            android:textColor="@color/textColorPrimary" />
+
+                    </LinearLayout>
+
+                    <!-- Phone Number Section -->
+                    <LinearLayout
+                        android:id="@+id/layoutPhone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:background="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Phone"
+                            android:textSize="12sp"
+                            android:textColor="@color/textColorTertiary"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:id="@+id/tvPhoneNumber"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="+1 234 567 8900"
+                            android:textSize="16sp"
+                            android:textColor="@color/textColorPrimary" />
+
+                    </LinearLayout>
+
+                    <!-- Joined Date Section -->
+                    <LinearLayout
+                        android:id="@+id/layoutJoined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:background="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Joined"
+                            android:textSize="12sp"
+                            android:textColor="@color/textColorTertiary"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:id="@+id/tvJoinedDate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Joined 2 months ago"
+                            android:textSize="16sp"
+                            android:textColor="@color/textColorPrimary" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Block Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBlock"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="Block"
+                    android:textColor="@color/error_red"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    app:strokeColor="@color/error_red"
+                    app:cornerRadius="24dp" />
+
+            </LinearLayout>
+
+        </ScrollView>
+
+    </LinearLayout>
+
+</layout>

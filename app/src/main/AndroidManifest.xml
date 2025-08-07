@@ -85,6 +85,12 @@
             android:exported="false"
             android:parentActivityName=".activities.SettingsActivity" />
 
+        <!-- User Profile Activity -->
+        <activity
+            android:name=".activities.UserProfileActivity"
+            android:exported="false"
+            android:parentActivityName=".activities.MainActivity" />
+
         <!-- File Provider for Camera -->
         <provider
             android:name="androidx.core.content.FileProvider"
