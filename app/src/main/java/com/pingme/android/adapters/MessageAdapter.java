@@ -223,6 +223,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         TextView tvAudioDuration, tvDocumentName, tvDocumentSize, tvVideoDuration;
         ImageView ivStatus, ivImageStatus, ivVideoStatus, ivAudioStatus, ivDocumentStatus;
         ImageView ivMessageImage, ivVideoThumbnail, ivPlayButton, ivPlayAudio;
+        TextView tvReplyPreview, tvForwarded;
 
         public SentMessageViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -255,6 +256,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             ivVideoThumbnail = itemView.findViewById(R.id.ivVideoThumbnail);
             ivPlayButton = itemView.findViewById(R.id.ivPlayButton);
             ivPlayAudio = itemView.findViewById(R.id.ivPlayAudio);
+            tvReplyPreview = itemView.findViewById(R.id.tvReplyPreview);
+            tvForwarded = itemView.findViewById(R.id.tvForwarded);
         }
 
         public void bind(Message message) {
@@ -265,13 +268,41 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
             hideAllLayouts();
 
+            if (message.getDeletedForEveryone() || (message.getDeletedFor() != null && message.getDeletedFor().containsKey(currentUserId))) {
+                layoutTextMessage.setVisibility(View.VISIBLE);
+                tvMessage.setText("This message was deleted");
+                tvMessage.setTypeface(null, android.graphics.Typeface.ITALIC);
+                tvMessage.setTextColor(context.getColor(R.color.textColorSecondary));
+                return;
+            }
+            // Show reply preview if replyTo is set
+            if (message.getReplyTo() != null) {
+                // Fetch original message text (from items or DB if needed)
+                String originalText = getOriginalMessageText(message.getReplyTo());
+                tvReplyPreview.setVisibility(View.VISIBLE);
+                tvReplyPreview.setText(originalText != null ? originalText : "Reply");
+            } else {
+                tvReplyPreview.setVisibility(View.GONE);
+            }
+            // Show '(edited)' if edited
+            if (message.isEdited()) {
+                tvMessage.setText(message.getText() + " (edited)");
+            } else {
+                tvMessage.setText(message.getText());
+            }
+            // Show forwarded indicator if message.isForwarded()
+            if (message.isForwarded()) {
+                tvForwarded.setVisibility(View.VISIBLE);
+            } else {
+                tvForwarded.setVisibility(View.GONE);
+            }
+
             String messageType = message.getType();
             String timeText = getFormattedTime(message.getTimestamp());
 
             switch (messageType) {
                 case Message.TYPE_TEXT:
                     layoutTextMessage.setVisibility(View.VISIBLE);
-                    tvMessage.setText(message.getText());
                     tvTime.setText(timeText);
                     setMessageStatus(ivStatus, message.getStatus());
                     break;
@@ -376,6 +407,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         TextView tvMessage, tvTime, tvImageCaption, tvImageTime, tvVideoTime, tvAudioTime, tvDocumentTime;
         TextView tvAudioDuration, tvDocumentName, tvDocumentSize, tvVideoDuration;
         ImageView ivProfile, ivMessageImage, ivVideoThumbnail, ivPlayButton, ivPlayAudio;
+        TextView tvReplyPreview, tvForwarded;
 
         public ReceivedMessageViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -404,6 +436,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             ivVideoThumbnail = itemView.findViewById(R.id.ivVideoThumbnail);
             ivPlayButton = itemView.findViewById(R.id.ivPlayButton);
             ivPlayAudio = itemView.findViewById(R.id.ivPlayAudio);
+            tvReplyPreview = itemView.findViewById(R.id.tvReplyPreview);
+            tvForwarded = itemView.findViewById(R.id.tvForwarded);
         }
 
         public void bind(Message message) {
@@ -426,13 +460,41 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 ivProfile.setImageResource(R.drawable.defaultprofile);
             }
 
+            if (message.getDeletedForEveryone() || (message.getDeletedFor() != null && message.getDeletedFor().containsKey(currentUserId))) {
+                layoutTextMessage.setVisibility(View.VISIBLE);
+                tvMessage.setText("This message was deleted");
+                tvMessage.setTypeface(null, android.graphics.Typeface.ITALIC);
+                tvMessage.setTextColor(context.getColor(R.color.textColorSecondary));
+                return;
+            }
+            // Show reply preview if replyTo is set
+            if (message.getReplyTo() != null) {
+                // Fetch original message text (from items or DB if needed)
+                String originalText = getOriginalMessageText(message.getReplyTo());
+                tvReplyPreview.setVisibility(View.VISIBLE);
+                tvReplyPreview.setText(originalText != null ? originalText : "Reply");
+            } else {
+                tvReplyPreview.setVisibility(View.GONE);
+            }
+            // Show '(edited)' if edited
+            if (message.isEdited()) {
+                tvMessage.setText(message.getText() + " (edited)");
+            } else {
+                tvMessage.setText(message.getText());
+            }
+            // Show forwarded indicator if message.isForwarded()
+            if (message.isForwarded()) {
+                tvForwarded.setVisibility(View.VISIBLE);
+            } else {
+                tvForwarded.setVisibility(View.GONE);
+            }
+
             String messageType = message.getType();
             String timeText = getFormattedTime(message.getTimestamp());
 
             switch (messageType) {
                 case Message.TYPE_TEXT:
                     layoutTextMessage.setVisibility(View.VISIBLE);
-                    tvMessage.setText(message.getText());
                     tvTime.setText(timeText);
                     break;
 
