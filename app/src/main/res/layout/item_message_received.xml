@@ -294,6 +294,26 @@
 
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/tvForwarded"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Forwarded"
+            android:textColor="@color/textColorSecondary"
+            android:textSize="12sp"
+            android:visibility="gone"
+            android:layout_marginBottom="2dp" />
+        <TextView
+            android:id="@+id/tvReplyPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Reply preview"
+            android:textColor="@color/textColorSecondary"
+            android:textStyle="italic"
+            android:textSize="13sp"
+            android:visibility="gone"
+            android:layout_marginBottom="2dp" />
+
     </LinearLayout>
 
 </LinearLayout>
