@@ -732,4 +732,36 @@ public class FirestoreUtil {
         void onMessagesLoaded(List<Message> messages);
         void onError(String error);
     }
+
+    public static void editMessage(String chatId, String messageId, String newText) {
+        DatabaseReference msgRef = getMessagesRef(chatId).child(messageId);
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("text", newText);
+        updates.put("edited", true);
+        msgRef.updateChildren(updates);
+    }
+
+    public static void deleteMessageForUser(String chatId, String messageId, String userId) {
+        DatabaseReference msgRef = getMessagesRef(chatId).child(messageId).child("deletedFor");
+        msgRef.child(userId).setValue(true);
+    }
+
+    public static void deleteMessageForEveryone(String chatId, String messageId) {
+        DatabaseReference msgRef = getMessagesRef(chatId).child(messageId);
+        msgRef.child("deletedForEveryone").setValue(true);
+    }
+
+    public static void sendReplyMessage(String chatId, String senderId, String receiverId, String text, String replyToMessageId) {
+        String messageId = getMessagesRef(chatId).push().getKey();
+        if (messageId == null) return;
+        Map<String, Object> messageData = new HashMap<>();
+        messageData.put("senderId", senderId);
+        messageData.put("text", text);
+        messageData.put("timestamp", System.currentTimeMillis());
+        messageData.put("type", "text");
+        messageData.put("status", com.pingme.android.models.Message.STATUS_SENT);
+        messageData.put("replyTo", replyToMessageId);
+        getMessagesRef(chatId).child(messageId).setValue(messageData);
+        updateChatLastMessage(chatId, text, senderId, "text");
+    }
 }
