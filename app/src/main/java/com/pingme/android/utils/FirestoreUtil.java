@@ -270,6 +270,13 @@ public class FirestoreUtil {
                 });
     }
 
+    public static void sendTextMessage(String chatId, String senderId, String receiverId, String text, boolean createIfNeeded) {
+        if (createIfNeeded) {
+            createNewChatInRealtime(chatId, senderId, receiverId);
+        }
+        sendMessageToRealtime(chatId, senderId, text, "text", null);
+    }
+
     // ===== USER PRESENCE AND SETTINGS =====
 
     public static void updateUserPresence(String userId, boolean isOnline) {

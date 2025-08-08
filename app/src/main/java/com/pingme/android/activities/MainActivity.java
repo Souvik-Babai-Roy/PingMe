@@ -218,6 +218,8 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         try {
             getMenuInflater().inflate(R.menu.main_menu, menu);
+            // Add New Broadcast option
+            menu.add(0, R.id.menu_broadcast, 1, "New Broadcast").setIcon(R.drawable.ic_broadcast).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
             return true;
         } catch (Exception e) {
             Log.e(TAG, "Error creating options menu", e);
@@ -242,6 +244,9 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             } else if (itemId == R.id.menu_logout) {
                 logout();
+                return true;
+            } else if (itemId == R.id.menu_broadcast) {
+                startActivity(new Intent(this, BroadcastActivity.class));
                 return true;
             }
 

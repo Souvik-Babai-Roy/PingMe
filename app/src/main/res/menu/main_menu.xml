@@ -1,5 +1,26 @@
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/menu_account" android:title="Account"/>
-    <item android:id="@+id/menu_settings" android:title="Settings"/>
-    <item android:id="@+id/menu_logout" android:title="Logout"/>
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/menu_account"
+        android:title="Profile"
+        android:icon="@drawable/ic_account"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_settings"
+        android:title="Settings"
+        android:icon="@drawable/ic_settings"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_logout"
+        android:title="Logout"
+        android:icon="@drawable/ic_logout"
+        app:showAsAction="never" />
+    <!-- New Broadcast menu item -->
+    <item
+        android:id="@+id/menu_broadcast"
+        android:title="New Broadcast"
+        android:icon="@drawable/ic_broadcast"
+        app:showAsAction="ifRoom" />
 </menu>
