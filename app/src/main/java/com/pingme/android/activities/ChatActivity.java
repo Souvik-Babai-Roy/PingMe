@@ -54,6 +54,9 @@ public class ChatActivity extends AppCompatActivity {
     private boolean isTyping = false;
     private boolean isBlocked = false;
     private boolean isActivityActive = false;
+    private Message replyToMessage = null;
+    private boolean isEditing = false;
+    private Message editingMessage = null;
 
     private final ActivityResultLauncher<String> imagePickerLauncher =
             registerForActivityResult(new ActivityResultContracts.GetContent(), this::handleImageSelection);
@@ -119,7 +122,58 @@ public class ChatActivity extends AppCompatActivity {
 
     private void setupAdapter() {
         adapter = new MessageAdapter(items, receiver);
+        adapter.setMessageActionListener(new MessageAdapter.MessageActionListener() {
+            @Override
+            public void onReply(Message message) {
+                replyToMessage = message;
+                showReplyPreview(message);
+            }
+            @Override
+            public void onForward(Message message) {
+                Intent intent = new Intent(ChatActivity.this, BroadcastActivity.class);
+                intent.putExtra("forwardedText", message.getText());
+                startActivity(intent);
+            }
+            @Override
+            public void onEdit(Message message) {
+                if (message.getSenderId().equals(currentUserId) && message.getType().equals(Message.TYPE_TEXT)) {
+                    isEditing = true;
+                    editingMessage = message;
+                    binding.etMessage.setText(message.getText());
+                    binding.etMessage.setSelection(message.getText().length());
+                    showEditPreview(message);
+                }
+            }
+            @Override
+            public void onDeleteForSelf(Message message) {
+                FirestoreUtil.deleteMessageForUser(chatId, message.getId(), currentUserId);
+            }
+            @Override
+            public void onDeleteForEveryone(Message message) {
+                FirestoreUtil.deleteMessageForEveryone(chatId, message.getId());
+            }
+        });
         binding.recyclerView.setAdapter(adapter);
+    }
+
+    private void showReplyPreview(Message message) {
+        binding.replyPreview.setVisibility(View.VISIBLE);
+        binding.replyPreviewText.setText(message.getText());
+        binding.replyPreviewCancel.setOnClickListener(v -> {
+            replyToMessage = null;
+            binding.replyPreview.setVisibility(View.GONE);
+        });
+    }
+
+    private void showEditPreview(Message message) {
+        binding.editPreview.setVisibility(View.VISIBLE);
+        binding.editPreviewText.setText("Editing: " + message.getText());
+        binding.editPreviewCancel.setOnClickListener(v -> {
+            isEditing = false;
+            editingMessage = null;
+            binding.editPreview.setVisibility(View.GONE);
+            binding.etMessage.setText("");
+        });
     }
 
     private void setupToolbar() {
@@ -557,18 +611,23 @@ public class ChatActivity extends AppCompatActivity {
 
     private void sendTextMessage() {
         String text = binding.etMessage.getText().toString().trim();
-        if (text.isEmpty() || isBlocked) {
+        if (text.isEmpty()) return;
+        if (isEditing && editingMessage != null) {
+            FirestoreUtil.editMessage(chatId, editingMessage.getId(), text);
+            isEditing = false;
+            editingMessage = null;
+            binding.editPreview.setVisibility(View.GONE);
+            binding.etMessage.setText("");
             return;
         }
-
+        if (replyToMessage != null) {
+            FirestoreUtil.sendReplyMessage(chatId, currentUserId, receiverId, text, replyToMessage.getId());
+            replyToMessage = null;
+            binding.replyPreview.setVisibility(View.GONE);
+        } else {
+            FirestoreUtil.sendTextMessage(chatId, currentUserId, receiverId, text, false);
+        }
         binding.etMessage.setText("");
-        
-        if (isBlocked) {
-            Toast.makeText(this, "You cannot send messages to this user", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        FirestoreUtil.sendMessageToRealtime(chatId, currentUserId, text, "text", null);
         
         // Stop typing indicator
         FirestoreUtil.setTyping(chatId, currentUserId, false);
