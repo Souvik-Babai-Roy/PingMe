@@ -121,6 +121,18 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         } else if (holder instanceof ReceivedMessageViewHolder && item instanceof Message) {
             ((ReceivedMessageViewHolder) holder).bind((Message) item);
         }
+
+        if (holder instanceof SentMessageViewHolder) {
+            ((SentMessageViewHolder) holder).itemView.setOnLongClickListener(v -> {
+                showMessageActionsDialog((Message) items.get(position), true);
+                return true;
+            });
+        } else if (holder instanceof ReceivedMessageViewHolder) {
+            ((ReceivedMessageViewHolder) holder).itemView.setOnLongClickListener(v -> {
+                showMessageActionsDialog((Message) items.get(position), false);
+                return true;
+            });
+        }
     }
 
     @Override
@@ -512,5 +524,49 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         long minutes = seconds / 60;
         seconds = seconds % 60;
         return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds);
+    }
+
+    public interface MessageActionListener {
+        void onReply(Message message);
+        void onForward(Message message);
+        void onEdit(Message message);
+        void onDeleteForSelf(Message message);
+        void onDeleteForEveryone(Message message);
+    }
+
+    private MessageActionListener actionListener;
+
+    public void setMessageActionListener(MessageActionListener listener) {
+        this.actionListener = listener;
+    }
+
+    private void showMessageActionsDialog(Message message, boolean isSentByMe) {
+        List<String> options = new ArrayList<>();
+        options.add("Reply");
+        options.add("Forward");
+        if (isSentByMe && message.getType().equals(Message.TYPE_TEXT)) {
+            options.add("Edit");
+        }
+        options.add("Delete for me");
+        if (isSentByMe) {
+            options.add("Delete for everyone");
+        }
+        CharSequence[] itemsArr = options.toArray(new CharSequence[0]);
+        new android.app.AlertDialog.Builder(context)
+                .setItems(itemsArr, (dialog, which) -> {
+                    String selected = options.get(which);
+                    if (selected.equals("Reply") && actionListener != null) {
+                        actionListener.onReply(message);
+                    } else if (selected.equals("Forward") && actionListener != null) {
+                        actionListener.onForward(message);
+                    } else if (selected.equals("Edit") && actionListener != null) {
+                        actionListener.onEdit(message);
+                    } else if (selected.equals("Delete for me") && actionListener != null) {
+                        actionListener.onDeleteForSelf(message);
+                    } else if (selected.equals("Delete for everyone") && actionListener != null) {
+                        actionListener.onDeleteForEveryone(message);
+                    }
+                })
+                .show();
     }
 }
