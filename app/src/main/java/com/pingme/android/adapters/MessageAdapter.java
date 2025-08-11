@@ -63,6 +63,13 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         notifyDataSetChanged();
     }
 
+    public void setReplyMode(boolean isReplyMode, Message replyToMessage) {
+        // This method can be used to handle reply mode in the adapter
+        // For now, we'll just store the reply message for future use
+        // In a full implementation, you might want to show a reply preview
+        notifyDataSetChanged();
+    }
+
     @Override
     public int getItemViewType(int position) {
         Object item = items.get(position);

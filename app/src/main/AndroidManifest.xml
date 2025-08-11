@@ -97,6 +97,18 @@
             android:exported="false"
             android:parentActivityName=".activities.MainActivity" />
 
+        <!-- Broadcast Chat Activity -->
+        <activity
+            android:name=".activities.BroadcastChatActivity"
+            android:exported="false"
+            android:parentActivityName=".activities.BroadcastListActivity" />
+
+        <!-- Select Contacts Activity -->
+        <activity
+            android:name=".activities.SelectContactsActivity"
+            android:exported="false"
+            android:parentActivityName=".activities.BroadcastListActivity" />
+
         <!-- File Provider for Camera -->
         <provider
             android:name="androidx.core.content.FileProvider"
