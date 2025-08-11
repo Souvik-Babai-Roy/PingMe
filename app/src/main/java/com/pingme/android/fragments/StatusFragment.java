@@ -1,5 +1,6 @@
 package com.pingme.android.fragments;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +12,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.pingme.android.activities.StatusCreationActivity;
 import com.pingme.android.adapters.StatusAdapter;
 import com.pingme.android.databinding.FragmentStatusBinding;
 import com.pingme.android.models.Status;
@@ -57,13 +59,13 @@ public class StatusFragment extends Fragment {
 
     private void setupClickListeners() {
         binding.layoutMyStatus.setOnClickListener(v -> {
-            // TODO: Open status creation activity
-            Toast.makeText(getContext(), "Create new status", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(getContext(), StatusCreationActivity.class);
+            startActivity(intent);
         });
         
         binding.fabAddStatus.setOnClickListener(v -> {
-            // TODO: Open status creation activity
-            Toast.makeText(getContext(), "Add status", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(getContext(), StatusCreationActivity.class);
+            startActivity(intent);
         });
     }
 

@@ -51,6 +51,8 @@
         <activity android:name=".activities.EditProfileActivity" android:exported="false" android:parentActivityName=".activities.MainActivity" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".activities.SettingsActivity" android:exported="false" android:parentActivityName=".activities.MainActivity" />
         <activity android:name=".activities.AddFriendActivity" android:exported="false" android:parentActivityName=".activities.MainActivity" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.SelectContactsActivity" android:exported="false" android:parentActivityName=".activities.MainActivity" />
+        <activity android:name=".activities.StatusCreationActivity" android:exported="false" android:parentActivityName=".activities.MainActivity" android:windowSoftInputMode="adjustResize" />
 
         <!-- Firebase Messaging Service -->
         <service

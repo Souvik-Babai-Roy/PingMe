@@ -3,6 +3,9 @@ package com.pingme.android.activities;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import androidx.core.content.FileProvider;
+import java.io.File;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateUtils;
@@ -59,6 +62,17 @@ public class ChatActivity extends AppCompatActivity {
 
     private final ActivityResultLauncher<String> videoPickerLauncher =
             registerForActivityResult(new ActivityResultContracts.GetContent(), this::handleVideoSelection);
+
+    private final ActivityResultLauncher<String> audioPickerLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), this::handleAudioSelection);
+
+    private final ActivityResultLauncher<String> documentPickerLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), this::handleDocumentSelection);
+
+    private final ActivityResultLauncher<Uri> cameraLauncher =
+            registerForActivityResult(new ActivityResultContracts.TakePicture(), this::handleCameraCapture);
+
+    private Uri cameraImageUri;
 
     private static final int REQUEST_FORWARD_MESSAGE = 1002;
 
@@ -514,16 +528,13 @@ public class ChatActivity extends AppCompatActivity {
                             videoPickerLauncher.launch("video/*");
                             break;
                         case 2: // Audio
-                            // TODO: Implement audio recording/selection
-                            Toast.makeText(this, "Audio feature coming soon", Toast.LENGTH_SHORT).show();
+                            audioPickerLauncher.launch("audio/*");
                             break;
                         case 3: // Document
-                            // TODO: Implement document selection
-                            Toast.makeText(this, "Document feature coming soon", Toast.LENGTH_SHORT).show();
+                            documentPickerLauncher.launch("*/*");
                             break;
                         case 4: // Camera
-                            // TODO: Implement camera capture
-                            Toast.makeText(this, "Camera feature coming soon", Toast.LENGTH_SHORT).show();
+                            openCamera();
                             break;
                     }
                 })
@@ -677,6 +688,80 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+    private void handleAudioSelection(Uri audioUri) {
+        if (audioUri != null && !isBlocked) {
+            showLoading(true);
+            CloudinaryUtil.getInstance()
+                    .uploadAudio(audioUri, "chat_audio/" + chatId, this)
+                    .thenAccept(audioUrl -> runOnUiThread(() -> {
+                        showLoading(false);
+                        sendAudioMessage(audioUrl);
+                    }))
+                    .exceptionally(throwable -> {
+                        runOnUiThread(() -> {
+                            showLoading(false);
+                            Toast.makeText(this, "Failed to upload audio", Toast.LENGTH_SHORT).show();
+                        });
+                        return null;
+                    });
+        }
+    }
+
+    private void handleDocumentSelection(Uri documentUri) {
+        if (documentUri != null && !isBlocked) {
+            showLoading(true);
+            CloudinaryUtil.getInstance()
+                    .uploadDocument(documentUri, "chat_documents/" + chatId, this)
+                    .thenAccept(documentUrl -> runOnUiThread(() -> {
+                        showLoading(false);
+                        sendDocumentMessage(documentUrl);
+                    }))
+                    .exceptionally(throwable -> {
+                        runOnUiThread(() -> {
+                            showLoading(false);
+                            Toast.makeText(this, "Failed to upload document", Toast.LENGTH_SHORT).show();
+                        });
+                        return null;
+                    });
+        }
+    }
+
+    private void handleCameraCapture(Boolean success) {
+        if (success && cameraImageUri != null && !isBlocked) {
+            showLoading(true);
+            CloudinaryUtil.getInstance()
+                    .uploadImage(cameraImageUri, "chat_images/" + chatId, this)
+                    .thenAccept(imageUrl -> runOnUiThread(() -> {
+                        showLoading(false);
+                        sendImageMessage(imageUrl);
+                    }))
+                    .exceptionally(throwable -> {
+                        runOnUiThread(() -> {
+                            showLoading(false);
+                            Toast.makeText(this, "Failed to upload camera image", Toast.LENGTH_SHORT).show();
+                        });
+                        return null;
+                    });
+        }
+    }
+
+    private void openCamera() {
+        try {
+            // Create a unique file name for the image
+            String fileName = "IMG_" + System.currentTimeMillis() + ".jpg";
+            File imageFile = new File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), fileName);
+            
+            // Create content URI for the file
+            cameraImageUri = FileProvider.getUriForFile(this, 
+                getApplicationContext().getPackageName() + ".fileprovider", imageFile);
+            
+            // Launch camera
+            cameraLauncher.launch(cameraImageUri);
+        } catch (Exception e) {
+            Toast.makeText(this, "Error opening camera: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void sendTextMessage() {
         if (isBlocked) {
             Toast.makeText(this, "You cannot send messages to blocked users", Toast.LENGTH_SHORT).show();
@@ -720,6 +805,33 @@ public class ChatActivity extends AppCompatActivity {
         mediaData.put("thumbnailUrl", "");
 
         FirestoreUtil.sendMessageToRealtime(chatId, senderId, "🎥 Video", "video", mediaData);
+    }
+
+    private void sendAudioMessage(String audioUrl) {
+        if (isBlocked) return;
+
+        Log.d(TAG, "Sending audio message: " + audioUrl);
+
+        String senderId = FirebaseAuth.getInstance().getUid();
+
+        Map<String, Object> mediaData = new HashMap<>();
+        mediaData.put("audioUrl", audioUrl);
+
+        FirestoreUtil.sendMessageToRealtime(chatId, senderId, "🎵 Audio", "audio", mediaData);
+    }
+
+    private void sendDocumentMessage(String documentUrl) {
+        if (isBlocked) return;
+
+        Log.d(TAG, "Sending document message: " + documentUrl);
+
+        String senderId = FirebaseAuth.getInstance().getUid();
+
+        Map<String, Object> mediaData = new HashMap<>();
+        mediaData.put("fileUrl", documentUrl);
+        mediaData.put("fileName", "Document");
+
+        FirestoreUtil.sendMessageToRealtime(chatId, senderId, "📄 Document", "document", mediaData);
     }
 
     private void updateMessageStatus(String messageId, int status) {
