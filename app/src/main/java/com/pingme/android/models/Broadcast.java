@@ -168,6 +168,13 @@ public class Broadcast extends BaseObservable {
         return createdBy != null && createdBy.equals(userId);
     }
 
+    public String getLastMessagePreview() {
+        if (lastMessage != null && !lastMessage.isEmpty()) {
+            return lastMessage.length() > 50 ? lastMessage.substring(0, 50) + "..." : lastMessage;
+        }
+        return "No messages yet";
+    }
+
     // Helper method for date comparison
     private boolean isSameDay(Calendar cal1, Calendar cal2) {
         return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
