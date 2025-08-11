@@ -85,6 +85,18 @@
             android:exported="false"
             android:parentActivityName=".activities.SettingsActivity" />
 
+        <!-- Broadcast List Activity -->
+        <activity
+            android:name=".activities.BroadcastListActivity"
+            android:exported="false"
+            android:parentActivityName=".activities.MainActivity" />
+
+        <!-- Search Activity -->
+        <activity
+            android:name=".activities.SearchActivity"
+            android:exported="false"
+            android:parentActivityName=".activities.MainActivity" />
+
         <!-- File Provider for Camera -->
         <provider
             android:name="androidx.core.content.FileProvider"

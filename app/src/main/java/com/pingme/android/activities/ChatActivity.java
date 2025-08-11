@@ -9,6 +9,7 @@ import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
+import com.google.android.material.textfield.TextInputEditText;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -58,6 +59,8 @@ public class ChatActivity extends AppCompatActivity {
 
     private final ActivityResultLauncher<String> videoPickerLauncher =
             registerForActivityResult(new ActivityResultContracts.GetContent(), this::handleVideoSelection);
+
+    private static final int REQUEST_FORWARD_MESSAGE = 1002;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -498,7 +501,7 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        String[] options = {"Image", "Video", "Camera", "Document"};
+        String[] options = {"Image", "Video", "Audio", "Document", "Camera"};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Send Media")
@@ -510,15 +513,130 @@ public class ChatActivity extends AppCompatActivity {
                         case 1: // Video
                             videoPickerLauncher.launch("video/*");
                             break;
-                        case 2: // Camera
-                            Toast.makeText(this, "Camera feature coming soon", Toast.LENGTH_SHORT).show();
+                        case 2: // Audio
+                            // TODO: Implement audio recording/selection
+                            Toast.makeText(this, "Audio feature coming soon", Toast.LENGTH_SHORT).show();
                             break;
                         case 3: // Document
+                            // TODO: Implement document selection
                             Toast.makeText(this, "Document feature coming soon", Toast.LENGTH_SHORT).show();
+                            break;
+                        case 4: // Camera
+                            // TODO: Implement camera capture
+                            Toast.makeText(this, "Camera feature coming soon", Toast.LENGTH_SHORT).show();
                             break;
                     }
                 })
                 .show();
+    }
+
+    // Enhanced message actions
+    public void showMessageOptions(Message message, View anchorView) {
+        if (message == null) return;
+
+        String currentUserId = FirebaseAuth.getInstance().getUid();
+        boolean isMyMessage = message.isSentByCurrentUser(currentUserId);
+        boolean canEdit = message.canBeEdited() && isMyMessage;
+        boolean canDelete = message.canBeDeleted();
+
+        List<String> options = new ArrayList<>();
+        List<Runnable> actions = new ArrayList<>();
+
+        // Reply option (always available for non-deleted messages)
+        if (!message.isDeletedForEveryone()) {
+            options.add("Reply");
+            actions.add(() -> replyToMessage(message));
+        }
+
+        // Forward option (always available for non-deleted messages)
+        if (!message.isDeletedForEveryone()) {
+            options.add("Forward");
+            actions.add(() -> forwardMessage(message));
+        }
+
+        // Edit option (only for my text messages that can be edited)
+        if (canEdit) {
+            options.add("Edit");
+            actions.add(() -> editMessage(message));
+        }
+
+        // Delete options
+        if (canDelete) {
+            if (isMyMessage) {
+                options.add("Delete for me");
+                actions.add(() -> deleteMessageForMe(message));
+                
+                // Delete for everyone (only for recent messages)
+                long messageAge = System.currentTimeMillis() - message.getTimestamp();
+                if (messageAge < 24 * 60 * 60 * 1000) { // 24 hours
+                    options.add("Delete for everyone");
+                    actions.add(() -> deleteMessageForEveryone(message));
+                }
+            } else {
+                options.add("Delete for me");
+                actions.add(() -> deleteMessageForMe(message));
+            }
+        }
+
+        if (options.isEmpty()) return;
+
+        String[] optionsArray = options.toArray(new String[0]);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Message Options")
+                .setItems(optionsArray, (dialog, which) -> {
+                    if (which >= 0 && which < actions.size()) {
+                        actions.get(which).run();
+                    }
+                })
+                .show();
+    }
+
+    private void replyToMessage(Message message) {
+        // Set reply mode in adapter
+        adapter.setReplyMode(true, message);
+        binding.etMessage.requestFocus();
+        binding.etMessage.setHint("Reply to: " + message.getDisplayText());
+    }
+
+    private void forwardMessage(Message message) {
+        // Open contact selection for forwarding
+        Intent intent = new Intent(this, SelectContactsActivity.class);
+        intent.putExtra("isForForward", true);
+        intent.putExtra("messageId", message.getId());
+        intent.putExtra("messageText", message.getText());
+        intent.putExtra("messageType", message.getType());
+        startActivityForResult(intent, REQUEST_FORWARD_MESSAGE);
+    }
+
+    private void editMessage(Message message) {
+        // Show edit dialog
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_message, null);
+        TextInputEditText etEditText = dialogView.findViewById(R.id.etEditText);
+        etEditText.setText(message.getText());
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setTitle("Edit Message")
+                .setPositiveButton("Save", (dialogInterface, i) -> {
+                    String newText = etEditText.getText().toString().trim();
+                    if (!newText.isEmpty() && !newText.equals(message.getText())) {
+                        FirestoreUtil.editMessage(chatId, message.getId(), newText);
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .create();
+
+        dialog.show();
+    }
+
+    private void deleteMessageForMe(Message message) {
+        String currentUserId = FirebaseAuth.getInstance().getUid();
+        FirestoreUtil.deleteMessageForUser(chatId, message.getId(), currentUserId);
+    }
+
+    private void deleteMessageForEveryone(Message message) {
+        String currentUserId = FirebaseAuth.getInstance().getUid();
+        FirestoreUtil.deleteMessageForEveryone(chatId, message.getId(), currentUserId);
     }
 
     private void handleImageSelection(Uri imageUri) {
