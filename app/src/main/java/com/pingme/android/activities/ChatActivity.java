@@ -74,7 +74,12 @@ public class ChatActivity extends AppCompatActivity {
 
     private Uri cameraImageUri;
 
-    private static final int REQUEST_FORWARD_MESSAGE = 1002;
+    private final ActivityResultLauncher<Intent> forwardMessageLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK) {
+                    Toast.makeText(this, "Message forwarded successfully", Toast.LENGTH_SHORT).show();
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -616,7 +621,7 @@ public class ChatActivity extends AppCompatActivity {
         intent.putExtra("messageId", message.getId());
         intent.putExtra("messageText", message.getText());
         intent.putExtra("messageType", message.getType());
-        startActivityForResult(intent, REQUEST_FORWARD_MESSAGE);
+        forwardMessageLauncher.launch(intent);
     }
 
     private void editMessage(Message message) {
@@ -692,7 +697,7 @@ public class ChatActivity extends AppCompatActivity {
         if (audioUri != null && !isBlocked) {
             showLoading(true);
             CloudinaryUtil.getInstance()
-                    .uploadAudio(audioUri, "chat_audio/" + chatId, this)
+                    .uploadAudio(audioUri, chatId, this)
                     .thenAccept(audioUrl -> runOnUiThread(() -> {
                         showLoading(false);
                         sendAudioMessage(audioUrl);

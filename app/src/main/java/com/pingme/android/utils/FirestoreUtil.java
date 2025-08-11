@@ -1136,6 +1136,9 @@ public class FirestoreUtil {
     public static class SearchResult {
         private String chatId;
         private Message message;
+        private String contactName;
+        private String chatName;
+        private String contactImageUrl;
 
         public SearchResult(String chatId, Message message) {
             this.chatId = chatId;
@@ -1144,5 +1147,22 @@ public class FirestoreUtil {
 
         public String getChatId() { return chatId; }
         public Message getMessage() { return message; }
+        
+        public String getContactName() { return contactName; }
+        public void setContactName(String contactName) { this.contactName = contactName; }
+        
+        public String getChatName() { return chatName; }
+        public void setChatName(String chatName) { this.chatName = chatName; }
+        
+        public String getContactImageUrl() { return contactImageUrl; }
+        public void setContactImageUrl(String contactImageUrl) { this.contactImageUrl = contactImageUrl; }
+        
+        public String getMessageText() { 
+            return message != null ? message.getText() : null; 
+        }
+        
+        public long getTimestamp() { 
+            return message != null ? message.getTimestamp() : 0; 
+        }
     }
 }

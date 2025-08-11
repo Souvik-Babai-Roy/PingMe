@@ -37,6 +37,10 @@ public class SelectContactsActivity extends AppCompatActivity {
     private String messageId;
     private String messageText;
     private String messageType;
+    
+    // For broadcast creation
+    private boolean isForBroadcast = false;
+    private String broadcastName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,9 +60,11 @@ public class SelectContactsActivity extends AppCompatActivity {
         // Get intent extras
         Intent intent = getIntent();
         isForForward = intent.getBooleanExtra("isForForward", false);
+        isForBroadcast = intent.getBooleanExtra("isForBroadcast", false);
         messageId = intent.getStringExtra("messageId");
         messageText = intent.getStringExtra("messageText");
         messageType = intent.getStringExtra("messageType");
+        broadcastName = intent.getStringExtra("broadcastName");
 
         setupUI();
         setupRecyclerView();
@@ -69,7 +75,13 @@ public class SelectContactsActivity extends AppCompatActivity {
         setSupportActionBar(binding.toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle(isForForward ? "Forward to..." : "Select Contacts");
+            if (isForForward) {
+                getSupportActionBar().setTitle("Forward to...");
+            } else if (isForBroadcast) {
+                getSupportActionBar().setTitle("Select Recipients");
+            } else {
+                getSupportActionBar().setTitle("Select Contacts");
+            }
         }
 
         binding.fabDone.setOnClickListener(v -> {
@@ -80,10 +92,15 @@ public class SelectContactsActivity extends AppCompatActivity {
 
             if (isForForward) {
                 forwardMessage();
+            } else if (isForBroadcast) {
+                createBroadcast();
             } else {
                 // Return selected contacts
                 Intent resultIntent = new Intent();
                 resultIntent.putExtra("selectedContactIds", getUserIds(selectedContacts));
+                if (isForBroadcast && broadcastName != null) {
+                    resultIntent.putExtra("broadcastName", broadcastName);
+                }
                 setResult(RESULT_OK, resultIntent);
                 finish();
             }
@@ -208,6 +225,41 @@ public class SelectContactsActivity extends AppCompatActivity {
                 });
             }
         }
+    }
+
+    private void createBroadcast() {
+        if (broadcastName == null || broadcastName.isEmpty()) {
+            Toast.makeText(this, "Broadcast name is required", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        binding.progressBar.setVisibility(View.VISIBLE);
+        binding.fabDone.setEnabled(false);
+
+        List<String> selectedContactIds = new ArrayList<>();
+        for (User contact : selectedContacts) {
+            selectedContactIds.add(contact.getId());
+        }
+
+        FirestoreUtil.createBroadcastList(broadcastName, currentUserId, selectedContactIds, new FirestoreUtil.BroadcastCallback() {
+            @Override
+            public void onSuccess(String broadcastId) {
+                runOnUiThread(() -> {
+                    binding.progressBar.setVisibility(View.GONE);
+                    Toast.makeText(SelectContactsActivity.this, "Broadcast list created successfully", Toast.LENGTH_SHORT).show();
+                    finish();
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() -> {
+                    binding.progressBar.setVisibility(View.GONE);
+                    binding.fabDone.setEnabled(true);
+                    Toast.makeText(SelectContactsActivity.this, "Failed to create broadcast: " + error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
     }
 
     private String[] getUserIds(List<User> users) {

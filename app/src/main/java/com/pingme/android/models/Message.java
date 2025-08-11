@@ -312,6 +312,10 @@ public class Message {
         return true;
     }
 
+    public boolean isSentByCurrentUser(String currentUserId) {
+        return currentUserId != null && currentUserId.equals(senderId);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

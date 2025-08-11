@@ -123,10 +123,10 @@ public class StatusCreationActivity extends AppCompatActivity {
     private void createStatus(String text, String imageUrl) {
         Status status = new Status();
         status.setUserId(currentUserId);
-        status.setText(text);
+        status.setContent(text);
         status.setImageUrl(imageUrl);
         status.setTimestamp(System.currentTimeMillis());
-        status.setViewers(new java.util.ArrayList<>()); // Empty viewers list initially
+        status.setExpiryTime(System.currentTimeMillis() + 24 * 60 * 60 * 1000); // 24 hours
 
         FirestoreUtil.getStatusCollectionRef()
                 .add(status)
