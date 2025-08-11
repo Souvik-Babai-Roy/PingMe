@@ -11,6 +11,8 @@ import com.google.firebase.firestore.Query;
 import com.pingme.android.models.Message;
 import com.pingme.android.models.User;
 import com.pingme.android.models.Chat;
+import com.pingme.android.models.Broadcast;
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -768,6 +770,340 @@ public class FirestoreUtil {
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to send reply message", e));
     }
 
+    // ===== BROADCAST LIST METHODS =====
+
+    private static final String RT_BROADCASTS = "broadcasts";
+    private static final String RT_BROADCAST_MESSAGES = "broadcast_messages";
+
+    public static DatabaseReference getBroadcastsRef() {
+        return getRealtimeDatabase().child(RT_BROADCASTS);
+    }
+
+    public static DatabaseReference getBroadcastRef(String broadcastId) {
+        return getBroadcastsRef().child(broadcastId);
+    }
+
+    public static DatabaseReference getBroadcastMessagesRef(String broadcastId) {
+        return getRealtimeDatabase().child(RT_BROADCAST_MESSAGES).child(broadcastId);
+    }
+
+    public static void createBroadcastList(String name, String createdBy, List<String> memberIds, BroadcastCallback callback) {
+        String broadcastId = getBroadcastsRef().push().getKey();
+        if (broadcastId == null) {
+            callback.onError("Failed to generate broadcast ID");
+            return;
+        }
+
+        Map<String, Object> broadcastData = new HashMap<>();
+        broadcastData.put("id", broadcastId);
+        broadcastData.put("name", name);
+        broadcastData.put("createdBy", createdBy);
+        broadcastData.put("createdAt", System.currentTimeMillis());
+        broadcastData.put("memberIds", memberIds);
+        broadcastData.put("isActive", true);
+
+        getBroadcastRef(broadcastId).setValue(broadcastData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Broadcast list created successfully");
+                    callback.onSuccess(broadcastId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to create broadcast list", e);
+                    callback.onError("Failed to create broadcast list");
+                });
+    }
+
+    public static void sendBroadcastMessage(String broadcastId, String senderId, String text, String messageType, Map<String, Object> mediaData) {
+        String messageId = getBroadcastMessagesRef(broadcastId).push().getKey();
+        if (messageId == null) return;
+
+        Map<String, Object> messageData = new HashMap<>();
+        messageData.put("id", messageId);
+        messageData.put("senderId", senderId);
+        messageData.put("text", text);
+        messageData.put("timestamp", System.currentTimeMillis());
+        messageData.put("type", messageType);
+        messageData.put("status", Message.STATUS_SENT);
+        messageData.put("action", Message.ACTION_NONE);
+
+        if (mediaData != null) {
+            messageData.putAll(mediaData);
+        }
+
+        getBroadcastMessagesRef(broadcastId).child(messageId).setValue(messageData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Broadcast message sent successfully");
+                    updateBroadcastLastMessage(broadcastId, text, senderId, messageType);
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to send broadcast message", e));
+    }
+
+    private static void updateBroadcastLastMessage(String broadcastId, String message, String senderId, String messageType) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("lastMessage", message);
+        updates.put("lastMessageTimestamp", System.currentTimeMillis());
+        updates.put("lastMessageSenderId", senderId);
+        updates.put("lastMessageType", messageType);
+
+        getBroadcastRef(broadcastId).updateChildren(updates)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Broadcast last message updated"))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to update broadcast last message", e));
+    }
+
+    public static void loadUserBroadcasts(String userId, BroadcastListCallback callback) {
+        getBroadcastsRef().orderByChild("createdBy").equalTo(userId)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        List<Broadcast> broadcasts = new ArrayList<>();
+                        for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                            Broadcast broadcast = snapshot.getValue(Broadcast.class);
+                            if (broadcast != null && broadcast.isActive()) {
+                                broadcasts.add(broadcast);
+                            }
+                        }
+                        callback.onBroadcastsLoaded(broadcasts);
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        callback.onError("Failed to load broadcasts");
+                    }
+                });
+    }
+
+    // ===== ENHANCED MESSAGE METHODS =====
+
+    public static void sendReplyMessage(String chatId, String senderId, String receiverId, String text, String replyToMessageId) {
+        if (chatId == null || senderId == null || text == null || replyToMessageId == null) return;
+
+        String messageId = getMessagesRef(chatId).push().getKey();
+        if (messageId == null) return;
+
+        Map<String, Object> messageData = new HashMap<>();
+        messageData.put("id", messageId);
+        messageData.put("senderId", senderId);
+        messageData.put("text", text);
+        messageData.put("timestamp", System.currentTimeMillis());
+        messageData.put("type", Message.TYPE_TEXT);
+        messageData.put("status", Message.STATUS_SENT);
+        messageData.put("action", Message.ACTION_REPLY);
+        messageData.put("replyToMessageId", replyToMessageId);
+        messageData.put("isReply", true);
+
+        getMessagesRef(chatId).child(messageId).setValue(messageData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Reply message sent successfully");
+                    updateChatLastMessage(chatId, text, senderId, Message.TYPE_TEXT);
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to send reply message", e));
+    }
+
+    public static void forwardMessage(String targetChatId, String senderId, String receiverId, Message originalMessage) {
+        if (targetChatId == null || senderId == null || originalMessage == null) return;
+
+        String messageId = getMessagesRef(targetChatId).push().getKey();
+        if (messageId == null) return;
+
+        Map<String, Object> messageData = new HashMap<>();
+        messageData.put("id", messageId);
+        messageData.put("senderId", senderId);
+        messageData.put("text", originalMessage.getText());
+        messageData.put("timestamp", System.currentTimeMillis());
+        messageData.put("type", originalMessage.getType());
+        messageData.put("status", Message.STATUS_SENT);
+        messageData.put("action", Message.ACTION_FORWARD);
+        messageData.put("originalMessageId", originalMessage.getId());
+        messageData.put("isForwarded", true);
+
+        // Add media data if present
+        if (originalMessage.isImageMessage()) {
+            messageData.put("imageUrl", originalMessage.getImageUrl());
+        } else if (originalMessage.isVideoMessage()) {
+            messageData.put("videoUrl", originalMessage.getVideoUrl());
+            messageData.put("thumbnailUrl", originalMessage.getThumbnailUrl());
+        } else if (originalMessage.isAudioMessage()) {
+            messageData.put("audioUrl", originalMessage.getAudioUrl());
+            messageData.put("duration", originalMessage.getDuration());
+        } else if (originalMessage.isDocumentMessage()) {
+            messageData.put("fileUrl", originalMessage.getFileUrl());
+            messageData.put("fileName", originalMessage.getFileName());
+            messageData.put("fileSize", originalMessage.getFileSize());
+        }
+
+        getMessagesRef(targetChatId).child(messageId).setValue(messageData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Message forwarded successfully");
+                    updateChatLastMessage(targetChatId, originalMessage.getDisplayText(), senderId, originalMessage.getType());
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to forward message", e));
+    }
+
+    public static void editMessage(String chatId, String messageId, String newText) {
+        if (chatId == null || messageId == null || newText == null) return;
+
+        DatabaseReference msgRef = getMessagesRef(chatId).child(messageId);
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("text", newText);
+        updates.put("editedText", newText);
+        updates.put("editTimestamp", System.currentTimeMillis());
+        updates.put("isEdited", true);
+        updates.put("action", Message.ACTION_EDIT);
+
+        msgRef.updateChildren(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Message edited successfully");
+                    updateChatLastMessage(chatId, newText + " (edited)", msgRef.getKey(), Message.TYPE_TEXT);
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to edit message", e));
+    }
+
+    public static void deleteMessageForUser(String chatId, String messageId, String userId) {
+        if (chatId == null || messageId == null || userId == null) return;
+
+        DatabaseReference msgRef = getMessagesRef(chatId).child(messageId);
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("deletedAt", System.currentTimeMillis());
+        updates.put("deletedBy", userId);
+        updates.put("isDeletedForMe", true);
+        updates.put("action", Message.ACTION_DELETE_FOR_ME);
+
+        msgRef.updateChildren(updates)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Message deleted for user"))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to delete message for user", e));
+    }
+
+    public static void deleteMessageForEveryone(String chatId, String messageId, String deletedBy) {
+        if (chatId == null || messageId == null) return;
+
+        DatabaseReference msgRef = getMessagesRef(chatId).child(messageId);
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("deletedAt", System.currentTimeMillis());
+        updates.put("deletedBy", deletedBy);
+        updates.put("isDeletedForEveryone", true);
+        updates.put("action", Message.ACTION_DELETE_FOR_EVERYONE);
+
+        msgRef.updateChildren(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Message deleted for everyone");
+                    updateChatLastMessage(chatId, "This message was deleted", deletedBy, Message.TYPE_TEXT);
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to delete message for everyone", e));
+    }
+
+    // ===== SEARCH METHODS =====
+
+    public static void searchMessages(String chatId, String query, long startDate, long endDate, MessageSearchCallback callback) {
+        if (chatId == null || query == null) {
+            callback.onError("Invalid search parameters");
+            return;
+        }
+
+        getMessagesRef(chatId).orderByChild("timestamp")
+                .startAt(startDate)
+                .endAt(endDate)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        List<Message> results = new ArrayList<>();
+                        String lowerQuery = query.toLowerCase();
+
+                        for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                            Message message = snapshot.getValue(Message.class);
+                            if (message != null && !message.isDeletedForEveryone()) {
+                                // Search in text content
+                                if (message.getText().toLowerCase().contains(lowerQuery)) {
+                                    results.add(message);
+                                }
+                                // Search in file names
+                                else if (message.getFileName() != null && 
+                                         message.getFileName().toLowerCase().contains(lowerQuery)) {
+                                    results.add(message);
+                                }
+                            }
+                        }
+
+                        // Sort by timestamp (newest first)
+                        results.sort((m1, m2) -> Long.compare(m2.getTimestamp(), m1.getTimestamp()));
+                        callback.onMessagesFound(results);
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        callback.onError("Search failed");
+                    }
+                });
+    }
+
+    public static void searchAllChats(String userId, String query, SearchCallback callback) {
+        if (userId == null || query == null) {
+            callback.onError("Invalid search parameters");
+            return;
+        }
+
+        getUserChatsRef(userId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                List<SearchResult> results = new ArrayList<>();
+                String lowerQuery = query.toLowerCase();
+
+                for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
+                    String chatId = chatSnapshot.getKey();
+                    if (chatId != null) {
+                        // Search in chat messages
+                        searchMessagesInChat(chatId, lowerQuery, results);
+                    }
+                }
+
+                callback.onSearchComplete(results);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                callback.onError("Search failed");
+            }
+        });
+    }
+
+    private static void searchMessagesInChat(String chatId, String query, List<SearchResult> results) {
+        getMessagesRef(chatId).orderByChild("timestamp")
+                .limitToLast(100) // Limit to recent messages for performance
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                            Message message = snapshot.getValue(Message.class);
+                            if (message != null && !message.isDeletedForEveryone()) {
+                                if (message.getText().toLowerCase().contains(query) ||
+                                    (message.getFileName() != null && 
+                                     message.getFileName().toLowerCase().contains(query))) {
+                                    results.add(new SearchResult(chatId, message));
+                                }
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        // Continue with other chats
+                    }
+                });
+    }
+
+    // ===== FORGOT PASSWORD METHOD =====
+
+    public static void sendPasswordResetEmail(String email, PasswordResetCallback callback) {
+        FirebaseAuth.getInstance().sendPasswordResetEmail(email)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Password reset email sent successfully");
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to send password reset email", e);
+                    callback.onError(e.getLocalizedMessage());
+                });
+    }
+
     // ===== CALLBACKS =====
 
     public interface FriendshipCallback {
@@ -803,5 +1139,44 @@ public class FirestoreUtil {
     public interface MessagesCallback {
         void onMessagesLoaded(List<Message> messages);
         void onError(String error);
+    }
+
+    public interface BroadcastCallback {
+        void onSuccess(String broadcastId);
+        void onError(String error);
+    }
+
+    public interface BroadcastListCallback {
+        void onBroadcastsLoaded(List<Broadcast> broadcasts);
+        void onError(String error);
+    }
+
+    public interface MessageSearchCallback {
+        void onMessagesFound(List<Message> messages);
+        void onError(String error);
+    }
+
+    public interface SearchCallback {
+        void onSearchComplete(List<SearchResult> results);
+        void onError(String error);
+    }
+
+    public interface PasswordResetCallback {
+        void onSuccess();
+        void onError(String error);
+    }
+
+    // Search result class
+    public static class SearchResult {
+        private String chatId;
+        private Message message;
+
+        public SearchResult(String chatId, Message message) {
+            this.chatId = chatId;
+            this.message = message;
+        }
+
+        public String getChatId() { return chatId; }
+        public Message getMessage() { return message; }
     }
 }

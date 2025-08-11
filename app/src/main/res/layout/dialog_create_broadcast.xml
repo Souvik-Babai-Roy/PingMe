@@ -10,7 +10,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Reset Password"
+        android:text="Create Broadcast List"
         android:textSize="20sp"
         android:textStyle="bold"
         android:textColor="@color/colorPrimary"
@@ -20,7 +20,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Enter your email address and we'll send you a link to reset your password."
+        android:text="Give your broadcast list a name and select contacts to include."
         android:textSize="14sp"
         android:textColor="@color/textSecondary"
         android:gravity="center"
@@ -29,17 +29,18 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Email Address"
-        app:startIconDrawable="@drawable/ic_email"
+        android:hint="Broadcast List Name"
+        app:startIconDrawable="@drawable/ic_broadcast"
         app:startIconTint="@color/colorPrimary"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etResetEmail"
+            android:id="@+id/etBroadcastName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textEmailAddress"
-            android:maxLines="1" />
+            android:inputType="text"
+            android:maxLines="1"
+            android:maxLength="50" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -59,21 +60,13 @@
             style="@style/Widget.MaterialComponents.Button.TextButton" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSendReset"
+            android:id="@+id/btnCreate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Send Reset Link"
+            android:text="Next"
             android:layout_marginStart="8dp"
             style="@style/Widget.MaterialComponents.Button" />
 
     </LinearLayout>
-
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="16dp"
-        android:visibility="gone" />
 
 </LinearLayout>

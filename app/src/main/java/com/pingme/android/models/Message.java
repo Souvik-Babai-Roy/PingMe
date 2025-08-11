@@ -12,6 +12,15 @@ public class Message {
     public static final String TYPE_IMAGE = "image";
     public static final String TYPE_VIDEO = "video";
     public static final String TYPE_AUDIO = "audio";
+    public static final String TYPE_DOCUMENT = "document";
+
+    // Message actions
+    public static final String ACTION_NONE = "none";
+    public static final String ACTION_REPLY = "reply";
+    public static final String ACTION_FORWARD = "forward";
+    public static final String ACTION_EDIT = "edit";
+    public static final String ACTION_DELETE_FOR_ME = "delete_for_me";
+    public static final String ACTION_DELETE_FOR_EVERYONE = "delete_for_everyone";
 
     private String id;
     private String senderId;
@@ -28,11 +37,33 @@ public class Message {
     private long duration; // For audio/video in milliseconds
     private long fileSize; // For media files in bytes
     private String fileName; // For documents/files
+    private String fileUrl; // For documents/files
+
+    // Message actions and metadata
+    private String action = ACTION_NONE;
+    private String replyToMessageId; // For reply messages
+    private String originalMessageId; // For forwarded messages
+    private String editedText; // For edited messages
+    private long editTimestamp; // When message was edited
+    private boolean isEdited = false;
+    private boolean isForwarded = false;
+    private boolean isReply = false;
+    
+    // Deletion tracking
+    private long deletedAt; // When message was deleted
+    private String deletedBy; // Who deleted the message
+    private boolean isDeletedForMe = false;
+    private boolean isDeletedForEveryone = false;
+
+    // Encryption
+    private boolean isEncrypted = false;
+    private String encryptedContent; // For E2E encryption
 
     public Message() {
         this.type = TYPE_TEXT;
         this.status = STATUS_SENT;
         this.timestamp = System.currentTimeMillis();
+        this.action = ACTION_NONE;
     }
 
     public Message(String senderId, String text, long timestamp, int status, String type) {
@@ -41,6 +72,7 @@ public class Message {
         this.timestamp = timestamp;
         this.status = status;
         this.type = type;
+        this.action = ACTION_NONE;
     }
 
     // Constructor for text messages
@@ -81,6 +113,48 @@ public class Message {
         message.setAudioUrl(audioUrl);
         message.setDuration(duration);
         message.setType(TYPE_AUDIO);
+        return message;
+    }
+
+    // Constructor for document messages
+    public static Message createDocumentMessage(String senderId, String fileUrl, String fileName, long fileSize) {
+        Message message = new Message();
+        message.setSenderId(senderId);
+        message.setText("📄 " + fileName);
+        message.setFileUrl(fileUrl);
+        message.setFileName(fileName);
+        message.setFileSize(fileSize);
+        message.setType(TYPE_DOCUMENT);
+        return message;
+    }
+
+    // Constructor for reply messages
+    public static Message createReplyMessage(String senderId, String text, String replyToMessageId) {
+        Message message = new Message();
+        message.setSenderId(senderId);
+        message.setText(text);
+        message.setType(TYPE_TEXT);
+        message.setReplyToMessageId(replyToMessageId);
+        message.setAction(ACTION_REPLY);
+        message.setReply(true);
+        return message;
+    }
+
+    // Constructor for forwarded messages
+    public static Message createForwardedMessage(String senderId, Message originalMessage) {
+        Message message = new Message();
+        message.setSenderId(senderId);
+        message.setText(originalMessage.getText());
+        message.setType(originalMessage.getType());
+        message.setImageUrl(originalMessage.getImageUrl());
+        message.setVideoUrl(originalMessage.getVideoUrl());
+        message.setAudioUrl(originalMessage.getAudioUrl());
+        message.setFileUrl(originalMessage.getFileUrl());
+        message.setFileName(originalMessage.getFileName());
+        message.setFileSize(originalMessage.getFileSize());
+        message.setOriginalMessageId(originalMessage.getId());
+        message.setAction(ACTION_FORWARD);
+        message.setForwarded(true);
         return message;
     }
 
@@ -125,11 +199,60 @@ public class Message {
     public String getFileName() { return fileName; }
     public void setFileName(String fileName) { this.fileName = fileName; }
 
+    public String getFileUrl() { return fileUrl; }
+    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+
+    // Message actions getters and setters
+    public String getAction() { return action != null ? action : ACTION_NONE; }
+    public void setAction(String action) { this.action = action; }
+
+    public String getReplyToMessageId() { return replyToMessageId; }
+    public void setReplyToMessageId(String replyToMessageId) { this.replyToMessageId = replyToMessageId; }
+
+    public String getOriginalMessageId() { return originalMessageId; }
+    public void setOriginalMessageId(String originalMessageId) { this.originalMessageId = originalMessageId; }
+
+    public String getEditedText() { return editedText; }
+    public void setEditedText(String editedText) { this.editedText = editedText; }
+
+    public long getEditTimestamp() { return editTimestamp; }
+    public void setEditTimestamp(long editTimestamp) { this.editTimestamp = editTimestamp; }
+
+    public boolean isEdited() { return isEdited; }
+    public void setEdited(boolean edited) { isEdited = edited; }
+
+    public boolean isForwarded() { return isForwarded; }
+    public void setForwarded(boolean forwarded) { isForwarded = forwarded; }
+
+    public boolean isReply() { return isReply; }
+    public void setReply(boolean reply) { isReply = reply; }
+
+    // Deletion getters and setters
+    public long getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(long deletedAt) { this.deletedAt = deletedAt; }
+
+    public String getDeletedBy() { return deletedBy; }
+    public void setDeletedBy(String deletedBy) { this.deletedBy = deletedBy; }
+
+    public boolean isDeletedForMe() { return isDeletedForMe; }
+    public void setDeletedForMe(boolean deletedForMe) { isDeletedForMe = deletedForMe; }
+
+    public boolean isDeletedForEveryone() { return isDeletedForEveryone; }
+    public void setDeletedForEveryone(boolean deletedForEveryone) { isDeletedForEveryone = deletedForEveryone; }
+
+    // Encryption getters and setters
+    public boolean isEncrypted() { return isEncrypted; }
+    public void setEncrypted(boolean encrypted) { isEncrypted = encrypted; }
+
+    public String getEncryptedContent() { return encryptedContent; }
+    public void setEncryptedContent(String encryptedContent) { this.encryptedContent = encryptedContent; }
+
     // Helper methods
     public boolean isTextMessage() { return TYPE_TEXT.equals(type); }
     public boolean isImageMessage() { return TYPE_IMAGE.equals(type); }
     public boolean isVideoMessage() { return TYPE_VIDEO.equals(type); }
     public boolean isAudioMessage() { return TYPE_AUDIO.equals(type); }
+    public boolean isDocumentMessage() { return TYPE_DOCUMENT.equals(type); }
     public boolean hasMedia() { return !TYPE_TEXT.equals(type); }
 
     public boolean isSentByCurrentUser(String currentUserId) {
@@ -144,12 +267,18 @@ public class Message {
                 return getVideoUrl();
             case TYPE_AUDIO:
                 return getAudioUrl();
+            case TYPE_DOCUMENT:
+                return getFileUrl();
             default:
                 return null;
         }
     }
 
     public String getDisplayText() {
+        if (isDeletedForEveryone) {
+            return "This message was deleted";
+        }
+        
         switch (getType()) {
             case TYPE_IMAGE:
                 return "📷 Image";
@@ -157,10 +286,30 @@ public class Message {
                 return "🎥 Video";
             case TYPE_AUDIO:
                 return "🎤 Audio";
+            case TYPE_DOCUMENT:
+                return "📄 " + (getFileName() != null ? getFileName() : "Document");
             case TYPE_TEXT:
             default:
-                return getText();
+                String displayText = getText();
+                if (isEdited) {
+                    displayText += " (edited)";
+                }
+                return displayText;
         }
+    }
+
+    public boolean canBeEdited() {
+        return isTextMessage() && !isDeletedForEveryone && !isDeletedForMe;
+    }
+
+    public boolean canBeDeleted() {
+        return !isDeletedForEveryone;
+    }
+
+    public boolean isVisibleToUser(String userId) {
+        if (isDeletedForEveryone) return false;
+        if (isDeletedForMe && userId.equals(senderId)) return false;
+        return true;
     }
 
     @Override
@@ -172,6 +321,14 @@ public class Message {
                 status == message.status &&
                 duration == message.duration &&
                 fileSize == message.fileSize &&
+                editTimestamp == message.editTimestamp &&
+                isEdited == message.isEdited &&
+                isForwarded == message.isForwarded &&
+                isReply == message.isReply &&
+                deletedAt == message.deletedAt &&
+                isDeletedForMe == message.isDeletedForMe &&
+                isDeletedForEveryone == message.isDeletedForEveryone &&
+                isEncrypted == message.isEncrypted &&
                 Objects.equals(id, message.id) &&
                 Objects.equals(senderId, message.senderId) &&
                 Objects.equals(text, message.text) &&
@@ -180,13 +337,23 @@ public class Message {
                 Objects.equals(videoUrl, message.videoUrl) &&
                 Objects.equals(audioUrl, message.audioUrl) &&
                 Objects.equals(thumbnailUrl, message.thumbnailUrl) &&
-                Objects.equals(fileName, message.fileName);
+                Objects.equals(fileName, message.fileName) &&
+                Objects.equals(fileUrl, message.fileUrl) &&
+                Objects.equals(action, message.action) &&
+                Objects.equals(replyToMessageId, message.replyToMessageId) &&
+                Objects.equals(originalMessageId, message.originalMessageId) &&
+                Objects.equals(editedText, message.editedText) &&
+                Objects.equals(deletedBy, message.deletedBy) &&
+                Objects.equals(encryptedContent, message.encryptedContent);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(id, senderId, text, timestamp, status, type, imageUrl,
-                videoUrl, audioUrl, thumbnailUrl, duration, fileSize, fileName);
+                videoUrl, audioUrl, thumbnailUrl, duration, fileSize, fileName, fileUrl,
+                action, replyToMessageId, originalMessageId, editedText, editTimestamp,
+                isEdited, isForwarded, isReply, deletedAt, deletedBy, isDeletedForMe,
+                isDeletedForEveryone, isEncrypted, encryptedContent);
     }
 
     @Override
@@ -198,7 +365,12 @@ public class Message {
                 ", timestamp=" + timestamp +
                 ", status=" + status +
                 ", type='" + type + '\'' +
+                ", action='" + action + '\'' +
                 ", hasMedia=" + hasMedia() +
+                ", isEdited=" + isEdited +
+                ", isForwarded=" + isForwarded +
+                ", isReply=" + isReply +
+                ", isDeletedForEveryone=" + isDeletedForEveryone +
                 '}';
     }
 }
