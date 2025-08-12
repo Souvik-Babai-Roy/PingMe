@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.PopupMenu;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -12,7 +14,6 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.pingme.android.R;
 import com.pingme.android.activities.ChatActivity;
-import com.pingme.android.databinding.ItemChatBinding;
 import com.pingme.android.models.Chat;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.FirestoreUtil;
@@ -44,9 +45,8 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
     @NonNull
     @Override
     public ChatViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        ItemChatBinding binding = ItemChatBinding.inflate(
-                LayoutInflater.from(parent.getContext()), parent, false);
-        return new ChatViewHolder(binding);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_chat, parent, false);
+        return new ChatViewHolder(view);
     }
 
     @Override
@@ -95,11 +95,21 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
     }
 
     class ChatViewHolder extends RecyclerView.ViewHolder {
-        private ItemChatBinding binding;
+        ImageView ivProfile;
+        View onlineIndicator;
+        TextView tvName;
+        TextView tvLastMessage;
+        TextView tvTime;
+        TextView tvUnreadCount;
 
-        public ChatViewHolder(ItemChatBinding binding) {
-            super(binding.getRoot());
-            this.binding = binding;
+        public ChatViewHolder(View itemView) {
+            super(itemView);
+            ivProfile = itemView.findViewById(R.id.ivProfile);
+            onlineIndicator = itemView.findViewById(R.id.onlineIndicator);
+            tvName = itemView.findViewById(R.id.tvName);
+            tvLastMessage = itemView.findViewById(R.id.tvLastMessage);
+            tvTime = itemView.findViewById(R.id.tvTime);
+            tvUnreadCount = itemView.findViewById(R.id.tvUnreadCount);
         }
 
         public void bind(Chat chat) {
@@ -111,7 +121,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             if (displayName == null || displayName.trim().isEmpty()) {
                 displayName = "Unknown User";
             }
-            binding.tvName.setText(displayName);
+            tvName.setText(displayName);
 
             // FIXED: Load profile image respecting privacy settings
             try {
@@ -121,50 +131,50 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                             .transform(new CircleCrop())
                             .placeholder(R.drawable.defaultprofile)
                             .error(R.drawable.defaultprofile)
-                            .into(binding.ivProfile);
+                            .into(ivProfile);
                 } else {
-                    binding.ivProfile.setImageResource(R.drawable.defaultprofile);
+                    ivProfile.setImageResource(R.drawable.defaultprofile);
                 }
             } catch (Exception e) {
-                binding.ivProfile.setImageResource(R.drawable.defaultprofile);
+                ivProfile.setImageResource(R.drawable.defaultprofile);
             }
 
             // FIXED: Show online indicator respecting user's last seen privacy settings
             if (otherUser.isLastSeenEnabled() && otherUser.isOnline()) {
-                binding.onlineIndicator.setVisibility(View.VISIBLE);
+                onlineIndicator.setVisibility(View.VISIBLE);
             } else {
-                binding.onlineIndicator.setVisibility(View.GONE);
+                onlineIndicator.setVisibility(View.GONE);
             }
 
             // FIXED: Improved last message preview logic
-            binding.tvLastMessage.setText(getLastMessagePreview(chat));
+            tvLastMessage.setText(getLastMessagePreview(chat));
 
             // FIXED: Better time formatting and visibility logic
             String formattedTime = getFormattedTime(chat.getLastMessageTimestamp());
             if (!formattedTime.isEmpty() && hasContent(chat)) {
-                binding.tvTime.setText(formattedTime);
-                binding.tvTime.setVisibility(View.VISIBLE);
+                tvTime.setText(formattedTime);
+                tvTime.setVisibility(View.VISIBLE);
             } else {
-                binding.tvTime.setVisibility(View.INVISIBLE);
+                tvTime.setVisibility(View.INVISIBLE);
             }
 
             // FIXED: Show unread count with better logic
             if (chat.getUnreadCount() > 0) {
-                binding.tvUnreadCount.setVisibility(View.VISIBLE);
+                tvUnreadCount.setVisibility(View.VISIBLE);
                 String unreadText = chat.getUnreadCount() > 99 ? "99+" : String.valueOf(chat.getUnreadCount());
-                binding.tvUnreadCount.setText(unreadText);
+                tvUnreadCount.setText(unreadText);
             } else {
-                binding.tvUnreadCount.setVisibility(View.GONE);
+                tvUnreadCount.setVisibility(View.GONE);
             }
 
             // FIXED: Typing indicator with proper styling
             if (chat.isTyping()) {
-                binding.tvLastMessage.setText("typing...");
-                binding.tvLastMessage.setTextColor(context.getColor(R.color.colorPrimary));
-                binding.tvLastMessage.setTypeface(null, android.graphics.Typeface.ITALIC);
+                tvLastMessage.setText("typing...");
+                tvLastMessage.setTextColor(context.getColor(R.color.colorPrimary));
+                tvLastMessage.setTypeface(null, android.graphics.Typeface.ITALIC);
             } else {
-                binding.tvLastMessage.setTextColor(context.getColor(R.color.textColorSecondary));
-                binding.tvLastMessage.setTypeface(null, android.graphics.Typeface.NORMAL);
+                tvLastMessage.setTextColor(context.getColor(R.color.textColorSecondary));
+                tvLastMessage.setTypeface(null, android.graphics.Typeface.NORMAL);
             }
 
             // FIXED: Click listeners with null checks
@@ -220,140 +230,29 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                     return "🎤 Audio";
                 case "document":
                     return "📄 Document";
-                case "location":
-                    return "📍 Location";
-                case "contact":
-                    return "👤 Contact";
-                case "text":
                 default:
-                    // For text messages, show preview with length limit
-                    if (lastMessage.length() > 50) {
-                        return lastMessage.substring(0, 47) + "...";
-                    }
                     return lastMessage;
             }
         }
 
-        // FIXED: Better time formatting with more accurate logic
         private String getFormattedTime(long timestamp) {
-            if (timestamp <= 0) {
-                return "";
+            if (timestamp <= 0) return "";
+
+            Calendar today = Calendar.getInstance();
+            Calendar dateCal = Calendar.getInstance();
+            dateCal.setTimeInMillis(timestamp);
+
+            if (today.get(Calendar.YEAR) == dateCal.get(Calendar.YEAR) &&
+                    today.get(Calendar.DAY_OF_YEAR) == dateCal.get(Calendar.DAY_OF_YEAR)) {
+                return new SimpleDateFormat("h:mm a", Locale.getDefault()).format(new Date(timestamp));
             }
-
-            try {
-                Calendar now = Calendar.getInstance();
-                Calendar messageTime = Calendar.getInstance();
-                messageTime.setTimeInMillis(timestamp);
-
-                // Check if it's today
-                if (isSameDay(now, messageTime)) {
-                    SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
-                    return timeFormat.format(new Date(timestamp));
-                }
-
-                // Check if it's yesterday
-                Calendar yesterday = Calendar.getInstance();
-                yesterday.add(Calendar.DAY_OF_YEAR, -1);
-                if (isSameDay(yesterday, messageTime)) {
-                    return "Yesterday";
-                }
-
-                // Check if it's this week (within last 7 days)
-                Calendar weekAgo = Calendar.getInstance();
-                weekAgo.add(Calendar.DAY_OF_YEAR, -7);
-                if (messageTime.after(weekAgo)) {
-                    SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE", Locale.getDefault());
-                    return dayFormat.format(new Date(timestamp));
-                }
-
-                // Check if it's this year
-                if (now.get(Calendar.YEAR) == messageTime.get(Calendar.YEAR)) {
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd", Locale.getDefault());
-                    return dateFormat.format(new Date(timestamp));
-                }
-
-                // Older than this year
-                SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
-                return dateFormat.format(new Date(timestamp));
-            } catch (Exception e) {
-                return "";
+            Calendar yesterday = Calendar.getInstance();
+            yesterday.add(Calendar.DAY_OF_YEAR, -1);
+            if (yesterday.get(Calendar.YEAR) == dateCal.get(Calendar.YEAR) &&
+                    yesterday.get(Calendar.DAY_OF_YEAR) == dateCal.get(Calendar.DAY_OF_YEAR)) {
+                return "Yesterday";
             }
-        }
-
-        private boolean isSameDay(Calendar cal1, Calendar cal2) {
-            return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-                    cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
-        }
-
-        private void showContextMenu(View view, Chat chat) {
-            try {
-                PopupMenu popup = new PopupMenu(context, view);
-                popup.getMenuInflater().inflate(R.menu.chat_context_menu, popup.getMenu());
-
-                popup.setOnMenuItemClickListener(item -> {
-                    int itemId = item.getItemId();
-                    if (itemId == R.id.menu_delete_chat) {
-                        deleteChat(chat);
-                        return true;
-                    } else if (itemId == R.id.menu_clear_chat) {
-                        clearChat(chat);
-                        return true;
-                    } else if (itemId == R.id.menu_block_user) {
-                        blockUser(chat.getOtherUser());
-                        return true;
-                    } else if (itemId == R.id.menu_unfriend) {
-                        unfriendUser(chat.getOtherUser());
-                        return true;
-                    }
-                    return false;
-                });
-
-                popup.show();
-            } catch (Exception e) {
-                // Handle popup menu errors gracefully
-            }
-        }
-
-        // FIXED: Only hide chat for current user, don't affect other participant
-        private void deleteChat(Chat chat) {
-            FirestoreUtil.deleteChat(chat.getId(), currentUserId);
-            removeChat(chat.getId());
-        }
-
-        // FIXED: One-sided chat clearing
-        private void clearChat(Chat chat) {
-            // Clear chat only for current user - other user's chat remains intact
-            FirestoreUtil.clearChatHistoryForUser(chat.getId(), currentUserId);
-
-            // Update the chat to show cleared state for this user only
-            chat.setLastMessage("You cleared this chat");
-            chat.setLastMessageType("chat_cleared");
-            chat.setUnreadCount(0);
-            notifyItemChanged(getAdapterPosition());
-        }
-
-        private void blockUser(User user) {
-            FirestoreUtil.blockUser(currentUserId, user.getId());
-            // Remove the chat from the list since it will be hidden
-            for (int i = 0; i < chats.size(); i++) {
-                if (chats.get(i).getOtherUser().getId().equals(user.getId())) {
-                    chats.remove(i);
-                    notifyItemRemoved(i);
-                    break;
-                }
-            }
-        }
-
-        private void unfriendUser(User user) {
-            FirestoreUtil.removeFriend(currentUserId, user.getId());
-            // Remove the chat from the list
-            for (int i = 0; i < chats.size(); i++) {
-                if (chats.get(i).getOtherUser().getId().equals(user.getId())) {
-                    chats.remove(i);
-                    notifyItemRemoved(i);
-                    break;
-                }
-            }
+            return new SimpleDateFormat("MMM dd", Locale.getDefault()).format(new Date(timestamp));
         }
 
         private boolean hasContent(Chat chat) {
@@ -362,6 +261,16 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             if (type == null) type = "text";
             if ("friend_added".equals(type) || "empty_chat".equals(type)) return false;
             return lastMessage != null && !lastMessage.trim().isEmpty();
+        }
+
+        private void showContextMenu(View anchor, Chat chat) {
+            PopupMenu popup = new PopupMenu(context, anchor);
+            popup.getMenuInflater().inflate(R.menu.menu_chat_item, popup.getMenu());
+            popup.setOnMenuItemClickListener(item -> {
+                // TODO: Implement context actions (mute, pin, delete)
+                return true;
+            });
+            popup.show();
         }
     }
 }
