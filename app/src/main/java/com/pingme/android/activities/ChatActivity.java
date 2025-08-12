@@ -698,7 +698,7 @@ public class ChatActivity extends AppCompatActivity {
                     .uploadImage(imageUri, "chat_images/" + chatId, this)
                     .thenAccept(imageUrl -> runOnUiThread(() -> {
                         showLoading(false);
-                        sendImageMessage(imageUrl);
+                        sendImageMessage(imageUri);
                     }))
                     .exceptionally(throwable -> {
                         runOnUiThread(() -> {
@@ -717,7 +717,7 @@ public class ChatActivity extends AppCompatActivity {
                     .uploadVideo(videoUri, chatId, this)
                     .thenAccept(videoUrl -> runOnUiThread(() -> {
                         showLoading(false);
-                        sendVideoMessage(videoUrl);
+                        sendVideoMessage(videoUri);
                     }))
                     .exceptionally(throwable -> {
                         runOnUiThread(() -> {
@@ -736,7 +736,7 @@ public class ChatActivity extends AppCompatActivity {
                     .uploadAudio(audioUri, chatId, this)
                     .thenAccept(audioUrl -> runOnUiThread(() -> {
                         showLoading(false);
-                        sendAudioMessage(audioUrl);
+                        sendAudioMessage(audioUri);
                     }))
                     .exceptionally(throwable -> {
                         runOnUiThread(() -> {
@@ -755,7 +755,7 @@ public class ChatActivity extends AppCompatActivity {
                     .uploadDocument(documentUri, "chat_documents/" + chatId, this)
                     .thenAccept(documentUrl -> runOnUiThread(() -> {
                         showLoading(false);
-                        sendDocumentMessage(documentUrl);
+                        sendDocumentMessage(documentUri);
                     }))
                     .exceptionally(throwable -> {
                         runOnUiThread(() -> {
@@ -774,7 +774,7 @@ public class ChatActivity extends AppCompatActivity {
                     .uploadImage(cameraImageUri, "chat_images/" + chatId, this)
                     .thenAccept(imageUrl -> runOnUiThread(() -> {
                         showLoading(false);
-                        sendImageMessage(imageUrl);
+                        sendImageMessage(cameraImageUri);
                     }))
                     .exceptionally(throwable -> {
                         runOnUiThread(() -> {
@@ -804,105 +804,132 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void sendTextMessage() {
-        if (isBlocked) {
-            Toast.makeText(this, "You cannot send messages to blocked users", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String text = binding.etMessage.getText().toString().trim();
-        if (text.isEmpty()) return;
-
-        Log.d(TAG, "Sending text message: " + text);
+        String messageText = binding.etMessage.getText().toString().trim();
+        if (messageText.isEmpty() || isBlocked) return;
 
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (currentUser == null) return;
 
         String senderId = currentUser.getUid();
-        FirestoreUtil.sendMessageToRealtime(chatId, senderId, text, "text", null);
+        
+        // Clear input
         binding.etMessage.setText("");
-        FirestoreUtil.setTyping(chatId, senderId, false);
-        isTyping = false;
+        
+        // Use the new professional message delivery system
+        FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId, messageText, Message.TYPE_TEXT, null);
     }
 
-    private void sendImageMessage(String imageUrl) {
+    private void sendImageMessage(Uri imageUri) {
         if (isBlocked) return;
 
-        Log.d(TAG, "Sending image message: " + imageUrl);
-
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (currentUser == null) return;
 
         String senderId = currentUser.getUid();
+        showLoading(true);
 
-        Map<String, Object> mediaData = new HashMap<>();
-        mediaData.put("imageUrl", imageUrl);
-
-        FirestoreUtil.sendMessageToRealtime(chatId, senderId, "📷 Photo", "image", mediaData);
+        CloudinaryUtil.getInstance()
+                .uploadChatImage(imageUri, this)
+                .thenAccept(imageUrl -> runOnUiThread(() -> {
+                    Map<String, Object> mediaData = new HashMap<>();
+                    mediaData.put("imageUrl", imageUrl);
+                    
+                    FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId, "📷 Image", Message.TYPE_IMAGE, mediaData);
+                    showLoading(false);
+                }))
+                .exceptionally(throwable -> {
+                    runOnUiThread(() -> {
+                        showLoading(false);
+                        Toast.makeText(this, "Failed to upload image", Toast.LENGTH_SHORT).show();
+                    });
+                    return null;
+                });
     }
 
-    private void sendVideoMessage(String videoUrl) {
+    private void sendVideoMessage(Uri videoUri) {
         if (isBlocked) return;
 
-        Log.d(TAG, "Sending video message: " + videoUrl);
-
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (currentUser == null) return;
 
         String senderId = currentUser.getUid();
+        showLoading(true);
 
-        Map<String, Object> mediaData = new HashMap<>();
-        mediaData.put("videoUrl", videoUrl);
-        mediaData.put("thumbnailUrl", "");
-
-        FirestoreUtil.sendMessageToRealtime(chatId, senderId, "🎥 Video", "video", mediaData);
+        CloudinaryUtil.getInstance()
+                .uploadChatVideo(videoUri, this)
+                .thenAccept(videoData -> runOnUiThread(() -> {
+                    Map<String, Object> mediaData = new HashMap<>();
+                    mediaData.put("videoUrl", videoData.get("videoUrl"));
+                    mediaData.put("thumbnailUrl", videoData.get("thumbnailUrl"));
+                    mediaData.put("duration", videoData.get("duration"));
+                    
+                    FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId, "🎥 Video", Message.TYPE_VIDEO, mediaData);
+                    showLoading(false);
+                }))
+                .exceptionally(throwable -> {
+                    runOnUiThread(() -> {
+                        showLoading(false);
+                        Toast.makeText(this, "Failed to upload video", Toast.LENGTH_SHORT).show();
+                    });
+                    return null;
+                });
     }
 
-    private void sendAudioMessage(String audioUrl) {
+    private void sendAudioMessage(Uri audioUri) {
         if (isBlocked) return;
 
-        Log.d(TAG, "Sending audio message: " + audioUrl);
-
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (currentUser == null) return;
 
         String senderId = currentUser.getUid();
+        showLoading(true);
 
-        Map<String, Object> mediaData = new HashMap<>();
-        mediaData.put("audioUrl", audioUrl);
-
-        FirestoreUtil.sendMessageToRealtime(chatId, senderId, "🎵 Audio", "audio", mediaData);
+        CloudinaryUtil.getInstance()
+                .uploadChatAudio(audioUri, this)
+                .thenAccept(audioData -> runOnUiThread(() -> {
+                    Map<String, Object> mediaData = new HashMap<>();
+                    mediaData.put("audioUrl", audioData.get("audioUrl"));
+                    mediaData.put("duration", audioData.get("duration"));
+                    
+                    FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId, "🎤 Audio", Message.TYPE_AUDIO, mediaData);
+                    showLoading(false);
+                }))
+                .exceptionally(throwable -> {
+                    runOnUiThread(() -> {
+                        showLoading(false);
+                        Toast.makeText(this, "Failed to upload audio", Toast.LENGTH_SHORT).show();
+                    });
+                    return null;
+                });
     }
 
-    private void sendDocumentMessage(String documentUrl) {
+    private void sendDocumentMessage(Uri documentUri) {
         if (isBlocked) return;
 
-        Log.d(TAG, "Sending document message: " + documentUrl);
-
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (currentUser == null) return;
 
         String senderId = currentUser.getUid();
+        showLoading(true);
 
-        Map<String, Object> mediaData = new HashMap<>();
-        mediaData.put("fileUrl", documentUrl);
-        mediaData.put("fileName", "Document");
-
-        FirestoreUtil.sendMessageToRealtime(chatId, senderId, "📄 Document", "document", mediaData);
+        CloudinaryUtil.getInstance()
+                .uploadChatDocument(documentUri, this)
+                .thenAccept(documentData -> runOnUiThread(() -> {
+                    Map<String, Object> mediaData = new HashMap<>();
+                    mediaData.put("fileUrl", documentData.get("fileUrl"));
+                    mediaData.put("fileName", documentData.get("fileName"));
+                    mediaData.put("fileSize", documentData.get("fileSize"));
+                    
+                    FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId, "📄 Document", Message.TYPE_DOCUMENT, mediaData);
+                    showLoading(false);
+                }))
+                .exceptionally(throwable -> {
+                    runOnUiThread(() -> {
+                        showLoading(false);
+                        Toast.makeText(this, "Failed to upload document", Toast.LENGTH_SHORT).show();
+                    });
+                    return null;
+                });
     }
 
     private void updateMessageStatus(String messageId, int status) {
@@ -918,7 +945,7 @@ public class ChatActivity extends AppCompatActivity {
         if (!isBlocked) {
             FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
             if (currentUser != null) {
-                FirestoreUtil.markMessagesAsRead(chatId, currentUser.getUid());
+                FirestoreUtil.markAllMessagesAsRead(chatId, currentUser.getUid());
             }
         }
     }

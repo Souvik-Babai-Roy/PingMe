@@ -1143,4 +1143,318 @@ public class FirestoreUtil {
             return message != null ? message.getTimestamp() : 0; 
         }
     }
+
+    // ===== MESSAGE STATUS MANAGEMENT =====
+    
+    public static void updateMessageStatus(String chatId, String messageId, int status) {
+        if (chatId == null || messageId == null) return;
+        
+        Log.d(TAG, "Updating message status: " + messageId + " to status: " + status);
+        
+        getMessagesRef(chatId)
+                .child(messageId)
+                .child("status")
+                .setValue(status)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Message status updated successfully");
+                    // Update last message status in chat metadata
+                    updateChatLastMessageStatus(chatId, messageId, status);
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to update message status", e));
+    }
+    
+    private static void updateChatLastMessageStatus(String chatId, String messageId, int status) {
+        getChatRef(chatId)
+                .child("lastMessageId")
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    String lastMessageId = snapshot.getValue(String.class);
+                    if (messageId.equals(lastMessageId)) {
+                        getChatRef(chatId)
+                                .child("lastMessageStatus")
+                                .setValue(status);
+                    }
+                });
+    }
+    
+    public static void markMessageAsDelivered(String chatId, String messageId) {
+        updateMessageStatus(chatId, messageId, Message.STATUS_DELIVERED);
+    }
+    
+    public static void markMessageAsRead(String chatId, String messageId) {
+        updateMessageStatus(chatId, messageId, Message.STATUS_READ);
+    }
+    
+    public static void markAllMessagesAsRead(String chatId, String currentUserId) {
+        if (chatId == null || currentUserId == null) return;
+
+        Log.d(TAG, "Marking all messages as read for chat: " + chatId + " user: " + currentUserId);
+
+        getMessagesRef(chatId)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        Map<String, Object> updates = new HashMap<>();
+                        int updatedCount = 0;
+
+                        for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
+                            String senderId = messageSnapshot.child("senderId").getValue(String.class);
+                            Integer status = messageSnapshot.child("status").getValue(Integer.class);
+
+                            // Mark as read if not sent by current user and not already read
+                            if (senderId != null && !senderId.equals(currentUserId) &&
+                                    status != null && status != Message.STATUS_READ) {
+                                updates.put("messages/" + chatId + "/" + messageSnapshot.getKey() + "/status", Message.STATUS_READ);
+                                updatedCount++;
+                            }
+                        }
+
+                        if (!updates.isEmpty()) {
+                            getRealtimeDatabase().updateChildren(updates)
+                                    .addOnSuccessListener(aVoid -> {
+                                        Log.d(TAG, "Marked " + updatedCount + " messages as read successfully");
+                                        // Send read receipt to sender if they have read receipts enabled
+                                        sendReadReceipts(chatId, currentUserId, updates);
+                                    })
+                                    .addOnFailureListener(e -> Log.e(TAG, "Failed to mark messages as read", e));
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        Log.e(TAG, "Failed to mark messages as read", databaseError.toException());
+                    }
+                });
+    }
+    
+    private static void sendReadReceipts(String chatId, String currentUserId, Map<String, Object> updatedMessages) {
+        // Get the other user in the chat
+        getChatRef(chatId)
+                .child("participants")
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        String otherUserId = null;
+                        for (DataSnapshot participant : dataSnapshot.getChildren()) {
+                            String participantId = participant.getKey();
+                            if (!participantId.equals(currentUserId)) {
+                                otherUserId = participantId;
+                                break;
+                            }
+                        }
+                        
+                        if (otherUserId != null) {
+                            // Check if other user has read receipts enabled
+                            getUserRef(otherUserId)
+                                    .get()
+                                    .addOnSuccessListener(userSnapshot -> {
+                                        if (userSnapshot.exists()) {
+                                            User otherUser = userSnapshot.toObject(User.class);
+                                            if (otherUser != null && otherUser.isReadReceiptsEnabled()) {
+                                                // Send read receipt notification
+                                                sendReadReceiptNotification(otherUserId, currentUserId, chatId, updatedMessages.size());
+                                            }
+                                        }
+                                    });
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        Log.e(TAG, "Failed to get chat participants for read receipts", databaseError.toException());
+                    }
+                });
+    }
+    
+    private static void sendReadReceiptNotification(String recipientId, String senderId, String chatId, int messageCount) {
+        // Create read receipt notification
+        Map<String, Object> notificationData = new HashMap<>();
+        notificationData.put("type", "read_receipt");
+        notificationData.put("chatId", chatId);
+        notificationData.put("senderId", senderId);
+        notificationData.put("messageCount", messageCount);
+        notificationData.put("timestamp", System.currentTimeMillis());
+        
+        // Store in notifications collection
+        getNotificationsCollectionRef()
+                .document(recipientId)
+                .collection("notifications")
+                .add(notificationData)
+                .addOnSuccessListener(documentReference -> {
+                    Log.d(TAG, "Read receipt notification sent successfully");
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to send read receipt notification", e));
+    }
+    
+    // ===== MESSAGE DELIVERY SYSTEM =====
+    
+    public static void sendMessageWithDeliveryTracking(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
+        if (chatId == null || senderId == null) return;
+        
+        // Create message with initial status
+        Map<String, Object> messageData = new HashMap<>();
+        messageData.put("senderId", senderId);
+        messageData.put("text", text);
+        messageData.put("type", type);
+        messageData.put("timestamp", System.currentTimeMillis());
+        messageData.put("status", Message.STATUS_SENT);
+        
+        if (mediaData != null) {
+            messageData.putAll(mediaData);
+        }
+        
+        // Generate message ID
+        String messageId = getMessagesRef(chatId).push().getKey();
+        messageData.put("id", messageId);
+        
+        // Send message
+        getMessagesRef(chatId)
+                .child(messageId)
+                .setValue(messageData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Message sent successfully: " + messageId);
+                    
+                    // Update chat metadata
+                    updateChatLastMessage(chatId, text, type, senderId, messageId);
+                    
+                    // Send push notification to recipient
+                    sendMessageNotification(chatId, senderId, text, type);
+                    
+                    // Start delivery tracking
+                    startDeliveryTracking(chatId, messageId, senderId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to send message", e);
+                    // Update message status to failed
+                    messageData.put("status", -1); // Failed status
+                    getMessagesRef(chatId).child(messageId).setValue(messageData);
+                });
+    }
+    
+    private static void startDeliveryTracking(String chatId, String messageId, String senderId) {
+        // Get recipient ID
+        getChatRef(chatId)
+                .child("participants")
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        String recipientId = null;
+                        for (DataSnapshot participant : dataSnapshot.getChildren()) {
+                            String participantId = participant.getKey();
+                            if (!participantId.equals(senderId)) {
+                                recipientId = participantId;
+                                break;
+                            }
+                        }
+                        
+                        if (recipientId != null) {
+                            // Check if recipient is online
+                            getRealtimePresenceRef(recipientId)
+                                    .child("online")
+                                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                                        @Override
+                                        public void onDataChange(DataSnapshot snapshot) {
+                                            Boolean isOnline = snapshot.getValue(Boolean.class);
+                                            if (isOnline != null && isOnline) {
+                                                // Recipient is online, mark as delivered immediately
+                                                markMessageAsDelivered(chatId, messageId);
+                                            } else {
+                                                // Recipient is offline, will be marked as delivered when they come online
+                                                scheduleDeliveryCheck(chatId, messageId, recipientId);
+                                            }
+                                        }
+
+                                        @Override
+                                        public void onCancelled(DatabaseError databaseError) {
+                                            Log.e(TAG, "Failed to check recipient online status", databaseError.toException());
+                                        }
+                                    });
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        Log.e(TAG, "Failed to get chat participants for delivery tracking", databaseError.toException());
+                    }
+                });
+    }
+    
+    private static void scheduleDeliveryCheck(String chatId, String messageId, String recipientId) {
+        // Set up a listener for when recipient comes online
+        getRealtimePresenceRef(recipientId)
+                .child("online")
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot snapshot) {
+                        Boolean isOnline = snapshot.getValue(Boolean.class);
+                        if (isOnline != null && isOnline) {
+                            // Recipient came online, mark message as delivered
+                            markMessageAsDelivered(chatId, messageId);
+                            // Remove this listener
+                            getRealtimePresenceRef(recipientId).child("online").removeEventListener(this);
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        Log.e(TAG, "Failed to monitor recipient online status", databaseError.toException());
+                    }
+                });
+    }
+    
+    private static void sendMessageNotification(String chatId, String senderId, String text, String type) {
+        // Get recipient and sender info
+        getChatRef(chatId)
+                .child("participants")
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        String recipientId = null;
+                        for (DataSnapshot participant : dataSnapshot.getChildren()) {
+                            String participantId = participant.getKey();
+                            if (!participantId.equals(senderId)) {
+                                recipientId = participantId;
+                                break;
+                            }
+                        }
+                        
+                        if (recipientId != null) {
+                            // Get sender info for notification
+                            getUserRef(senderId)
+                                    .get()
+                                    .addOnSuccessListener(senderSnapshot -> {
+                                        if (senderSnapshot.exists()) {
+                                            User sender = senderSnapshot.toObject(User.class);
+                                            if (sender != null) {
+                                                // Create notification data
+                                                Map<String, Object> notificationData = new HashMap<>();
+                                                notificationData.put("type", "new_message");
+                                                notificationData.put("chatId", chatId);
+                                                notificationData.put("senderId", senderId);
+                                                notificationData.put("senderName", sender.getDisplayName());
+                                                notificationData.put("message", text);
+                                                notificationData.put("messageType", type);
+                                                notificationData.put("timestamp", System.currentTimeMillis());
+                                                
+                                                // Store notification
+                                                getNotificationsCollectionRef()
+                                                        .document(recipientId)
+                                                        .collection("notifications")
+                                                        .add(notificationData)
+                                                        .addOnSuccessListener(documentReference -> {
+                                                            Log.d(TAG, "Message notification sent successfully");
+                                                        })
+                                                        .addOnFailureListener(e -> Log.e(TAG, "Failed to send message notification", e));
+                                            }
+                                        }
+                                    });
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        Log.e(TAG, "Failed to get chat participants for notification", databaseError.toException());
+                    }
+                });
+    }
 }

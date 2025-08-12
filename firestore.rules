@@ -1,212 +1,163 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // ===== HELPER FUNCTIONS =====
-    
-    // Check if user is authenticated
+    // Helper functions for better readability and reusability
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Check if user is the owner of the document
     function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
     
-    // Check if user can access based on privacy settings
-    function canAccessProfile(userDoc) {
-      return userDoc.data.profilePhotoEnabled == true;
+    function isValidUser() {
+      return isAuthenticated() && 
+             request.auth.uid != null && 
+             request.auth.uid.size() > 0;
+    }
+    
+    // Check if user is blocked by another user
+    function isBlocked(blockerId, blockedId) {
+      return exists(/databases/$(database)/documents/blocked_users/$(blockerId)/blocked/$(blockedId));
     }
     
     // Check if users are friends
-    function areFriends(userId) {
-      return isAuthenticated() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)/friends/$(userId));
-    }
-    
-    // Check if user is blocked
-    function isBlocked(userId) {
-      return exists(/databases/$(database)/documents/users/$(userId)/blocked/$(request.auth.uid)) ||
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)/blocked/$(userId));
+    function areFriends(userId1, userId2) {
+      return exists(/databases/$(database)/documents/users/$(userId1)/friends/$(userId2));
     }
     
     // Validate user data structure
     function isValidUserData() {
       return request.resource.data.keys().hasAll(['name', 'email']) &&
              request.resource.data.name is string &&
-             request.resource.data.name.size() > 0 &&
-             request.resource.data.name.size() <= 50 &&
              request.resource.data.email is string &&
-             request.resource.data.email.matches('.*@.*\\..*');
+             request.resource.data.name.size() >= 1 &&
+             request.resource.data.name.size() <= 50;
     }
-    
-    // ===== USER DOCUMENTS =====
+
+    // Users collection - core user profiles
     match /users/{userId} {
-      // Users can read their own profile and profiles of friends (with privacy restrictions)
-      allow read: if isOwner(userId) || 
-                     (isAuthenticated() && !isBlocked(userId));
+      // Users can read their own profile and profiles of their friends
+      allow read: if isValidUser() && (
+        isOwner(userId) || 
+        areFriends(request.auth.uid, userId)
+      );
       
-      // Users can only write to their own profile
-      allow write: if isOwner(userId) && 
-                      isValidUserData() &&
-                      // Prevent changing critical fields maliciously
-                      (!resource.data.keys().hasAny(['id']) || 
-                       request.resource.data.id == resource.data.id);
+      // Users can only create/update their own profile
+      allow create: if isValidUser() && 
+                   isOwner(userId) && 
+                   isValidUserData();
       
-      // Allow creation of new user document during registration
-      allow create: if isOwner(userId) && isValidUserData();
+      allow update: if isValidUser() && 
+                   isOwner(userId) && 
+                   isValidUserData();
       
-      // ===== USER'S FRIENDS SUBCOLLECTION =====
+      // Users cannot delete their profiles (use admin functions)
+      allow delete: if false;
+
+      // Friends subcollection - manage friendships
       match /friends/{friendId} {
         // Users can read their own friends list
-        allow read: if isOwner(userId);
+        allow read: if isValidUser() && isOwner(userId);
         
-        // Users can add/remove friends from their own list
-        allow write: if isOwner(userId) && 
-                        // Prevent self-friending
-                        friendId != userId &&
-                        // Ensure friend document exists
-                        exists(/databases/$(database)/documents/users/$(friendId));
+        // Users can add/remove friends if both parties aren't blocked
+        allow create, update: if isValidUser() && 
+                             isOwner(userId) && 
+                             !isBlocked(userId, friendId) && 
+                             !isBlocked(friendId, userId);
         
-        // Allow creating friend relationships
-        allow create: if isOwner(userId) && friendId != userId;
-      }
-      
-      // ===== USER'S BLOCKED USERS SUBCOLLECTION =====
-      match /blocked/{blockedUserId} {
-        // Users can only access their own blocked list
-        allow read, write: if isOwner(userId) && blockedUserId != userId;
-      }
-      
-      // ===== USER'S SETTINGS SUBCOLLECTION =====
-      match /settings/{settingId} {
-        // Users can only access their own settings
-        allow read, write: if isOwner(userId);
+        allow delete: if isValidUser() && isOwner(userId);
       }
     }
-    
-    // ===== STATUS UPDATES =====
+
+    // Status collection - user status updates (stories)
     match /status/{statusId} {
-      // Allow reading status from friends and non-blocked users
-      allow read: if isAuthenticated() && 
-                     !isBlocked(resource.data.userId) &&
-                     (areFriends(resource.data.userId) || resource.data.userId == request.auth.uid);
+      // Users can read status from friends only
+      allow read: if isValidUser() && 
+                 areFriends(request.auth.uid, resource.data.userId);
       
-      // Users can only create/update their own status
-      allow write: if isAuthenticated() && 
-                      request.resource.data.userId == request.auth.uid &&
-                      request.resource.data.keys().hasAll(['userId', 'timestamp', 'expiryTime']) &&
-                      request.resource.data.timestamp is number &&
-                      request.resource.data.expiryTime is number &&
-                      // Content validation - either content or imageUrl should be present
-                      (request.resource.data.keys().hasAny(['content']) || 
-                       request.resource.data.keys().hasAny(['imageUrl'])) &&
-                      // Content length validation
-                      (!request.resource.data.keys().hasAny(['content']) || 
-                       (request.resource.data.content is string && 
-                        request.resource.data.content.size() <= 1000));
+      // Users can create their own status
+      allow create: if isValidUser() && 
+                   isOwner(resource.data.userId) &&
+                   request.resource.data.keys().hasAll(['userId', 'timestamp', 'expiryTime']) &&
+                   request.resource.data.userId == request.auth.uid;
       
-      // Allow creation of new status
-      allow create: if isAuthenticated() && 
-                       request.resource.data.userId == request.auth.uid;
+      // Users can update their own status
+      allow update: if isValidUser() && 
+                   isOwner(resource.data.userId);
+      
+      // Users can delete their own status
+      allow delete: if isValidUser() && 
+                   isOwner(resource.data.userId);
     }
-    
-    // ===== USER PRESENCE (for online/offline status) =====
+
+    // Blocked users collection - manage blocked relationships
+    match /blocked_users/{userId} {
+      // Users can only access their own blocked users list
+      allow read, write: if isValidUser() && isOwner(userId);
+      
+      match /blocked/{blockedUserId} {
+        // Users can manage their own blocked users
+        allow read, write: if isValidUser() && isOwner(userId);
+      }
+    }
+
+    // Presence collection - user online/offline status
     match /presence/{userId} {
-      // All authenticated users can read presence info (subject to privacy)
-      allow read: if isAuthenticated() && !isBlocked(userId);
+      // Anyone can read presence if they're friends and user allows it
+      allow read: if isValidUser() && 
+                 areFriends(request.auth.uid, userId);
       
       // Users can only update their own presence
-      allow write: if isOwner(userId) &&
-                      request.resource.data.keys().hasAll(['online', 'lastSeen']) &&
-                      request.resource.data.online is bool &&
-                      request.resource.data.lastSeen is timestamp;
+      allow write: if isValidUser() && isOwner(userId);
     }
-    
-    // ===== CALL LOGS =====
-    match /calls/{callId} {
-      // Only participants can access call data
-      allow read: if isAuthenticated() && 
-                     (resource.data.callerId == request.auth.uid || 
-                      resource.data.receiverId == request.auth.uid);
+
+    // User settings and preferences
+    match /user_settings/{userId} {
+      // Users can only read/write their own settings
+      allow read, write: if isValidUser() && isOwner(userId);
+    }
+
+    // Notifications collection
+    match /notifications/{userId} {
+      // Users can only read their own notifications
+      allow read: if isValidUser() && isOwner(userId);
       
-      // Only participants can create/update call data
-      allow write: if isAuthenticated() && 
-                      (request.resource.data.callerId == request.auth.uid || 
-                       request.resource.data.receiverId == request.auth.uid) &&
-                      request.resource.data.keys().hasAll(['callerId', 'receiverId', 'timestamp', 'type', 'status']) &&
-                      request.resource.data.callerId is string &&
-                      request.resource.data.receiverId is string &&
-                      request.resource.data.timestamp is timestamp &&
-                      request.resource.data.type in ['voice', 'video'] &&
-                      request.resource.data.status in ['calling', 'answered', 'declined', 'missed', 'ended'];
+      // System and friends can create notifications
+      allow create: if isValidUser() && (
+        isOwner(userId) || 
+        areFriends(request.auth.uid, userId)
+      );
+      
+      // Users can update/delete their own notifications
+      allow update, delete: if isValidUser() && isOwner(userId);
     }
-    
-    // ===== APP METADATA =====
-    match /app_metadata/{document} {
-      // Only allow reading app metadata
-      allow read: if isAuthenticated();
-      // Prevent writing to app metadata
-      allow write: if false;
-    }
-    
-    // ===== USER PREFERENCES (backup location) =====
-    match /user_preferences/{userId} {
-      // Users can only access their own preferences
-      allow read, write: if isOwner(userId);
-    }
-    
-    // ===== REPORTS AND FEEDBACK =====
+
+    // Reports collection - for reporting users/content
     match /reports/{reportId} {
       // Users can create reports
-      allow create: if isAuthenticated() && 
-                       request.resource.data.reporterId == request.auth.uid &&
-                       request.resource.data.keys().hasAll(['reporterId', 'timestamp', 'type', 'description']) &&
-                       request.resource.data.type in ['user', 'content', 'bug', 'feedback'] &&
-                       request.resource.data.description is string &&
-                       request.resource.data.description.size() <= 2000;
+      allow create: if isValidUser() && 
+                   request.resource.data.reporterId == request.auth.uid;
       
       // Users can read their own reports
-      allow read: if isAuthenticated() && 
-                     resource.data.reporterId == request.auth.uid;
+      allow read: if isValidUser() && 
+                 resource.data.reporterId == request.auth.uid;
       
-      // Prevent updating/deleting reports
+      // No updates or deletes allowed (admin only)
       allow update, delete: if false;
     }
-    
-    // ===== BLOCKED USERS MANAGEMENT =====
-    match /blocked_users/{userId} {
-      // Users can read their own blocked list
-      allow read: if isOwner(userId);
-      
-      // Users can add/remove blocked users
-      allow write: if isOwner(userId);
-      
-      match /blocked/{blockedUserId} {
-        // Individual blocked user entries
-        allow read, write: if isOwner(userId) && blockedUserId != userId;
-      }
+
+    // Admin collections (admin access only)
+    match /admin/{document=**} {
+      allow read, write: if false; // Only admin SDK can access
     }
-    
-    // ===== ANALYTICS (if needed) =====
-    match /analytics/{document} {
-      // Allow writing anonymous analytics data
-      allow write: if isAuthenticated() && 
-                      request.resource.data.userId == request.auth.uid;
-      
-      // Prevent reading analytics data
-      allow read: if false;
+
+    // Analytics and logs (system only)
+    match /analytics/{document=**} {
+      allow read, write: if false; // Only server can access
     }
-    
-    // ===== ADMIN FUNCTIONS (if needed) =====
-    match /admin/{document} {
-      // Prevent all access to admin documents
-      allow read, write: if false;
-    }
-    
-    // ===== DEFAULT DENY =====
-    // Deny access to any other documents
+
+    // Deny all other access
     match /{document=**} {
       allow read, write: if false;
     }
