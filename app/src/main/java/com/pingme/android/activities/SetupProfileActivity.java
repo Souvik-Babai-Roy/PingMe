@@ -44,7 +44,7 @@ public class SetupProfileActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivitySetupProfileBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot()); // FIXED: getRoot() resolves
+        setContentView(binding.getRoot());
 
         setupUI();
         populateUserInfo();
@@ -52,8 +52,7 @@ public class SetupProfileActivity extends AppCompatActivity {
 
     private void setupUI() {
         binding.ivProfile.setOnClickListener(v -> openImagePickerCompat());
-        // Wire FAB if present in layout (camera icon)
-        View fab = findViewById(com.pingme.android.R.id.fab); // may not exist
+        View fab = findViewById(com.pingme.android.R.id.fab);
         if (fab != null) {
             fab.setOnClickListener(v -> openImagePickerCompat());
         }
@@ -88,15 +87,9 @@ public class SetupProfileActivity extends AppCompatActivity {
                         .circleCrop()
                         .placeholder(R.drawable.ic_profile)
                         .into(binding.ivProfile);
-                uploadedImageUrl = photoUrl.toString(); // Google profile image
+                uploadedImageUrl = photoUrl.toString();
             }
         }
-    }
-
-    @Deprecated
-    private void checkPermissionAndPickImage() {
-        // No-op: modern pickers do not require READ_EXTERNAL_STORAGE; kept for backward compatibility
-        openImagePickerCompat();
     }
 
     private void openImagePickerCompat() {
@@ -105,7 +98,6 @@ public class SetupProfileActivity extends AppCompatActivity {
             intent.setType("image/*");
             imagePickerLauncher.launch(Intent.createChooser(intent, "Select Profile Picture"));
         } catch (Exception e) {
-            // Fallback to ACTION_OPEN_DOCUMENT for scoped storage
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("image/*");
@@ -142,7 +134,7 @@ public class SetupProfileActivity extends AppCompatActivity {
         if (selectedImageUri != null) {
             uploadImageAndCreateProfile(name, about);
         } else {
-            createUserProfile(name, about, uploadedImageUrl); // Use default if present
+            createUserProfile(name, about, uploadedImageUrl);
         }
     }
 
@@ -165,9 +157,10 @@ public class SetupProfileActivity extends AppCompatActivity {
 
     private void createUserProfile(String name, String about, String imageUrl) {
         FirebaseAuth auth = FirebaseAuth.getInstance();
+        String userId = auth.getCurrentUser().getUid();
 
         User user = new User(
-                auth.getCurrentUser().getUid(),
+                userId,
                 name,
                 auth.getCurrentUser().getEmail(),
                 imageUrl,
@@ -178,24 +171,26 @@ public class SetupProfileActivity extends AppCompatActivity {
         user.setOnline(true);
         user.setLastSeen(System.currentTimeMillis());
 
+        // Set default privacy settings
+        user.setProfilePhotoEnabled(true);
+        user.setLastSeenEnabled(true);
+        user.setAboutEnabled(true);
+        user.setReadReceiptsEnabled(true);
+
+        // Create user with discoverable profile
+        FirestoreUtil.createUserWithDiscoverableProfile(user);
+
+        // Update FCM token separately
         FirebaseMessaging.getInstance().getToken()
                 .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        user.setFcmToken(task.getResult());
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        FirestoreUtil.updateFCMToken(userId, task.getResult());
                     }
 
-                    FirestoreUtil.getUserRef(user.getId())
-                            .set(user)
-                            .addOnSuccessListener(aVoid -> {
-                                showLoading(false);
-                                showSuccess("Profile created successfully!");
-                                startActivity(new Intent(SetupProfileActivity.this, MainActivity.class));
-                                finish();
-                            })
-                            .addOnFailureListener(e -> {
-                                showLoading(false);
-                                showError("Failed to create profile: " + e.getMessage());
-                            });
+                    showLoading(false);
+                    showSuccess("Profile created successfully!");
+                    startActivity(new Intent(SetupProfileActivity.this, MainActivity.class));
+                    finish();
                 });
     }
 

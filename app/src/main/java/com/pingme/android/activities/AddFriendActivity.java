@@ -1,6 +1,7 @@
 package com.pingme.android.activities;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -92,49 +93,30 @@ public class AddFriendActivity extends AppCompatActivity {
 
         showLoading(true);
 
-        // Step 1: Query public index for email
-        FirestoreUtil.searchUserPublicByEmail(email)
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (!task.isSuccessful() || task.getResult().isEmpty()) {
-                        showLoading(false);
-                        showUserNotFound();
-                        return;
-                    }
-                    String userId = task.getResult().getDocuments().get(0).getString("userId");
-                    if (userId == null || userId.isEmpty()) {
-                        showLoading(false);
-                        showUserNotFound();
-                        return;
-                    }
+        // Use the enhanced search method
+        FirestoreUtil.searchUserForFriendRequest(email, new FirestoreUtil.UserSearchCallback() {
+            @Override
+            public void onUserFound(User user) {
+                showLoading(false);
+                foundUser = user;
 
-                    // Step 2: Fetch full user profile (requires friendship or self)
-                    FirestoreUtil.getUserRef(userId)
-                            .get()
-                            .addOnSuccessListener(doc -> {
-                                showLoading(false);
-                                if (doc.exists()) {
-                                    foundUser = doc.toObject(User.class);
-                                    if (foundUser != null) {
-                                        foundUser.setId(doc.getId());
-                                        // Proceed with block checks and display
-                                        checkIfBlocked(foundUser.getId());
-                                    } else {
-                                        showUserNotFound();
-                                    }
-                                } else {
-                                    showUserNotFound();
-                                }
-                            })
-                            .addOnFailureListener(e -> {
-                                showLoading(false);
-                                Toast.makeText(this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                            });
-                })
-                .addOnFailureListener(e -> {
-                    showLoading(false);
-                    Toast.makeText(this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+                // Check if blocked before displaying user
+                checkIfBlocked(user.getId());
+            }
+
+            @Override
+            public void onUserNotFound() {
+                showLoading(false);
+                showUserNotFound();
+            }
+
+            @Override
+            public void onError(String error) {
+                showLoading(false);
+                Toast.makeText(AddFriendActivity.this, "Search failed: " + error, Toast.LENGTH_SHORT).show();
+                Log.e("AddFriendActivity", "Search error: " + error);
+            }
+        });
     }
 
     private void checkIfBlocked(String userId) {
@@ -162,32 +144,28 @@ public class AddFriendActivity extends AppCompatActivity {
         binding.tvUserName.setText(user.getName());
         binding.tvUserEmail.setText(user.getEmail());
 
-        // Show about only if user allows it in privacy settings
-        if (user.isAboutEnabled()) {
+        // Show about if available (privacy is handled in the data retrieval)
+        if (user.getAbout() != null && !user.getAbout().isEmpty()) {
             binding.tvUserAbout.setVisibility(View.VISIBLE);
             binding.tvUserAbout.setText(user.getAbout());
         } else {
             binding.tvUserAbout.setVisibility(View.GONE);
         }
 
-        // Load profile image only if user allows it in privacy settings
-        if (user.isProfilePhotoEnabled() && user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
+        // Load profile image if available
+        if (user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
             Glide.with(this)
                     .load(user.getImageUrl())
                     .transform(new CircleCrop())
-                    .placeholder(R.drawable.ic_profile)
+                    .placeholder(R.drawable.ic_person_outline)
                     .into(binding.ivUserProfile);
         } else {
-            binding.ivUserProfile.setImageResource(R.drawable.ic_profile);
+            binding.ivUserProfile.setImageResource(R.drawable.ic_person_outline);
         }
 
-        // Show online status only if user allows it
-        if (user.isLastSeenEnabled()) {
-            loadUserPresence(user);
-        } else {
-            binding.tvOnlineStatus.setVisibility(View.GONE);
-            binding.onlineIndicator.setVisibility(View.GONE);
-        }
+        // For discoverable profiles, we might not have real-time presence
+        // Only try to load presence if user allows it
+        loadUserPresence(user);
     }
 
     private void loadUserPresence(User user) {

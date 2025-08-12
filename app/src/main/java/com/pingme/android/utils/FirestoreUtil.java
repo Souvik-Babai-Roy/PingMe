@@ -122,6 +122,169 @@ public class FirestoreUtil {
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to update public profile", e));
     }
 
+    // ===== ENHANCED USER DISCOVERY METHODS =====
+
+    /**
+     * Create or update discoverable profile for friend search
+     * This contains limited info that can be viewed by non-friends
+     */
+    public static void createOrUpdateDiscoverableProfile(String userId, String name, String email, String imageUrl, String about) {
+        if (userId == null || email == null) return;
+
+        Map<String, Object> discoverableData = new HashMap<>();
+        discoverableData.put("userId", userId);
+        discoverableData.put("name", name != null ? name : "");
+        discoverableData.put("email", email);
+        discoverableData.put("emailLowercase", email.toLowerCase());
+        discoverableData.put("imageUrl", imageUrl != null ? imageUrl : "");
+        discoverableData.put("about", about != null ? about : "");
+        discoverableData.put("updatedAt", System.currentTimeMillis());
+
+        FirebaseFirestore.getInstance()
+                .collection("discoverable_profiles")
+                .document(userId)
+                .set(discoverableData)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Discoverable profile updated"))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to update discoverable profile", e));
+    }
+
+    /**
+     * Get discoverable profiles collection reference
+     */
+    public static CollectionReference getDiscoverableProfilesRef() {
+        return FirebaseFirestore.getInstance().collection("discoverable_profiles");
+    }
+
+    /**
+     * Search user in discoverable profiles by email
+     */
+    public static Query searchDiscoverableUserByEmail(String email) {
+        return getDiscoverableProfilesRef()
+                .whereEqualTo("emailLowercase", email.toLowerCase())
+                .limit(1);
+    }
+
+    /**
+     * Get limited user info for friend discovery
+     */
+    public static void getUserForFriendDiscovery(String userId, UserDiscoveryCallback callback) {
+        if (userId == null || callback == null) return;
+
+        // First try to get from discoverable profiles
+        getDiscoverableProfilesRef()
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        // Create a limited User object from discoverable profile
+                        Map<String, Object> data = documentSnapshot.getData();
+                        if (data != null) {
+                            User user = new User();
+                            user.setId(userId);
+                            user.setName((String) data.get("name"));
+                            user.setEmail((String) data.get("email"));
+                            user.setImageUrl((String) data.get("imageUrl"));
+                            user.setAbout((String) data.get("about"));
+                            callback.onUserFound(user);
+                        } else {
+                            callback.onUserNotFound();
+                        }
+                    } else {
+                        // Fallback to regular users collection (might fail due to permissions)
+                        getUserRef(userId)
+                                .get()
+                                .addOnSuccessListener(userDoc -> {
+                                    if (userDoc.exists()) {
+                                        User user = userDoc.toObject(User.class);
+                                        if (user != null) {
+                                            user.setId(userDoc.getId());
+                                            callback.onUserFound(user);
+                                        } else {
+                                            callback.onUserNotFound();
+                                        }
+                                    } else {
+                                        callback.onUserNotFound();
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Failed to get user for friend discovery", e);
+                                    callback.onError(e.getMessage());
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get discoverable profile", e);
+                    callback.onError(e.getMessage());
+                });
+    }
+
+    /**
+     * Enhanced user creation that includes discoverable profile
+     */
+    public static void createUserWithDiscoverableProfile(User user) {
+        if (user == null || user.getId() == null) return;
+
+        Log.d(TAG, "Creating user with discoverable profile: " + user.getId());
+
+        // Create main user profile
+        createUser(user);
+
+        // Create discoverable profile for friend search
+        createOrUpdateDiscoverableProfile(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getImageUrl(),
+                user.getAbout()
+        );
+    }
+
+    /**
+     * Enhanced search method that uses the improved flow
+     */
+    public static void searchUserForFriendRequest(String email, UserSearchCallback callback) {
+        if (email == null || callback == null) return;
+
+        // Step 1: Search in user_public collection
+        searchUserPublicByEmail(email)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful() || task.getResult().isEmpty()) {
+                        callback.onUserNotFound();
+                        return;
+                    }
+
+                    // Get user ID from public search
+                    String userId = task.getResult().getDocuments().get(0).getString("userId");
+                    if (userId == null || userId.isEmpty()) {
+                        callback.onUserNotFound();
+                        return;
+                    }
+
+                    // Step 2: Get user details for friend discovery
+                    getUserForFriendDiscovery(userId, new UserDiscoveryCallback() {
+                        @Override
+                        public void onUserFound(User user) {
+                            callback.onUserFound(user);
+                        }
+
+                        @Override
+                        public void onUserNotFound() {
+                            callback.onUserNotFound();
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            callback.onError(error);
+                        }
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Search failed", e);
+                    callback.onError(e.getMessage());
+                });
+    }
+
     // ===== REALTIME DATABASE METHODS (for chats and messages) =====
 
     public static DatabaseReference getRealtimeDatabase() {
@@ -151,8 +314,6 @@ public class FirestoreUtil {
     public static DatabaseReference getRealtimeBlockedUsersRef(String userId) {
         return getRealtimeDatabase().child(RT_BLOCKED_USERS).child(userId);
     }
-
-
 
     public static DatabaseReference getRealtimePresenceRef(String userId) {
         return getRealtimeDatabase().child(NODE_PRESENCE).child(userId);
@@ -772,8 +933,6 @@ public class FirestoreUtil {
         });
     }
 
-
-
     public static void sendReplyMessage(String chatId, String senderId, String receiverId, String text, String replyToMessageId) {
         if (chatId == null || senderId == null || text == null || replyToMessageId == null) return;
 
@@ -1020,8 +1179,8 @@ public class FirestoreUtil {
                                     results.add(message);
                                 }
                                 // Search in file names
-                                else if (message.getFileName() != null && 
-                                         message.getFileName().toLowerCase().contains(lowerQuery)) {
+                                else if (message.getFileName() != null &&
+                                        message.getFileName().toLowerCase().contains(lowerQuery)) {
                                     results.add(message);
                                 }
                             }
@@ -1079,8 +1238,8 @@ public class FirestoreUtil {
                             Message message = snapshot.getValue(Message.class);
                             if (message != null && !message.isDeletedForEveryone()) {
                                 if (message.getText().toLowerCase().contains(query) ||
-                                    (message.getFileName() != null && 
-                                     message.getFileName().toLowerCase().contains(query))) {
+                                        (message.getFileName() != null &&
+                                                message.getFileName().toLowerCase().contains(query))) {
                                     results.add(new SearchResult(chatId, message));
                                 }
                             }
@@ -1170,6 +1329,18 @@ public class FirestoreUtil {
         void onError(String error);
     }
 
+    public interface UserDiscoveryCallback {
+        void onUserFound(User user);
+        void onUserNotFound();
+        void onError(String error);
+    }
+
+    public interface UserSearchCallback {
+        void onUserFound(User user);
+        void onUserNotFound();
+        void onError(String error);
+    }
+
     // Search result class
     public static class SearchResult {
         private String chatId;
@@ -1185,32 +1356,32 @@ public class FirestoreUtil {
 
         public String getChatId() { return chatId; }
         public Message getMessage() { return message; }
-        
+
         public String getContactName() { return contactName; }
         public void setContactName(String contactName) { this.contactName = contactName; }
-        
+
         public String getChatName() { return chatName; }
         public void setChatName(String chatName) { this.chatName = chatName; }
-        
+
         public String getContactImageUrl() { return contactImageUrl; }
         public void setContactImageUrl(String contactImageUrl) { this.contactImageUrl = contactImageUrl; }
-        
-        public String getMessageText() { 
-            return message != null ? message.getText() : null; 
+
+        public String getMessageText() {
+            return message != null ? message.getText() : null;
         }
-        
-        public long getTimestamp() { 
-            return message != null ? message.getTimestamp() : 0; 
+
+        public long getTimestamp() {
+            return message != null ? message.getTimestamp() : 0;
         }
     }
 
     // ===== MESSAGE STATUS MANAGEMENT =====
-    
+
     public static void updateMessageStatus(String chatId, String messageId, int status) {
         if (chatId == null || messageId == null) return;
-        
+
         Log.d(TAG, "Updating message status: " + messageId + " to status: " + status);
-        
+
         getMessagesRef(chatId)
                 .child(messageId)
                 .child("status")
@@ -1222,7 +1393,7 @@ public class FirestoreUtil {
                 })
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to update message status", e));
     }
-    
+
     private static void updateChatLastMessageStatus(String chatId, String messageId, int status) {
         getChatRef(chatId)
                 .child("lastMessageId")
@@ -1236,15 +1407,15 @@ public class FirestoreUtil {
                     }
                 });
     }
-    
+
     public static void markMessageAsDelivered(String chatId, String messageId) {
         updateMessageStatus(chatId, messageId, Message.STATUS_DELIVERED);
     }
-    
+
     public static void markMessageAsRead(String chatId, String messageId) {
         updateMessageStatus(chatId, messageId, Message.STATUS_READ);
     }
-    
+
     public static void markAllMessagesAsRead(String chatId, String currentUserId) {
         if (chatId == null || currentUserId == null) return;
 
@@ -1287,7 +1458,7 @@ public class FirestoreUtil {
                     }
                 });
     }
-    
+
     private static void sendReadReceipts(String chatId, String currentUserId, Map<String, Object> updatedMessages) {
         // Get the other user in the chat
         getChatRef(chatId)
@@ -1303,7 +1474,7 @@ public class FirestoreUtil {
                                 break;
                             }
                         }
-                        
+
                         final String finalOtherUserId = otherUserId;
                         if (finalOtherUserId != null) {
                             // Check if other user has read receipts enabled
@@ -1328,7 +1499,7 @@ public class FirestoreUtil {
                     }
                 });
     }
-    
+
     private static void sendReadReceiptNotification(String recipientId, String senderId, String chatId, int messageCount) {
         // Create read receipt notification
         Map<String, Object> notificationData = new HashMap<>();
@@ -1337,7 +1508,7 @@ public class FirestoreUtil {
         notificationData.put("senderId", senderId);
         notificationData.put("messageCount", messageCount);
         notificationData.put("timestamp", System.currentTimeMillis());
-        
+
         // Store in notifications collection
         getNotificationsCollectionRef()
                 .document(recipientId)
@@ -1348,12 +1519,12 @@ public class FirestoreUtil {
                 })
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to send read receipt notification", e));
     }
-    
+
     // ===== MESSAGE DELIVERY SYSTEM =====
-    
+
     public static void sendMessageWithDeliveryTracking(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
         if (chatId == null || senderId == null) return;
-        
+
         // Create message with initial status
         Map<String, Object> messageData = new HashMap<>();
         messageData.put("senderId", senderId);
@@ -1361,28 +1532,28 @@ public class FirestoreUtil {
         messageData.put("type", type);
         messageData.put("timestamp", System.currentTimeMillis());
         messageData.put("status", Message.STATUS_SENT);
-        
+
         if (mediaData != null) {
             messageData.putAll(mediaData);
         }
-        
+
         // Generate message ID
         String messageId = getMessagesRef(chatId).push().getKey();
         messageData.put("id", messageId);
-        
+
         // Send message
         getMessagesRef(chatId)
                 .child(messageId)
                 .setValue(messageData)
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "Message sent successfully: " + messageId);
-                    
+
                     // Update chat metadata
                     updateChatLastMessage(chatId, text, senderId, type);
-                    
+
                     // Send push notification to recipient
                     sendMessageNotification(chatId, senderId, text, type);
-                    
+
                     // Start delivery tracking
                     startDeliveryTracking(chatId, messageId, senderId);
                 })
@@ -1393,7 +1564,7 @@ public class FirestoreUtil {
                     getMessagesRef(chatId).child(messageId).setValue(messageData);
                 });
     }
-    
+
     private static void startDeliveryTracking(String chatId, String messageId, String senderId) {
         // Get recipient ID
         getChatRef(chatId)
@@ -1409,7 +1580,7 @@ public class FirestoreUtil {
                                 break;
                             }
                         }
-                        
+
                         final String finalRecipientId = recipientId;
                         if (finalRecipientId != null) {
                             // Check if recipient is online
@@ -1442,7 +1613,7 @@ public class FirestoreUtil {
                     }
                 });
     }
-    
+
     private static void scheduleDeliveryCheck(String chatId, String messageId, String recipientId) {
         // Set up a listener for when recipient comes online
         getRealtimePresenceRef(recipientId)
@@ -1465,7 +1636,7 @@ public class FirestoreUtil {
                     }
                 });
     }
-    
+
     private static void sendMessageNotification(String chatId, String senderId, String text, String type) {
         // Get recipient and sender info
         getChatRef(chatId)
@@ -1481,7 +1652,7 @@ public class FirestoreUtil {
                                 break;
                             }
                         }
-                        
+
                         final String finalRecipientId = recipientId;
                         if (finalRecipientId != null) {
                             // Get sender info for notification
@@ -1500,7 +1671,7 @@ public class FirestoreUtil {
                                                 notificationData.put("message", text);
                                                 notificationData.put("messageType", type);
                                                 notificationData.put("timestamp", System.currentTimeMillis());
-                                                
+
                                                 // Store notification
                                                 getNotificationsCollectionRef()
                                                         .document(finalRecipientId)

@@ -4,7 +4,7 @@
     <selectionStates>
       <SelectionState runConfigName="pingme">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-08-03T18:12:08.513816100Z">
+        <DropdownSelection timestamp="2025-08-12T14:19:54.863798300Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="PhysicalDevice" identifier="serial=RZ8R903KVXA" />
