@@ -1,6 +1,7 @@
 package com.pingme.android.models;
 
 import androidx.annotation.NonNull;
+import com.google.firebase.firestore.PropertyName;
 
 import java.util.Objects;
 
@@ -11,14 +12,19 @@ public class User {
     private String phoneNumber;
     private String imageUrl;
     private String about;
+    @PropertyName("isOnline")
     private boolean isOnline;
     private long lastSeen;
     private String fcmToken;
 
-    // Privacy settings
+    // Privacy settings - with Firestore field name mappings
+    @PropertyName("profile_photo_enabled")
     private boolean profilePhotoEnabled = true;
+    @PropertyName("last_seen_enabled")
     private boolean lastSeenEnabled = true;
+    @PropertyName("about_enabled")
     private boolean aboutEnabled = true;
+    @PropertyName("read_receipts_enabled")
     private boolean readReceiptsEnabled = true;
 
     // Additional fields

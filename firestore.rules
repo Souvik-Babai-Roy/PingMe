@@ -96,10 +96,13 @@ service cloud.firestore {
       // Users can only create/update their own status
       allow write: if isAuthenticated() && 
                       request.resource.data.userId == request.auth.uid &&
-                      request.resource.data.keys().hasAll(['userId', 'timestamp', 'type']) &&
-                      request.resource.data.timestamp is timestamp &&
-                      request.resource.data.type in ['text', 'image', 'video'] &&
-                      // Content validation
+                      request.resource.data.keys().hasAll(['userId', 'timestamp', 'expiryTime']) &&
+                      request.resource.data.timestamp is number &&
+                      request.resource.data.expiryTime is number &&
+                      // Content validation - either content or imageUrl should be present
+                      (request.resource.data.keys().hasAny(['content']) || 
+                       request.resource.data.keys().hasAny(['imageUrl'])) &&
+                      // Content length validation
                       (!request.resource.data.keys().hasAny(['content']) || 
                        (request.resource.data.content is string && 
                         request.resource.data.content.size() <= 1000));
