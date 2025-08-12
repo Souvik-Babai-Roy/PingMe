@@ -12,6 +12,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.auth.FirebaseUser;
+import android.widget.Toast;
 import com.pingme.android.adapters.BlockedUsersAdapter;
 import com.pingme.android.databinding.ActivityBlockedUsersBinding;
 import com.pingme.android.models.User;

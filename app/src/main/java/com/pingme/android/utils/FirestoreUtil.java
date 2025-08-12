@@ -515,7 +515,7 @@ public class FirestoreUtil {
                 .collection("blocked")
                 .orderBy("blockedAt", Query.Direction.DESCENDING)
                 .get()
-                .addOnSuccessListener(callback::onBlockedUsersLoaded)
+                .addOnSuccessListener(querySnapshot -> callback.onBlockedUsersLoaded(querySnapshot))
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to load blocked users", e);
                     callback.onError(e.getMessage());
@@ -1063,7 +1063,7 @@ public class FirestoreUtil {
     }
 
     public interface BlockedUsersCallback {
-        void onBlockedUsersLoaded(DataSnapshot dataSnapshot);
+        void onBlockedUsersLoaded(com.google.firebase.firestore.QuerySnapshot querySnapshot);
         void onError(String error);
     }
 
