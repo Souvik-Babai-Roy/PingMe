@@ -39,12 +39,68 @@ public class FirestoreUtil {
     private static final String RT_USER_SETTINGS = "user_settings";
     private static final String NODE_PRESENCE = "presence";
 
-    // ===== FIRESTORE METHODS (for user data, settings, friends) =====
+    // ===== COLLECTION REFERENCES =====
+
+    public static CollectionReference getUsersCollectionRef() {
+        return FirebaseFirestore.getInstance().collection("users");
+    }
 
     public static DocumentReference getUserRef(String userId) {
-        return FirebaseFirestore.getInstance()
-                .collection(COLLECTION_USERS)
-                .document(userId);
+        return getUsersCollectionRef().document(userId);
+    }
+
+    public static CollectionReference getStatusCollectionRef() {
+        return FirebaseFirestore.getInstance().collection("status");
+    }
+
+    public static CollectionReference getNotificationsCollectionRef() {
+        return FirebaseFirestore.getInstance().collection("notifications");
+    }
+
+    public static CollectionReference getReportsCollectionRef() {
+        return FirebaseFirestore.getInstance().collection("reports");
+    }
+
+    public static CollectionReference getFriendsRef(String userId) {
+        return getUserRef(userId).collection("friends");
+    }
+
+    public static CollectionReference getBlockedUsersRef(String userId) {
+        return FirebaseFirestore.getInstance().collection("blocked_users").document(userId).collection("blocked");
+    }
+
+    public static CollectionReference getUserSettingsRef(String userId) {
+        return FirebaseFirestore.getInstance().collection("user_settings").document(userId).collection("settings");
+    }
+
+    // ===== FIRESTORE METHODS (for user data, settings, friends) =====
+
+    public static void createUser(User user) {
+        if (user == null || user.getId() == null) return;
+
+        Log.d(TAG, "Creating user: " + user.getId());
+
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("name", user.getName());
+        userData.put("email", user.getEmail());
+        userData.put("phoneNumber", user.getPhoneNumber());
+        userData.put("imageUrl", user.getImageUrl());
+        userData.put("about", user.getAbout());
+        userData.put("joinedAt", user.getJoinedAt());
+        userData.put("status", user.getStatus());
+        userData.put("isOnline", user.isOnline());
+        userData.put("lastSeen", user.getLastSeen());
+        userData.put("fcmToken", user.getFcmToken());
+
+        // Privacy settings
+        userData.put("profile_photo_enabled", user.isProfilePhotoEnabled());
+        userData.put("last_seen_enabled", user.isLastSeenEnabled());
+        userData.put("about_enabled", user.isAboutEnabled());
+        userData.put("read_receipts_enabled", user.isReadReceiptsEnabled());
+
+        getUserRef(user.getId()).set(userData)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "User created successfully"))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to create user", e));
     }
 
     public static CollectionReference getUsersCollectionRef() {
@@ -1315,7 +1371,7 @@ public class FirestoreUtil {
                     Log.d(TAG, "Message sent successfully: " + messageId);
                     
                     // Update chat metadata
-                    updateChatLastMessage(chatId, text, type, senderId, messageId);
+                    updateChatLastMessage(chatId, text, senderId, type);
                     
                     // Send push notification to recipient
                     sendMessageNotification(chatId, senderId, text, type);
