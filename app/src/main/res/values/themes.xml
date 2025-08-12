@@ -134,4 +134,8 @@
         <item name="indicatorColor">@color/colorPrimary</item>
         <item name="trackColor">@color/stroke_light</item>
     </style>
+
+    <!-- Legacy overlays for AppBar/Popup compatibility -->
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.Material3.ActionBar" />
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.Material3" />
 </resources>

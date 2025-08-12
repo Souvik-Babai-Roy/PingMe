@@ -111,4 +111,9 @@
     <color name="pitch_black">#EDE7F6</color>
     <color name="deep_night_black">#F3E5F5</color>
 
+    <!-- Compatibility aliases for legacy names -->
+    <color name="backgroundColor">@color/background_color</color>
+    <color name="textPrimary">@color/textColorPrimary</color>
+    <color name="textSecondary">@color/textColorSecondary</color>
+
 </resources>
