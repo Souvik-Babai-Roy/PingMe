@@ -1,6 +1,7 @@
 package com.pingme.android.viewmodels;
 
 import android.net.Uri;
+import android.util.Log;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -9,12 +10,14 @@ import androidx.databinding.Observable;
 import androidx.databinding.PropertyChangeRegistry;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.pingme.android.BR;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.CloudinaryUtil;
 import com.pingme.android.utils.FirestoreUtil;
 
 public class EditProfileViewModel extends ViewModel implements Observable {
+    private static final String TAG = "EditProfileViewModel";
     private PropertyChangeRegistry callbacks = new PropertyChangeRegistry();
     private User user = new User();
 
@@ -37,7 +40,12 @@ public class EditProfileViewModel extends ViewModel implements Observable {
     }
 
     public void loadCurrentUser() {
-        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Log.e(TAG, "User not authenticated");
+            return;
+        }
+        String userId = currentUser.getUid();
         FirestoreUtil.getUserRef(userId).get()
                 .addOnSuccessListener(snapshot -> {
                     if (snapshot.exists()) {

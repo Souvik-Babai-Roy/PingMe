@@ -291,6 +291,9 @@ public class Message {
             case TYPE_TEXT:
             default:
                 String displayText = getText();
+                if (displayText == null) {
+                    displayText = "";
+                }
                 if (isEdited) {
                     displayText += " (edited)";
                 }

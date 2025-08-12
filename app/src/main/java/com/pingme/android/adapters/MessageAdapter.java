@@ -45,7 +45,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     public MessageAdapter(List<Object> items, User otherUser) {
         this.items = items != null ? items : new ArrayList<>();
         this.otherUser = otherUser;
-        this.currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        this.currentUserId = currentUser != null ? currentUser.getUid() : "";
     }
 
     public void updateOtherUser(User otherUser) {
