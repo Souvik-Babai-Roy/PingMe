@@ -94,63 +94,74 @@ public class ChatsFragment extends Fragment {
     private void loadFriendsAsEmptyChats() {
         Log.d(TAG, "Loading friends as empty chats");
 
-        // Load friends from Firestore
         FirestoreUtil.getFriendsRef(currentUserId)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     Log.d(TAG, "Found " + querySnapshot.size() + " friends");
 
                     List<Chat> friendChats = new ArrayList<>();
-
-                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        User friend = doc.toObject(User.class);
-                        if (friend != null) {
-                            friend.setId(doc.getId());
-
-                            Log.d(TAG, "Creating empty chat for friend: " + friend.getName());
-
-                            // Create empty chat for friend
-                            Chat friendChat = new Chat();
-                            String chatId = FirestoreUtil.generateChatId(currentUserId, friend.getId());
-                            friendChat.setId(chatId);
-                            friendChat.setOtherUser(friend);
-                            // FIXED: Better initialization for friend chats
-                            friendChat.setLastMessage("");
-                            friendChat.setLastMessageTimestamp(0);
-                            friendChat.setLastMessageSenderId("");
-                            friendChat.setLastMessageType("friend_added");
-                            friendChat.setUnreadCount(0);
-                            friendChat.setActive(false); // Start as inactive
-
-                            // Load user presence
-                            loadUserPresence(friend, () -> {
-                                // Update the chat in the list
-                                updateChatInList(friendChat);
-                            });
-
-                            friendChats.add(friendChat);
-
-                            // Ensure chat exists in Realtime Database for this friend
-                            ensureChatExistsForFriend(chatId, currentUserId, friend.getId());
-                        }
+                    if (querySnapshot.isEmpty()) {
+                        // Nothing to add
+                        updateEmptyState(chatList.isEmpty());
+                        if (adapter != null) adapter.updateChats(chatList);
+                        return;
                     }
 
-                    // Add all friend chats to the main list
-                    chatList.clear();
-                    chatList.addAll(friendChats);
+                    final int total = querySnapshot.size();
+                    final int[] loaded = {0};
 
-                    // Sort chats (empty chats by name)
-                    Collections.sort(chatList);
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        String friendId = doc.getId();
+                        FirestoreUtil.getUserRef(friendId).get()
+                                .addOnSuccessListener(userSnap -> {
+                                    if (userSnap.exists()) {
+                                        User friend = userSnap.toObject(User.class);
+                                        if (friend != null) {
+                                            friend.setId(userSnap.getId());
 
-                    updateEmptyState(chatList.isEmpty());
+                                            Chat friendChat = new Chat();
+                                            String chatId = FirestoreUtil.generateChatId(currentUserId, friend.getId());
+                                            friendChat.setId(chatId);
+                                            friendChat.setOtherUser(friend);
+                                            friendChat.setLastMessage("");
+                                            friendChat.setLastMessageTimestamp(0);
+                                            friendChat.setLastMessageSenderId("");
+                                            friendChat.setLastMessageType("friend_added");
+                                            friendChat.setUnreadCount(0);
+                                            friendChat.setActive(false);
 
-                    if (adapter != null) {
-                        adapter.updateChats(chatList);
+                                            // Load presence before merging
+                                            loadUserPresence(friend, () -> {
+                                                friendChats.add(friendChat);
+                                                loaded[0]++;
+                                                if (loaded[0] == total) {
+                                                    // Merge without clearing to preserve existing last messages
+                                                    for (Chat c : friendChats) {
+                                                        Chat existing = findChatById(c.getId());
+                                                        if (existing == null) {
+                                                            chatList.add(c);
+                                                        }
+                                                    }
+                                                    Collections.sort(chatList);
+                                                    updateEmptyState(chatList.isEmpty());
+                                                    if (adapter != null) adapter.updateChats(chatList);
+                                                }
+                                            });
+                                        } else {
+                                            loaded[0]++;
+                                        }
+                                    } else {
+                                        loaded[0]++;
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    loaded[0]++;
+                                });
                     }
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to load friends", e);
-                    updateEmptyState(true);
+                    updateEmptyState(chatList.isEmpty());
                 });
     }
 
@@ -213,58 +224,30 @@ public class ChatsFragment extends Fragment {
     private void loadChatDetails(String chatId) {
         Log.d(TAG, "Loading chat details: " + chatId);
 
-        // Listen to each chat's details
         ChildEventListener chatListener = new ChildEventListener() {
             @Override
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String previousChildName) {
                 Log.d(TAG, "Chat child added: " + dataSnapshot.getKey() + " for chat: " + chatId);
-                updateChatFromSnapshot(chatId, dataSnapshot);
             }
 
             @Override
             public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String previousChildName) {
                 Log.d(TAG, "Chat child changed: " + dataSnapshot.getKey() + " for chat: " + chatId);
-                updateChatFromSnapshot(chatId, dataSnapshot);
             }
 
             @Override
-            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
-                Log.d(TAG, "Chat child removed: " + dataSnapshot.getKey() + " for chat: " + chatId);
-            }
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
 
             @Override
             public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String previousChildName) {}
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-                Log.e(TAG, "Chat listener cancelled for: " + chatId, databaseError.toException());
+                Log.e(TAG, "Chat listener cancelled", databaseError.toException());
             }
         };
 
-        chatListeners.put(chatId, chatListener);
-        FirestoreUtil.getChatRef(chatId).addChildEventListener(chatListener);
-
-        // Also listen to typing indicators
-        ValueEventListener typingListener = new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                updateTypingStatus(chatId, dataSnapshot);
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Log.e(TAG, "Typing listener cancelled for: " + chatId, databaseError.toException());
-            }
-        };
-
-        typingListeners.put(chatId, typingListener);
-        FirestoreUtil.getTypingRef(chatId).addValueEventListener(typingListener);
-    }
-
-    private void updateChatFromSnapshot(String chatId, DataSnapshot chatSnapshot) {
-        if (!chatSnapshot.exists()) return;
-
-        // Get the entire chat data at once
+        // Load full chat snapshot once to get last message and participants
         FirestoreUtil.getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -272,14 +255,12 @@ public class ChatsFragment extends Fragment {
 
                 Log.d(TAG, "Updating chat from full snapshot: " + chatId);
 
-                // Get chat data
                 String lastMessage = dataSnapshot.child("lastMessage").getValue(String.class);
                 Long lastMessageTimestamp = dataSnapshot.child("lastMessageTimestamp").getValue(Long.class);
                 String lastMessageSenderId = dataSnapshot.child("lastMessageSenderId").getValue(String.class);
                 String lastMessageType = dataSnapshot.child("lastMessageType").getValue(String.class);
                 Boolean isActive = dataSnapshot.child("isActive").getValue(Boolean.class);
 
-                // Get other user ID from participants
                 DataSnapshot participantsSnapshot = dataSnapshot.child("participants");
                 String otherUserId = null;
                 for (DataSnapshot participantSnapshot : participantsSnapshot.getChildren()) {
@@ -293,24 +274,40 @@ public class ChatsFragment extends Fragment {
                 Log.d(TAG, "Chat " + chatId + " - otherUser: " + otherUserId + " lastMessage: " + lastMessage);
 
                 if (otherUserId != null) {
-                    // Find existing chat in the list (from friends)
                     Chat existingChat = findChatById(chatId);
                     if (existingChat != null) {
-                        Log.d(TAG, "Updating existing chat: " + chatId);
-                        // FIXED: Only update if there's actual message data
-                        if (lastMessage != null && !lastMessage.trim().isEmpty()) {
-                            existingChat.setLastMessage(lastMessage);
-                            existingChat.setLastMessageTimestamp(lastMessageTimestamp != null ? lastMessageTimestamp : System.currentTimeMillis());
-                            existingChat.setLastMessageSenderId(lastMessageSenderId != null ? lastMessageSenderId : "");
-                            existingChat.setLastMessageType(lastMessageType != null ? lastMessageType : "text");
+                        // Update last message; if blank but type is media, set placeholder
+                        String effectiveLastMessage = lastMessage;
+                        if ((effectiveLastMessage == null || effectiveLastMessage.trim().isEmpty()) && lastMessageType != null) {
+                            switch (lastMessageType) {
+                                case "image":
+                                    effectiveLastMessage = "\uD83D\uDCF7 Photo";
+                                    break;
+                                case "video":
+                                    effectiveLastMessage = "\uD83C\uDFA5 Video";
+                                    break;
+                                case "audio":
+                                    effectiveLastMessage = "\uD83C\uDFB5 Audio";
+                                    break;
+                                case "document":
+                                    effectiveLastMessage = "\uD83D\uDCC4 Document";
+                                    break;
+                                default:
+                                    effectiveLastMessage = "";
+                            }
+                        }
+
+                        if (effectiveLastMessage != null) {
+                            existingChat.setLastMessage(effectiveLastMessage);
+                            existingChat.setLastMessageTimestamp(lastMessageTimestamp != null ? lastMessageTimestamp : existingChat.getLastMessageTimestamp());
+                            existingChat.setLastMessageSenderId(lastMessageSenderId != null ? lastMessageSenderId : existingChat.getLastMessageSenderId());
+                            existingChat.setLastMessageType(lastMessageType != null ? lastMessageType : existingChat.getLastMessageType());
                             existingChat.setActive(isActive != null ? isActive : true);
                         }
 
                         calculateUnreadCount(existingChat);
                         updateChatInList(existingChat);
                     } else {
-                        Log.d(TAG, "Creating new chat from active chat: " + chatId);
-                        // Create new chat if it doesn't exist in friends
                         loadOtherUserDetails(chatId, otherUserId, lastMessage,
                                 lastMessageTimestamp != null ? lastMessageTimestamp : 0,
                                 lastMessageSenderId, lastMessageType);

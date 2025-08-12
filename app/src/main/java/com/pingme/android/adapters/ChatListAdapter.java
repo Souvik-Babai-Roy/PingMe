@@ -115,11 +115,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
 
             // FIXED: Load profile image respecting privacy settings
             try {
-                // Only show profile photo if user allows it in their privacy settings
-                if (otherUser.isProfilePhotoEnabled() &&
-                        otherUser.getImageUrl() != null &&
-                        !otherUser.getImageUrl().trim().isEmpty()) {
-
+                if (otherUser.isProfilePhotoEnabled() && otherUser.getImageUrl() != null && !otherUser.getImageUrl().trim().isEmpty()) {
                     Glide.with(context)
                             .load(otherUser.getImageUrl())
                             .transform(new CircleCrop())
@@ -127,11 +123,9 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                             .error(R.drawable.defaultprofile)
                             .into(binding.ivProfile);
                 } else {
-                    // Use default profile if privacy disabled or no image
                     binding.ivProfile.setImageResource(R.drawable.defaultprofile);
                 }
             } catch (Exception e) {
-                // Fallback to default profile if Glide fails
                 binding.ivProfile.setImageResource(R.drawable.defaultprofile);
             }
 

@@ -79,7 +79,6 @@ public class StatusFragment extends Fragment {
     }
 
     private void loadMyStatus() {
-        // Load current user's latest status
         FirestoreUtil.getStatusCollectionRef()
                 .whereEqualTo("userId", currentUserId)
                 .whereGreaterThan("expiryTime", System.currentTimeMillis())
@@ -106,7 +105,6 @@ public class StatusFragment extends Fragment {
                     binding.ivMyStatusIndicator.setVisibility(View.GONE);
                 });
 
-        // Load current user info for my status
         FirestoreUtil.getUserRef(currentUserId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -114,17 +112,15 @@ public class StatusFragment extends Fragment {
                         User user = documentSnapshot.toObject(User.class);
                         if (user != null) {
                             binding.tvMyStatusName.setText(user.getName());
-                            // TODO: Load profile image using Glide
                         }
                     }
                 });
     }
 
     private void loadStatuses() {
-        // Load recent statuses from other users (not expired)
+        // Ensure Firestore composite index rules: orderBy timestamp and filter expiryTime
         FirestoreUtil.getStatusCollectionRef()
                 .whereGreaterThan("expiryTime", System.currentTimeMillis())
-                .orderBy("expiryTime", Query.Direction.DESCENDING)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener((queryDocumentSnapshots, e) -> {
                     if (e != null) {
@@ -141,8 +137,7 @@ public class StatusFragment extends Fragment {
                             }
                         }
                         statusAdapter.notifyDataSetChanged();
-                        
-                        // Show/hide empty state
+
                         if (statusList.isEmpty()) {
                             binding.layoutEmptyState.setVisibility(View.VISIBLE);
                             binding.recyclerViewStatus.setVisibility(View.GONE);
