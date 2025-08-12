@@ -135,9 +135,7 @@ public class FirestoreUtil {
         return getRealtimeDatabase().child(RT_BLOCKED_USERS).child(userId);
     }
 
-    public static DatabaseReference getBlockedUsersRef(String userId) {
-        return getRealtimeDatabase().child(RT_BLOCKED_USERS).child(userId);
-    }
+
 
     public static DatabaseReference getRealtimePresenceRef(String userId) {
         return getRealtimeDatabase().child(NODE_PRESENCE).child(userId);

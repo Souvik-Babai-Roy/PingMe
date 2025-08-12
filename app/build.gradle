@@ -66,6 +66,9 @@ dependencies {
     implementation libs.androidx.lifecycle.viewmodel
     implementation libs.androidx.lifecycle.livedata
 
+    // Data Binding runtime (fixes DataBindingComponent class not found)
+    implementation 'androidx.databinding:databinding-runtime:8.6.0'
+
     // Firebase
     implementation platform(libs.firebase.bom)
     implementation libs.firebase.auth

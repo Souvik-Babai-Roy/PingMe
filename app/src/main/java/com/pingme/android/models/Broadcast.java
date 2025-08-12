@@ -12,6 +12,8 @@ public class Broadcast extends BaseObservable {
     private long lastMessageTimestamp;
     private int unreadCount;
     private java.util.List<String> members;
+    private java.util.List<String> memberIds;
+    private boolean isActive = true;
 
     public Broadcast() {
         // Required empty constructor for Firestore
@@ -105,19 +107,44 @@ public class Broadcast extends BaseObservable {
         if (!members.contains(memberId)) {
             members.add(memberId);
         }
+        if (memberIds == null) {
+            memberIds = new java.util.ArrayList<>();
+        }
+        if (!memberIds.contains(memberId)) {
+            memberIds.add(memberId);
+        }
     }
 
     public void removeMember(String memberId) {
         if (members != null) {
             members.remove(memberId);
         }
+        if (memberIds != null) {
+            memberIds.remove(memberId);
+        }
     }
 
     public boolean hasMember(String memberId) {
-        return members != null && members.contains(memberId);
+        return (members != null && members.contains(memberId)) || (memberIds != null && memberIds.contains(memberId));
     }
 
     public int getMemberCount() {
         return members != null ? members.size() : 0;
+    }
+
+    public java.util.List<String> getMemberIds() {
+        return memberIds;
+    }
+
+    public void setMemberIds(java.util.List<String> memberIds) {
+        this.memberIds = memberIds;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
     }
 }

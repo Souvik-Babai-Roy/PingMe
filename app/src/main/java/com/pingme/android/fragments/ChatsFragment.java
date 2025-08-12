@@ -142,7 +142,7 @@ public class ChatsFragment extends Fragment {
                                                             chatList.add(c);
                                                         }
                                                     }
-                                                    Collections.sort(chatList);
+                                                    sortChats(chatList);
                                                     updateEmptyState(chatList.isEmpty());
                                                     if (adapter != null) adapter.updateChats(chatList);
                                                 }
@@ -449,7 +449,7 @@ public class ChatsFragment extends Fragment {
         }
 
         // Sort chats (active chats first by timestamp, then empty chats by name)
-        Collections.sort(chatList);
+        sortChats(chatList);
 
         updateEmptyState(chatList.isEmpty());
 
@@ -548,5 +548,31 @@ public class ChatsFragment extends Fragment {
         if (currentUserId != null) {
             FirestoreUtil.updateUserPresence(currentUserId, false);
         }
+    }
+
+    private void sortChats(List<Chat> chats) {
+        Collections.sort(chats, (a, b) -> {
+            boolean aEmpty = isEmptyChat(a);
+            boolean bEmpty = isEmptyChat(b);
+            if (aEmpty != bEmpty) {
+                return aEmpty ? 1 : -1; // non-empty first
+            }
+            if (!aEmpty && !bEmpty) {
+                // Newest first
+                return Long.compare(b.getLastMessageTimestamp(), a.getLastMessageTimestamp());
+            }
+            // Both empty: sort by name
+            String an = a.getOtherUser() != null ? a.getOtherUser().getDisplayName() : "";
+            String bn = b.getOtherUser() != null ? b.getOtherUser().getDisplayName() : "";
+            return an.compareToIgnoreCase(bn);
+        });
+    }
+
+    private boolean isEmptyChat(Chat chat) {
+        String type = chat.getLastMessageType();
+        String lastMessage = chat.getLastMessage();
+        if (type == null) type = "text";
+        if ("friend_added".equals(type) || "empty_chat".equals(type)) return true;
+        return lastMessage == null || lastMessage.trim().isEmpty();
     }
 }

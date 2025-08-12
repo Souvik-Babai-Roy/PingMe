@@ -141,7 +141,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
 
             // FIXED: Better time formatting and visibility logic
             String formattedTime = getFormattedTime(chat.getLastMessageTimestamp());
-            if (!formattedTime.isEmpty() && !chat.isEmpty()) {
+            if (!formattedTime.isEmpty() && hasContent(chat)) {
                 binding.tvTime.setText(formattedTime);
                 binding.tvTime.setVisibility(View.VISIBLE);
             } else {
@@ -201,10 +201,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             }
 
             // Check for empty or new friend chats
-            if ("friend_added".equals(lastMessageType) ||
-                    "empty_chat".equals(lastMessageType) ||
-                    lastMessage == null ||
-                    lastMessage.trim().isEmpty()) {
+            if (!hasContent(chat)) {
                 return "Tap to start messaging";
             }
 
@@ -357,6 +354,14 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                     break;
                 }
             }
+        }
+
+        private boolean hasContent(Chat chat) {
+            String lastMessage = chat.getLastMessage();
+            String type = chat.getLastMessageType();
+            if (type == null) type = "text";
+            if ("friend_added".equals(type) || "empty_chat".equals(type)) return false;
+            return lastMessage != null && !lastMessage.trim().isEmpty();
         }
     }
 }
