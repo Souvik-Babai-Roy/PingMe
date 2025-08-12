@@ -1,123 +1,91 @@
 package com.pingme.android.viewmodels;
 
-import android.net.Uri;
 import android.util.Log;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
-import androidx.databinding.Bindable;
-import androidx.databinding.Observable;
-import androidx.databinding.PropertyChangeRegistry;
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.pingme.android.BR;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.CloudinaryUtil;
 import com.pingme.android.utils.FirestoreUtil;
 
-public class EditProfileViewModel extends ViewModel implements Observable {
+public class EditProfileViewModel extends ViewModel {
     private static final String TAG = "EditProfileViewModel";
-    private PropertyChangeRegistry callbacks = new PropertyChangeRegistry();
-    private User user = new User();
+    
+    private MutableLiveData<User> user = new MutableLiveData<>();
+    private MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
+    private MutableLiveData<String> error = new MutableLiveData<>();
 
-    private MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
-    private MutableLiveData<String> errorMessage = new MutableLiveData<>();
-    private MutableLiveData<Boolean> updateSuccess = new MutableLiveData<>();
-
-    public LiveData<Boolean> getIsLoading() { return isLoading; }
-    public LiveData<String> getErrorMessage() { return errorMessage; }
-    public LiveData<Boolean> getUpdateSuccess() { return updateSuccess; }
-
-    @Bindable
-    public User getUser() {
+    public LiveData<User> getUser() {
         return user;
     }
 
-    public void setUser(User user) {
-        this.user = user;
-        notifyPropertyChanged(BR.user);
+    public LiveData<Boolean> getIsLoading() {
+        return isLoading;
+    }
+
+    public LiveData<String> getError() {
+        return error;
     }
 
     public void loadCurrentUser() {
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
-            Log.e(TAG, "User not authenticated");
-            return;
-        }
-        String userId = currentUser.getUid();
-        FirestoreUtil.getUserRef(userId).get()
-                .addOnSuccessListener(snapshot -> {
-                    if (snapshot.exists()) {
-                        User loadedUser = snapshot.toObject(User.class);
-                        setUser(loadedUser);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    errorMessage.setValue("Failed to load user data: " + e.getMessage());
-                });
-    }
-
-    public void updateProfile(String name, String about, Uri imageUri) {
-        if (name.isEmpty()) {
-            errorMessage.setValue("Name is required");
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            error.setValue("User not authenticated");
             return;
         }
 
         isLoading.setValue(true);
-        user.setName(name);
-        user.setAbout(about);
+        String userId = firebaseUser.getUid();
 
-        if (imageUri != null) {
-            CloudinaryUtil.getInstance()
-                    .uploadImage(imageUri, "profile_pictures/" + user.getId(), null)
-                    .thenAccept(imageUrl -> {
-                        user.setImageUrl(imageUrl);
-                        saveUserProfile(user);
-                    })
-                    .exceptionally(throwable -> {
-                        isLoading.setValue(false);
-                        errorMessage.setValue("Failed to upload image: " + throwable.getMessage());
-                        return null;
-                    });
-        } else {
-            saveUserProfile(user);
-        }
-    }
-
-    private void saveUserProfile(User user) {
-        FirestoreUtil.getUserRef(user.getId())
-                .set(user)
-                .addOnSuccessListener(aVoid -> {
+        FirestoreUtil.getUserRef(userId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        User currentUser = documentSnapshot.toObject(User.class);
+                        if (currentUser != null) {
+                            currentUser.setId(userId);
+                            user.setValue(currentUser);
+                        }
+                    }
                     isLoading.setValue(false);
-                    updateSuccess.setValue(true);
                 })
                 .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to load user", e);
+                    error.setValue("Failed to load user profile");
                     isLoading.setValue(false);
-                    errorMessage.setValue("Failed to update profile: " + e.getMessage());
                 });
     }
 
-    public void onChangePhotoClick() {
-        // Logic to handle change photo click
-    }
+    public void updateProfile(String name, String about, String imageUrl) {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            error.setValue("User not authenticated");
+            return;
+        }
 
-    public void onSaveClick() {
-        // Logic to trigger updateProfile() with current values
-    }
+        isLoading.setValue(true);
+        String userId = firebaseUser.getUid();
 
-    // Required for Observable
-    @Override
-    public void addOnPropertyChangedCallback(OnPropertyChangedCallback callback) {
-        callbacks.add(callback);
-    }
+        User currentUser = user.getValue();
+        if (currentUser != null) {
+            currentUser.setName(name);
+            currentUser.setAbout(about);
+            if (imageUrl != null && !imageUrl.isEmpty()) {
+                currentUser.setImageUrl(imageUrl);
+            }
 
-    @Override
-    public void removeOnPropertyChangedCallback(OnPropertyChangedCallback callback) {
-        callbacks.remove(callback);
-    }
-
-    public void notifyPropertyChanged(int fieldId) {
-        callbacks.notifyCallbacks(this, fieldId, null);
+            FirestoreUtil.getUserRef(userId).update(
+                    "name", name,
+                    "about", about,
+                    "imageUrl", currentUser.getImageUrl()
+            ).addOnSuccessListener(aVoid -> {
+                user.setValue(currentUser);
+                isLoading.setValue(false);
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "Failed to update profile", e);
+                error.setValue("Failed to update profile");
+                isLoading.setValue(false);
+            });
+        }
     }
 }

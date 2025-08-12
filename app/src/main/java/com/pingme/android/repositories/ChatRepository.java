@@ -52,7 +52,7 @@ public class ChatRepository {
     // Modified to work with the ViewModel pattern
     public void loadChats(String userId) {
         // First, get blocked users from Realtime Database
-        FirestoreUtil.getBlockedUsersRef(currentUserId).addListenerForSingleValueEvent(new ValueEventListener() {
+        FirestoreUtil.getRealtimeBlockedUsersRef(currentUserId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot blockedSnapshot) {
                 List<String> blockedUserIds = new ArrayList<>();
@@ -330,7 +330,7 @@ public class ChatRepository {
     }
 
     public void unblockUser(String userId) {
-        FirestoreUtil.getBlockedUsersRef(currentUserId).child(userId).removeValue();
+        FirestoreUtil.getRealtimeBlockedUsersRef(currentUserId).child(userId).removeValue();
     }
 
     public interface PrivacyUpdateCallback {

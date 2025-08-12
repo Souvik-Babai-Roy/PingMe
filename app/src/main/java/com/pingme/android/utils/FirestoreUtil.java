@@ -103,28 +103,7 @@ public class FirestoreUtil {
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to create user", e));
     }
 
-    public static CollectionReference getUsersCollectionRef() {
-        return FirebaseFirestore.getInstance()
-                .collection(COLLECTION_USERS);
-    }
 
-    public static CollectionReference getStatusCollectionRef() {
-        return FirebaseFirestore.getInstance()
-                .collection(COLLECTION_STATUS);
-    }
-
-    public static DocumentReference getPresenceRef(String userId) {
-        return FirebaseFirestore.getInstance()
-                .collection(COLLECTION_PRESENCE)
-                .document(userId);
-    }
-
-    public static CollectionReference getFriendsRef(String userId) {
-        return FirebaseFirestore.getInstance()
-                .collection(COLLECTION_USERS)
-                .document(userId)
-                .collection(COLLECTION_FRIENDS);
-    }
 
     // ===== REALTIME DATABASE METHODS (for chats and messages) =====
 
@@ -150,6 +129,10 @@ public class FirestoreUtil {
 
     public static DatabaseReference getUserChatsRef(String userId) {
         return getRealtimeDatabase().child(RT_USER_CHATS).child(userId);
+    }
+
+    public static DatabaseReference getRealtimeBlockedUsersRef(String userId) {
+        return getRealtimeDatabase().child(RT_BLOCKED_USERS).child(userId);
     }
 
     public static DatabaseReference getBlockedUsersRef(String userId) {
@@ -519,7 +502,7 @@ public class FirestoreUtil {
         if (currentUserId == null || userToUnblockId == null) return;
 
         // Remove from Realtime Database
-        getBlockedUsersRef(currentUserId).child(userToUnblockId).removeValue()
+        getRealtimeBlockedUsersRef(currentUserId).child(userToUnblockId).removeValue()
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to unblock user in Realtime DB", e));
 
         // Remove from Firestore
@@ -546,7 +529,7 @@ public class FirestoreUtil {
     public static void checkIfBlocked(String currentUserId, String otherUserId, BlockStatusCallback callback) {
         if (currentUserId == null || otherUserId == null || callback == null) return;
 
-        getBlockedUsersRef(currentUserId).child(otherUserId)
+        getRealtimeBlockedUsersRef(currentUserId).child(otherUserId)
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
