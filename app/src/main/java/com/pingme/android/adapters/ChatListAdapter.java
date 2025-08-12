@@ -265,7 +265,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
 
         private void showContextMenu(View anchor, Chat chat) {
             PopupMenu popup = new PopupMenu(context, anchor);
-            popup.getMenuInflater().inflate(R.menu.menu_chat_item, popup.getMenu());
+            popup.getMenuInflater().inflate(R.menu.chat_context_menu, popup.getMenu());
             popup.setOnMenuItemClickListener(item -> {
                 // TODO: Implement context actions (mute, pin, delete)
                 return true;

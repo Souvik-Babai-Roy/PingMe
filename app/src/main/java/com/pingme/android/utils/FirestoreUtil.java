@@ -1246,10 +1246,11 @@ public class FirestoreUtil {
                             }
                         }
 
+                        final int finalUpdatedCount = updatedCount;
                         if (!updates.isEmpty()) {
                             getRealtimeDatabase().updateChildren(updates)
                                     .addOnSuccessListener(aVoid -> {
-                                        Log.d(TAG, "Marked " + updatedCount + " messages as read successfully");
+                                        Log.d(TAG, "Marked " + finalUpdatedCount + " messages as read successfully");
                                         // Send read receipt to sender if they have read receipts enabled
                                         sendReadReceipts(chatId, currentUserId, updates);
                                     })
@@ -1280,16 +1281,18 @@ public class FirestoreUtil {
                             }
                         }
                         
-                        if (otherUserId != null) {
+                        final String finalOtherUserId = otherUserId;
+                        if (finalOtherUserId != null) {
                             // Check if other user has read receipts enabled
-                            getUserRef(otherUserId)
+                            getUserRef(finalOtherUserId)
                                     .get()
                                     .addOnSuccessListener(userSnapshot -> {
                                         if (userSnapshot.exists()) {
                                             User otherUser = userSnapshot.toObject(User.class);
                                             if (otherUser != null && otherUser.isReadReceiptsEnabled()) {
                                                 // Send read receipt notification
-                                                sendReadReceiptNotification(otherUserId, currentUserId, chatId, updatedMessages.size());
+                                                final int messageCount = updatedMessages.size();
+                                                sendReadReceiptNotification(finalOtherUserId, currentUserId, chatId, messageCount);
                                             }
                                         }
                                     });
@@ -1384,9 +1387,10 @@ public class FirestoreUtil {
                             }
                         }
                         
-                        if (recipientId != null) {
+                        final String finalRecipientId = recipientId;
+                        if (finalRecipientId != null) {
                             // Check if recipient is online
-                            getRealtimePresenceRef(recipientId)
+                            getRealtimePresenceRef(finalRecipientId)
                                     .child("online")
                                     .addListenerForSingleValueEvent(new ValueEventListener() {
                                         @Override
@@ -1397,7 +1401,7 @@ public class FirestoreUtil {
                                                 markMessageAsDelivered(chatId, messageId);
                                             } else {
                                                 // Recipient is offline, will be marked as delivered when they come online
-                                                scheduleDeliveryCheck(chatId, messageId, recipientId);
+                                                scheduleDeliveryCheck(chatId, messageId, finalRecipientId);
                                             }
                                         }
 
@@ -1455,7 +1459,8 @@ public class FirestoreUtil {
                             }
                         }
                         
-                        if (recipientId != null) {
+                        final String finalRecipientId = recipientId;
+                        if (finalRecipientId != null) {
                             // Get sender info for notification
                             getUserRef(senderId)
                                     .get()
@@ -1475,7 +1480,7 @@ public class FirestoreUtil {
                                                 
                                                 // Store notification
                                                 getNotificationsCollectionRef()
-                                                        .document(recipientId)
+                                                        .document(finalRecipientId)
                                                         .collection("notifications")
                                                         .add(notificationData)
                                                         .addOnSuccessListener(documentReference -> {
