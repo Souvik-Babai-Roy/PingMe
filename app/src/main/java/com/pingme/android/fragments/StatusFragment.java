@@ -1,7 +1,10 @@
 package com.pingme.android.fragments;
 
+import static android.content.ContentValues.TAG;
+
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,6 +15,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.google.firebase.auth.FirebaseUser;
 import com.pingme.android.activities.StatusCreationActivity;
 import com.pingme.android.adapters.StatusAdapter;
 import com.pingme.android.databinding.FragmentStatusBinding;

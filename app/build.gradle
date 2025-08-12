@@ -78,7 +78,6 @@ dependencies {
 
     // Google Sign-In
     implementation libs.play.services.auth
-    implementation libs.play.services.auth.v2100
 
 
     // Image loading
