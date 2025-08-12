@@ -494,4 +494,22 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         seconds = seconds % 60;
         return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds);
     }
+
+    // Reply mode functionality
+    private boolean isReplyMode = false;
+    private Message replyToMessage = null;
+
+    public void setReplyMode(boolean replyMode, Message message) {
+        this.isReplyMode = replyMode;
+        this.replyToMessage = message;
+        notifyDataSetChanged();
+    }
+
+    public boolean isReplyMode() {
+        return isReplyMode;
+    }
+
+    public Message getReplyToMessage() {
+        return replyToMessage;
+    }
 }

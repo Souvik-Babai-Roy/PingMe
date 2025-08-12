@@ -203,4 +203,57 @@ public class CloudinaryUtil {
 
         return future;
     }
+
+    public CompletableFuture<String> uploadDocument(Uri documentUri, String folder, Context context) {
+        CompletableFuture<String> future = new CompletableFuture<>();
+
+        try {
+            String filename = "document_" + System.currentTimeMillis();
+
+            MediaManager.get().upload(documentUri)
+                    .unsigned("pingme_upload_preset")
+                    .option("public_id", folder + "/" + filename)
+                    .option("resource_type", "auto") // Auto detect resource type
+                    .callback(new UploadCallback() {
+                        @Override
+                        public void onStart(String requestId) {
+                            Log.d(TAG, "Document upload started: " + requestId);
+                        }
+
+                        @Override
+                        public void onProgress(String requestId, long bytes, long totalBytes) {
+                            Log.d(TAG, "Document upload progress: " + bytes + "/" + totalBytes);
+                        }
+
+                        @Override
+                        public void onSuccess(String requestId, Map resultData) {
+                            Log.d(TAG, "Document upload successful: " + resultData);
+                            String documentUrl = (String) resultData.get("secure_url");
+                            if (documentUrl != null) {
+                                future.complete(documentUrl);
+                            } else {
+                                future.completeExceptionally(new Exception("No URL returned"));
+                            }
+                        }
+
+                        @Override
+                        public void onError(String requestId, ErrorInfo error) {
+                            Log.e(TAG, "Document upload failed: " + error.getDescription());
+                            future.completeExceptionally(new Exception(error.getDescription()));
+                        }
+
+                        @Override
+                        public void onReschedule(String requestId, ErrorInfo error) {
+                            Log.w(TAG, "Document upload rescheduled: " + error.getDescription());
+                        }
+                    })
+                    .dispatch();
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error uploading document", e);
+            future.completeExceptionally(e);
+        }
+
+        return future;
+    }
 }

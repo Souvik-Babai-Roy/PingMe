@@ -712,41 +712,7 @@ public class FirestoreUtil {
         });
     }
 
-    public static void editMessage(String chatId, String messageId, String newText) {
-        if (chatId == null || messageId == null || newText == null) return;
 
-        DatabaseReference msgRef = getMessagesRef(chatId).child(messageId);
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("text", newText);
-        updates.put("edited", true);
-        updates.put("editedAt", System.currentTimeMillis());
-
-        msgRef.updateChildren(updates)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "Message edited successfully"))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to edit message", e));
-    }
-
-    public static void deleteMessageForUser(String chatId, String messageId, String userId) {
-        if (chatId == null || messageId == null || userId == null) return;
-
-        DatabaseReference msgRef = getMessagesRef(chatId).child(messageId).child("deletedFor");
-        msgRef.child(userId).setValue(true)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "Message deleted for user"))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to delete message for user", e));
-    }
-
-    public static void deleteMessageForEveryone(String chatId, String messageId) {
-        if (chatId == null || messageId == null) return;
-
-        DatabaseReference msgRef = getMessagesRef(chatId).child(messageId);
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("deletedForEveryone", true);
-        updates.put("deletedAt", System.currentTimeMillis());
-
-        msgRef.updateChildren(updates)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "Message deleted for everyone"))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to delete message for everyone", e));
-    }
 
     public static void sendReplyMessage(String chatId, String senderId, String receiverId, String text, String replyToMessageId) {
         if (chatId == null || senderId == null || text == null || replyToMessageId == null) return;
@@ -1170,6 +1136,9 @@ public class FirestoreUtil {
     public static class SearchResult {
         private String chatId;
         private Message message;
+        private String contactName;
+        private String chatName;
+        private String contactImageUrl;
 
         public SearchResult(String chatId, Message message) {
             this.chatId = chatId;
@@ -1178,5 +1147,22 @@ public class FirestoreUtil {
 
         public String getChatId() { return chatId; }
         public Message getMessage() { return message; }
+        
+        public String getContactName() { return contactName; }
+        public void setContactName(String contactName) { this.contactName = contactName; }
+        
+        public String getChatName() { return chatName; }
+        public void setChatName(String chatName) { this.chatName = chatName; }
+        
+        public String getContactImageUrl() { return contactImageUrl; }
+        public void setContactImageUrl(String contactImageUrl) { this.contactImageUrl = contactImageUrl; }
+        
+        public String getMessageText() { 
+            return message != null ? message.getText() : null; 
+        }
+        
+        public long getTimestamp() { 
+            return message != null ? message.getTimestamp() : 0; 
+        }
     }
 }

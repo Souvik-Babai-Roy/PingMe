@@ -7,6 +7,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -32,6 +34,22 @@ public class BroadcastListActivity extends AppCompatActivity {
     private BroadcastListAdapter adapter;
     private List<Broadcast> broadcasts = new ArrayList<>();
     private String currentUserId;
+
+    private final ActivityResultLauncher<Intent> selectContactsLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    String broadcastName = result.getData().getStringExtra("broadcastName");
+                    String[] selectedContactIds = result.getData().getStringArrayExtra("selectedContactIds");
+                    
+                    if (broadcastName != null && selectedContactIds != null) {
+                        List<String> contactIdList = new ArrayList<>();
+                        for (String id : selectedContactIds) {
+                            contactIdList.add(id);
+                        }
+                        createBroadcast(broadcastName, contactIdList);
+                    }
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,12 +81,18 @@ public class BroadcastListActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerView() {
-        adapter = new BroadcastListAdapter(broadcasts, broadcast -> {
-            // Handle broadcast selection - open broadcast chat
-            Intent intent = new Intent(this, BroadcastChatActivity.class);
-            intent.putExtra("broadcastId", broadcast.getId());
-            intent.putExtra("broadcastName", broadcast.getName());
-            startActivity(intent);
+        adapter = new BroadcastListAdapter(broadcasts, new BroadcastListAdapter.OnBroadcastClickListener() {
+            @Override
+            public void onBroadcastClick(Broadcast broadcast) {
+                // For now, show a toast. This can be enhanced later with a dedicated broadcast chat
+                Toast.makeText(BroadcastListActivity.this, "Broadcast: " + broadcast.getName(), Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onBroadcastLongClick(Broadcast broadcast) {
+                // Show options for broadcast (edit, delete, etc.)
+                showBroadcastOptions(broadcast);
+            }
         });
 
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -130,11 +154,50 @@ public class BroadcastListActivity extends AppCompatActivity {
             Intent intent = new Intent(this, SelectContactsActivity.class);
             intent.putExtra("broadcastName", broadcastName);
             intent.putExtra("isForBroadcast", true);
-            startActivityForResult(intent, REQUEST_SELECT_CONTACTS);
+            selectContactsLauncher.launch(intent);
             dialog.dismiss();
         });
 
         dialog.show();
+    }
+
+    private void showBroadcastOptions(Broadcast broadcast) {
+        String[] options = {"Edit", "Delete"};
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Broadcast Options")
+                .setItems(options, (dialog, which) -> {
+                    switch (which) {
+                        case 0: // Edit
+                            // TODO: Implement edit broadcast functionality
+                            Toast.makeText(this, "Edit broadcast coming soon", Toast.LENGTH_SHORT).show();
+                            break;
+                        case 1: // Delete
+                            deleteBroadcast(broadcast);
+                            break;
+                    }
+                })
+                .show();
+    }
+
+    private void deleteBroadcast(Broadcast broadcast) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Delete Broadcast")
+                .setMessage("Are you sure you want to delete '" + broadcast.getName() + "'?")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    // Delete broadcast from database
+                    FirestoreUtil.getBroadcastRef(broadcast.getId())
+                            .child("isActive")
+                            .setValue(false)
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(this, "Broadcast deleted", Toast.LENGTH_SHORT).show();
+                                loadBroadcasts(); // Reload the list
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this, "Failed to delete broadcast", Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void createBroadcast(String name, List<String> selectedContactIds) {
@@ -161,18 +224,7 @@ public class BroadcastListActivity extends AppCompatActivity {
         });
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_SELECT_CONTACTS && resultCode == RESULT_OK && data != null) {
-            String broadcastName = data.getStringExtra("broadcastName");
-            ArrayList<String> selectedContactIds = data.getStringArrayListExtra("selectedContactIds");
-            
-            if (broadcastName != null && selectedContactIds != null) {
-                createBroadcast(broadcastName, selectedContactIds);
-            }
-        }
-    }
+
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
@@ -182,6 +234,4 @@ public class BroadcastListActivity extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
-
-    private static final int REQUEST_SELECT_CONTACTS = 1001;
 }
