@@ -51,7 +51,12 @@ public class SetupProfileActivity extends AppCompatActivity {
     }
 
     private void setupUI() {
-        binding.ivProfile.setOnClickListener(v -> checkPermissionAndPickImage()); // FIXED: Proper lambda syntax
+        binding.ivProfile.setOnClickListener(v -> openImagePickerCompat());
+        // Wire FAB if present in layout (camera icon)
+        View fab = findViewById(com.pingme.android.R.id.fab); // may not exist
+        if (fab != null) {
+            fab.setOnClickListener(v -> openImagePickerCompat());
+        }
         binding.btnSave.setOnClickListener(v -> saveProfile());
         binding.tvSkip.setOnClickListener(v -> skipSetup());
 
@@ -88,33 +93,24 @@ public class SetupProfileActivity extends AppCompatActivity {
         }
     }
 
+    @Deprecated
     private void checkPermissionAndPickImage() {
-        Dexter.withContext(this)
-                .withPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-                .withListener(new PermissionListener() {
-                    @Override
-                    public void onPermissionGranted(PermissionGrantedResponse response) {
-                        openImagePicker();
-                    }
-
-                    @Override
-                    public void onPermissionDenied(PermissionDeniedResponse response) {
-                        Toast.makeText(SetupProfileActivity.this,
-                                "Permission required to select image", Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onPermissionRationaleShouldBeShown(PermissionRequest permission,
-                                                                   PermissionToken token) {
-                        token.continuePermissionRequest();
-                    }
-                }).check();
+        // No-op: modern pickers do not require READ_EXTERNAL_STORAGE; kept for backward compatibility
+        openImagePickerCompat();
     }
 
-    private void openImagePicker() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("image/*");
-        imagePickerLauncher.launch(Intent.createChooser(intent, "Select Profile Picture"));
+    private void openImagePickerCompat() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_PICK);
+            intent.setType("image/*");
+            imagePickerLauncher.launch(Intent.createChooser(intent, "Select Profile Picture"));
+        } catch (Exception e) {
+            // Fallback to ACTION_OPEN_DOCUMENT for scoped storage
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("image/*");
+            imagePickerLauncher.launch(Intent.createChooser(intent, "Select Profile Picture"));
+        }
     }
 
     private void loadProfileImage() {

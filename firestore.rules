@@ -35,6 +35,16 @@ service cloud.firestore {
              request.resource.data.name.size() <= 50;
     }
 
+    // Public user lookup collection for email searching
+    match /user_public/{userId} {
+      allow read: if isValidUser();
+      allow create, update: if isValidUser() && isOwner(userId) &&
+        request.resource.data.keys().hasAll(['userId','name','emailLowercase']) &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.emailLowercase is string;
+      allow delete: if false;
+    }
+
     // Users collection - core user profiles
     match /users/{userId} {
       // Users can read their own profile and profiles of their friends

@@ -49,6 +49,10 @@ public class FirestoreUtil {
         return getUsersCollectionRef().document(userId);
     }
 
+    public static CollectionReference getUserPublicCollectionRef() {
+        return FirebaseFirestore.getInstance().collection("user_public");
+    }
+
     public static CollectionReference getStatusCollectionRef() {
         return FirebaseFirestore.getInstance().collection("status");
     }
@@ -101,9 +105,22 @@ public class FirestoreUtil {
         getUserRef(user.getId()).set(userData)
                 .addOnSuccessListener(aVoid -> Log.d(TAG, "User created successfully"))
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to create user", e));
+
+        // Also maintain a public lookup document for email search
+        createOrUpdatePublicProfile(user.getId(), user.getName(), user.getEmail(), user.getImageUrl());
     }
 
-
+    public static void createOrUpdatePublicProfile(String userId, String name, String email, String imageUrl) {
+        if (userId == null || email == null) return;
+        Map<String, Object> publicData = new HashMap<>();
+        publicData.put("userId", userId);
+        publicData.put("name", name != null ? name : "");
+        publicData.put("emailLowercase", email.toLowerCase());
+        publicData.put("imageUrl", imageUrl != null ? imageUrl : "");
+        getUserPublicCollectionRef().document(userId).set(publicData)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Public profile updated"))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to update public profile", e));
+    }
 
     // ===== REALTIME DATABASE METHODS (for chats and messages) =====
 
@@ -379,6 +396,12 @@ public class FirestoreUtil {
     public static Query searchUserByEmail(String email) {
         return getUsersCollectionRef()
                 .whereEqualTo("email", email)
+                .limit(1);
+    }
+
+    public static Query searchUserPublicByEmail(String email) {
+        return getUserPublicCollectionRef()
+                .whereEqualTo("emailLowercase", email.toLowerCase())
                 .limit(1);
     }
 

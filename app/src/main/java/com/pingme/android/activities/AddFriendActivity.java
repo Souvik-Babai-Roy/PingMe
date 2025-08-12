@@ -92,25 +92,44 @@ public class AddFriendActivity extends AppCompatActivity {
 
         showLoading(true);
 
-        FirestoreUtil.getUsersCollectionRef()
-                .whereEqualTo("email", email)
+        // Step 1: Query public index for email
+        FirestoreUtil.searchUserPublicByEmail(email)
                 .get()
                 .addOnCompleteListener(task -> {
-                    showLoading(false);
-
-                    if (task.isSuccessful() && !task.getResult().isEmpty()) {
-                        DocumentSnapshot doc = task.getResult().getDocuments().get(0);
-                        foundUser = doc.toObject(User.class);
-
-                        if (foundUser != null) {
-                            foundUser.setId(doc.getId());
-
-                            // Check if user is blocked
-                            checkIfBlocked(foundUser.getId());
-                        }
-                    } else {
+                    if (!task.isSuccessful() || task.getResult().isEmpty()) {
+                        showLoading(false);
                         showUserNotFound();
+                        return;
                     }
+                    String userId = task.getResult().getDocuments().get(0).getString("userId");
+                    if (userId == null || userId.isEmpty()) {
+                        showLoading(false);
+                        showUserNotFound();
+                        return;
+                    }
+
+                    // Step 2: Fetch full user profile (requires friendship or self)
+                    FirestoreUtil.getUserRef(userId)
+                            .get()
+                            .addOnSuccessListener(doc -> {
+                                showLoading(false);
+                                if (doc.exists()) {
+                                    foundUser = doc.toObject(User.class);
+                                    if (foundUser != null) {
+                                        foundUser.setId(doc.getId());
+                                        // Proceed with block checks and display
+                                        checkIfBlocked(foundUser.getId());
+                                    } else {
+                                        showUserNotFound();
+                                    }
+                                } else {
+                                    showUserNotFound();
+                                }
+                            })
+                            .addOnFailureListener(e -> {
+                                showLoading(false);
+                                Toast.makeText(this, "Search failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
                 })
                 .addOnFailureListener(e -> {
                     showLoading(false);
