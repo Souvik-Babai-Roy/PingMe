@@ -22,7 +22,7 @@
         android:layout_height="wrap_content"
         android:text="Give your broadcast list a name and select contacts to include."
         android:textSize="14sp"
-        android:textColor="@color/textSecondary"
+                        android:textColor="@color/textColorSecondary"
         android:gravity="center"
         android:layout_marginBottom="24dp" />
 

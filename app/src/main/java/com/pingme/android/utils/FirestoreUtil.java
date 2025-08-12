@@ -721,17 +721,20 @@ public class FirestoreUtil {
         if (messageId == null) return;
 
         Map<String, Object> messageData = new HashMap<>();
+        messageData.put("id", messageId);
         messageData.put("senderId", senderId);
         messageData.put("text", text);
         messageData.put("timestamp", System.currentTimeMillis());
-        messageData.put("type", "text");
+        messageData.put("type", Message.TYPE_TEXT);
         messageData.put("status", Message.STATUS_SENT);
-        messageData.put("replyTo", replyToMessageId);
+        messageData.put("action", Message.ACTION_REPLY);
+        messageData.put("replyToMessageId", replyToMessageId);
+        messageData.put("isReply", true);
 
         getMessagesRef(chatId).child(messageId).setValue(messageData)
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "Reply message sent successfully");
-                    updateChatLastMessage(chatId, text, senderId, "text");
+                    updateChatLastMessage(chatId, text, senderId, Message.TYPE_TEXT);
                 })
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to send reply message", e));
     }
@@ -839,31 +842,6 @@ public class FirestoreUtil {
     }
 
     // ===== ENHANCED MESSAGE METHODS =====
-
-    public static void sendReplyMessage(String chatId, String senderId, String receiverId, String text, String replyToMessageId) {
-        if (chatId == null || senderId == null || text == null || replyToMessageId == null) return;
-
-        String messageId = getMessagesRef(chatId).push().getKey();
-        if (messageId == null) return;
-
-        Map<String, Object> messageData = new HashMap<>();
-        messageData.put("id", messageId);
-        messageData.put("senderId", senderId);
-        messageData.put("text", text);
-        messageData.put("timestamp", System.currentTimeMillis());
-        messageData.put("type", Message.TYPE_TEXT);
-        messageData.put("status", Message.STATUS_SENT);
-        messageData.put("action", Message.ACTION_REPLY);
-        messageData.put("replyToMessageId", replyToMessageId);
-        messageData.put("isReply", true);
-
-        getMessagesRef(chatId).child(messageId).setValue(messageData)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Reply message sent successfully");
-                    updateChatLastMessage(chatId, text, senderId, Message.TYPE_TEXT);
-                })
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to send reply message", e));
-    }
 
     public static void forwardMessage(String targetChatId, String senderId, String receiverId, Message originalMessage) {
         if (targetChatId == null || senderId == null || originalMessage == null) return;
@@ -1085,7 +1063,7 @@ public class FirestoreUtil {
     }
 
     public interface BlockedUsersCallback {
-        void onBlockedUsersLoaded(com.google.firebase.firestore.QuerySnapshot querySnapshot);
+        void onBlockedUsersLoaded(DataSnapshot dataSnapshot);
         void onError(String error);
     }
 
