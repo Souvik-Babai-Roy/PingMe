@@ -32,7 +32,13 @@ public class BlockedUsersActivity extends AppCompatActivity {
         binding = ActivityBlockedUsersBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+        currentUserId = currentUser.getUid();
 
         setupToolbar();
         setupRecyclerView();

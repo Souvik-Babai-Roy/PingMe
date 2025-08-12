@@ -291,6 +291,9 @@ public class Message {
             case TYPE_TEXT:
             default:
                 String displayText = getText();
+                if (displayText == null) {
+                    displayText = "";
+                }
                 if (isEdited) {
                     displayText += " (edited)";
                 }
@@ -310,10 +313,6 @@ public class Message {
         if (isDeletedForEveryone) return false;
         if (isDeletedForMe && userId.equals(senderId)) return false;
         return true;
-    }
-
-    public boolean isSentByCurrentUser(String currentUserId) {
-        return currentUserId != null && currentUserId.equals(senderId);
     }
 
     @Override

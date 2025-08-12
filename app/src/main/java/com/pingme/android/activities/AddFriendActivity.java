@@ -28,7 +28,13 @@ public class AddFriendActivity extends AppCompatActivity {
         binding = ActivityAddFriendBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+        currentUserId = currentUser.getUid();
 
         setupToolbar();
         setupClickListeners();
@@ -77,7 +83,8 @@ public class AddFriendActivity extends AppCompatActivity {
             return;
         }
 
-        if (email.equals(FirebaseAuth.getInstance().getCurrentUser().getEmail())) {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null && email.equals(currentUser.getEmail())) {
             Toast.makeText(this, "You cannot add yourself as a friend", Toast.LENGTH_SHORT).show();
             return;
         }

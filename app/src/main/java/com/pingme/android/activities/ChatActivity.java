@@ -166,7 +166,14 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void loadCurrentUser() {
-        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+        
+        String currentUserId = firebaseUser.getUid();
         FirestoreUtil.getUserRef(currentUserId).get().addOnSuccessListener(snapshot -> {
             if (snapshot.exists()) {
                 currentUser = snapshot.toObject(User.class);
@@ -174,6 +181,9 @@ public class ChatActivity extends AppCompatActivity {
                     currentUser.setId(snapshot.getId());
                 }
             }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Failed to load current user", e);
+            Toast.makeText(this, "Failed to load user data", Toast.LENGTH_SHORT).show();
         });
     }
 
@@ -207,7 +217,13 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void checkBlockStatus() {
-        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            Log.e(TAG, "User not authenticated");
+            return;
+        }
+        
+        String currentUserId = firebaseUser.getUid();
 
         // Check both blocking directions
         FirestoreUtil.checkIfBlocked(currentUserId, receiverId, currentUserBlocked -> {
@@ -340,7 +356,13 @@ public class ChatActivity extends AppCompatActivity {
                 if (message != null) {
                     message.setId(dataSnapshot.getKey());
 
-                    String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+                    if (firebaseUser == null) {
+                        Log.e(TAG, "User not authenticated");
+                        return;
+                    }
+                    
+                    String currentUserId = firebaseUser.getUid();
                     if (!message.getSenderId().equals(currentUserId)) {
                         // Check if current user blocked the sender
                         FirestoreUtil.checkIfBlocked(currentUserId, message.getSenderId(), blocked -> {
@@ -362,7 +384,13 @@ public class ChatActivity extends AppCompatActivity {
                 if (updatedMessage != null) {
                     updatedMessage.setId(dataSnapshot.getKey());
 
-                    String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+                    if (firebaseUser == null) {
+                        Log.e(TAG, "User not authenticated");
+                        return;
+                    }
+                    
+                    String currentUserId = firebaseUser.getUid();
                     if (!updatedMessage.getSenderId().equals(currentUserId)) {
                         FirestoreUtil.checkIfBlocked(currentUserId, updatedMessage.getSenderId(), blocked -> {
                             if (!blocked) {
@@ -408,7 +436,8 @@ public class ChatActivity extends AppCompatActivity {
             messages.add(message);
             updateMessagesWithDateHeaders();
 
-            if (!message.getSenderId().equals(FirebaseAuth.getInstance().getUid())) {
+            FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+            if (firebaseUser != null && !message.getSenderId().equals(firebaseUser.getUid())) {
                 updateMessageStatus(message.getId(), Message.STATUS_DELIVERED);
             }
         }
@@ -487,7 +516,10 @@ public class ChatActivity extends AppCompatActivity {
                     boolean shouldShowTyping = s.length() > 0;
                     if (shouldShowTyping != isTyping) {
                         isTyping = shouldShowTyping;
-                        FirestoreUtil.setTyping(chatId, FirebaseAuth.getInstance().getUid(), isTyping);
+                        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                        if (currentUser != null) {
+                            FirestoreUtil.setTyping(chatId, currentUser.getUid(), isTyping);
+                        }
                     }
                 }
             }
@@ -550,7 +582,10 @@ public class ChatActivity extends AppCompatActivity {
     public void showMessageOptions(Message message, View anchorView) {
         if (message == null) return;
 
-        String currentUserId = FirebaseAuth.getInstance().getUid();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) return;
+        
+        String currentUserId = currentUser.getUid();
         boolean isMyMessage = message.isSentByCurrentUser(currentUserId);
         boolean canEdit = message.canBeEdited() && isMyMessage;
         boolean canDelete = message.canBeDeleted();
@@ -778,7 +813,13 @@ public class ChatActivity extends AppCompatActivity {
 
         Log.d(TAG, "Sending text message: " + text);
 
-        String senderId = FirebaseAuth.getInstance().getUid();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String senderId = currentUser.getUid();
         FirestoreUtil.sendMessageToRealtime(chatId, senderId, text, "text", null);
         binding.etMessage.setText("");
         FirestoreUtil.setTyping(chatId, senderId, false);
@@ -790,7 +831,13 @@ public class ChatActivity extends AppCompatActivity {
 
         Log.d(TAG, "Sending image message: " + imageUrl);
 
-        String senderId = FirebaseAuth.getInstance().getUid();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String senderId = currentUser.getUid();
 
         Map<String, Object> mediaData = new HashMap<>();
         mediaData.put("imageUrl", imageUrl);
@@ -803,7 +850,13 @@ public class ChatActivity extends AppCompatActivity {
 
         Log.d(TAG, "Sending video message: " + videoUrl);
 
-        String senderId = FirebaseAuth.getInstance().getUid();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String senderId = currentUser.getUid();
 
         Map<String, Object> mediaData = new HashMap<>();
         mediaData.put("videoUrl", videoUrl);
@@ -817,7 +870,13 @@ public class ChatActivity extends AppCompatActivity {
 
         Log.d(TAG, "Sending audio message: " + audioUrl);
 
-        String senderId = FirebaseAuth.getInstance().getUid();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String senderId = currentUser.getUid();
 
         Map<String, Object> mediaData = new HashMap<>();
         mediaData.put("audioUrl", audioUrl);
@@ -830,7 +889,13 @@ public class ChatActivity extends AppCompatActivity {
 
         Log.d(TAG, "Sending document message: " + documentUrl);
 
-        String senderId = FirebaseAuth.getInstance().getUid();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String senderId = currentUser.getUid();
 
         Map<String, Object> mediaData = new HashMap<>();
         mediaData.put("fileUrl", documentUrl);
@@ -850,7 +915,10 @@ public class ChatActivity extends AppCompatActivity {
 
     private void markMessagesAsRead() {
         if (!isBlocked) {
-            FirestoreUtil.markMessagesAsRead(chatId, FirebaseAuth.getInstance().getUid());
+            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+            if (currentUser != null) {
+                FirestoreUtil.markMessagesAsRead(chatId, currentUser.getUid());
+            }
         }
     }
 
@@ -859,11 +927,14 @@ public class ChatActivity extends AppCompatActivity {
                 .setTitle("Block User")
                 .setMessage("Are you sure you want to block " + receiver.getName() + "? You won't receive messages from them.")
                 .setPositiveButton("Block", (dialog, which) -> {
-                    String currentUserId = FirebaseAuth.getInstance().getUid();
-                    FirestoreUtil.blockUser(currentUserId, receiverId);
-                    isBlocked = true;
-                    updateInputState();
-                    Toast.makeText(this, receiver.getName() + " has been blocked", Toast.LENGTH_SHORT).show();
+                    FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                    if (currentUser != null) {
+                        String currentUserId = currentUser.getUid();
+                        FirestoreUtil.blockUser(currentUserId, receiverId);
+                        isBlocked = true;
+                        updateInputState();
+                        Toast.makeText(this, receiver.getName() + " has been blocked", Toast.LENGTH_SHORT).show();
+                    }
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -874,11 +945,14 @@ public class ChatActivity extends AppCompatActivity {
                 .setTitle("Unblock User")
                 .setMessage("Are you sure you want to unblock " + receiver.getName() + "?")
                 .setPositiveButton("Unblock", (dialog, which) -> {
-                    String currentUserId = FirebaseAuth.getInstance().getUid();
-                    FirestoreUtil.unblockUser(currentUserId, receiverId);
-                    isBlocked = false;
-                    updateInputState();
-                    Toast.makeText(this, receiver.getName() + " has been unblocked", Toast.LENGTH_SHORT).show();
+                    FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                    if (currentUser != null) {
+                        String currentUserId = currentUser.getUid();
+                        FirestoreUtil.unblockUser(currentUserId, receiverId);
+                        isBlocked = false;
+                        updateInputState();
+                        Toast.makeText(this, receiver.getName() + " has been unblocked", Toast.LENGTH_SHORT).show();
+                    }
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -889,10 +963,13 @@ public class ChatActivity extends AppCompatActivity {
                 .setTitle("Remove Friend")
                 .setMessage("Are you sure you want to remove " + receiver.getName() + " from your friends?")
                 .setPositiveButton("Remove", (dialog, which) -> {
-                    String currentUserId = FirebaseAuth.getInstance().getUid();
-                    FirestoreUtil.removeFriend(currentUserId, receiverId);
-                    Toast.makeText(this, receiver.getName() + " has been removed from friends", Toast.LENGTH_SHORT).show();
-                    finish();
+                    FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                    if (currentUser != null) {
+                        String currentUserId = currentUser.getUid();
+                        FirestoreUtil.removeFriend(currentUserId, receiverId);
+                        Toast.makeText(this, receiver.getName() + " has been removed from friends", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -922,21 +999,26 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        String currentUserId = FirebaseAuth.getInstance().getUid();
-        FirestoreUtil.updateUserPresence(currentUserId, true);
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            String currentUserId = currentUser.getUid();
+            FirestoreUtil.updateUserPresence(currentUserId, true);
+        }
         markMessagesAsRead();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (isTyping) {
-            FirestoreUtil.setTyping(chatId, FirebaseAuth.getInstance().getUid(), false);
-            isTyping = false;
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            String currentUserId = currentUser.getUid();
+            if (isTyping) {
+                FirestoreUtil.setTyping(chatId, currentUserId, false);
+                isTyping = false;
+            }
+            FirestoreUtil.updateUserPresence(currentUserId, false);
         }
-
-        String currentUserId = FirebaseAuth.getInstance().getUid();
-        FirestoreUtil.updateUserPresence(currentUserId, false);
     }
 
     @Override
