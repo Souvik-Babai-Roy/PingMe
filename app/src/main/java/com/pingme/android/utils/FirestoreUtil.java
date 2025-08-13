@@ -91,6 +91,10 @@ public class FirestoreUtil {
         return getRealtimeDatabase().child(RT_PRESENCE).child(userId);
     }
 
+    public static DatabaseReference getRealtimePresenceRef(String userId) {
+        return getPresenceRef(userId);
+    }
+
     public static DatabaseReference getTypingRef(String chatId) {
         return getRealtimeDatabase().child(RT_TYPING).child(chatId);
     }
@@ -159,7 +163,12 @@ public class FirestoreUtil {
                             })
                             .addOnFailureListener(e -> callback.onError(e.getMessage()));
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    // Overloaded method for backward compatibility
+    public static void addFriend(String currentUserId, User friendUser, FriendActionCallback callback) {
+        addFriend(currentUserId, friendUser.getId(), callback);
     }
 
     public static void removeFriend(String currentUserId, String friendId, FriendActionCallback callback) {
@@ -270,7 +279,50 @@ public class FirestoreUtil {
                                 });
                     }
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    // Overloaded methods without callbacks for backward compatibility
+    public static void blockUser(String currentUserId, String blockedUserId) {
+        blockUser(currentUserId, blockedUserId, new FriendActionCallback() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "User blocked successfully");
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "Failed to block user: " + error);
+            }
+        });
+    }
+
+    public static void unblockUser(String currentUserId, String unblockedUserId) {
+        unblockUser(currentUserId, unblockedUserId, new FriendActionCallback() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "User unblocked successfully");
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "Failed to unblock user: " + error);
+            }
+        });
+    }
+
+    public static void removeFriend(String currentUserId, String friendId) {
+        removeFriend(currentUserId, friendId, new FriendActionCallback() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "Friend removed successfully");
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e(TAG, "Failed to remove friend: " + error);
+            }
+        });
     }
 
     // ===== MESSAGING =====
@@ -499,6 +551,11 @@ public class FirestoreUtil {
         getRealtimeDatabase().updateChildren(updates)
                 .addOnSuccessListener(aVoid -> Log.d(TAG, "Chat created successfully: " + chatId))
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to create chat: " + chatId, e));
+    }
+
+    public static void createEmptyFriendChat(String userId1, String userId2) {
+        String chatId = generateChatId(userId1, userId2);
+        createNewChatInRealtime(chatId, userId1, userId2);
     }
 
     // ===== SEARCH FUNCTIONALITY =====

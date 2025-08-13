@@ -198,15 +198,15 @@ public class StatusCreationActivity extends AppCompatActivity {
     }
 
     private void uploadImageAndCreateStatus(String content) {
-        CloudinaryUtil.uploadImage(selectedImageUri, new CloudinaryUtil.UploadCallback() {
+        CloudinaryUtil.uploadImage(selectedImageUri, new CloudinaryUtil.ImageUploadCallback() {
             @Override
-            public void onSuccess(String imageUrl) {
+            public void onUploadSuccess(String imageUrl) {
                 uploadedImageUrl = imageUrl;
                 createImageStatus(content, imageUrl);
             }
 
             @Override
-            public void onError(String error) {
+            public void onUploadError(String error) {
                 showLoading(false);
                 Toast.makeText(StatusCreationActivity.this, "Failed to upload image: " + error, 
                         Toast.LENGTH_SHORT).show();

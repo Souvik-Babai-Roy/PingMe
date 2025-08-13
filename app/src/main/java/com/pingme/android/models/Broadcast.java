@@ -55,6 +55,10 @@ public class Broadcast extends BaseObservable {
         this.createdBy = createdBy;
     }
 
+    public void setCreatorId(String creatorId) {
+        this.createdBy = creatorId;
+    }
+
     @Bindable
     public long getCreatedAt() {
         return createdAt;

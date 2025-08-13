@@ -422,9 +422,60 @@ public class CloudinaryUtil {
         return future;
     }
 
+    // ===== CALLBACK-BASED UPLOAD METHODS =====
+
+    public static void uploadImage(android.net.Uri imageUri, String folder, android.content.Context context, ImageUploadCallback callback) {
+        try {
+            cloudinary.uploader().upload(imageUri)
+                    .option("folder", folder)
+                    .callback(new com.cloudinary.android.callback.UploadCallback() {
+                        @Override
+                        public void onStart(String requestId) {
+                            Log.d(TAG, "Upload started: " + requestId);
+                        }
+
+                        @Override
+                        public void onProgress(String requestId, long bytes, long totalBytes) {
+                            Log.d(TAG, "Upload progress: " + bytes + "/" + totalBytes);
+                        }
+
+                        @Override
+                        public void onSuccess(String requestId, Map resultData) {
+                            String imageUrl = (String) resultData.get("secure_url");
+                            if (imageUrl != null) {
+                                Log.d(TAG, "Upload successful: " + imageUrl);
+                                callback.onUploadSuccess(imageUrl);
+                            } else {
+                                callback.onUploadError("No URL returned from upload");
+                            }
+                        }
+
+                        @Override
+                        public void onError(String requestId, com.cloudinary.android.callback.ErrorInfo error) {
+                            Log.e(TAG, "Upload failed: " + error.getDescription());
+                            callback.onUploadError(error.getDescription());
+                        }
+
+                        @Override
+                        public void onReschedule(String requestId, com.cloudinary.android.callback.ErrorInfo error) {
+                            Log.w(TAG, "Upload rescheduled: " + error.getDescription());
+                        }
+                    })
+                    .dispatch();
+        } catch (Exception e) {
+            Log.e(TAG, "Error starting upload", e);
+            callback.onUploadError(e.getMessage());
+        }
+    }
+
+    // Simplified overload for status creation
+    public static void uploadImage(android.net.Uri imageUri, ImageUploadCallback callback) {
+        uploadImage(imageUri, "status", null, callback);
+    }
+
     // ===== CALLBACK INTERFACES =====
 
-    public interface UploadCallback {
+    public interface ImageUploadCallback {
         void onUploadSuccess(String imageUrl);
         void onUploadError(String error);
     }
