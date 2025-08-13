@@ -30,6 +30,9 @@
         <item name="actionOverflowMenuStyle">@style/OverflowMenuStyle.Dark</item>
         <item name="android:textColorPrimaryInverse">@color/white</item>
         <item name="android:textColorSecondaryInverse">@color/white_70</item>
+        
+        <!-- Action bar theme -->
+        <item name="actionBarTheme">@style/ThemeOverlay.MaterialComponents.Dark.ActionBar</item>
     </style>
     
     <!-- Dark Toolbar Style -->

@@ -367,13 +367,8 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
         }
 
         private User getFriendFromChat(Chat chat) {
-            // Get the friend user from the chat participants
-            for (User participant : chat.getParticipants()) {
-                if (!participant.getId().equals(currentUserId)) {
-                    return participant;
-                }
-            }
-            return null;
+            // Get the friend user from the chat (the other user)
+            return chat.getOtherUser();
         }
     }
 }

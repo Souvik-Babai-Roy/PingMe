@@ -32,6 +32,9 @@
         <!-- Menu styling -->
         <item name="actionMenuTextColor">@color/white</item>
         <item name="actionOverflowMenuStyle">@style/OverflowMenuStyle</item>
+        
+        <!-- Action bar theme -->
+        <item name="actionBarTheme">@style/ThemeOverlay.MaterialComponents.ActionBar</item>
     </style>
     
     <!-- Light Overflow Menu Style -->

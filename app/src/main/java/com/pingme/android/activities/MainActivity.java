@@ -88,6 +88,9 @@ public class MainActivity extends AppCompatActivity {
         }
         // Set popup theme based on current theme
         binding.toolbar.setPopupTheme(R.style.PopupMenuStyle);
+        
+        // Ensure title text color is white for both themes
+        binding.toolbar.setTitleTextColor(getColor(R.color.white));
     }
 
     private void setupViewPager() {
