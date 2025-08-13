@@ -15,6 +15,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.pingme.android.R;
 import com.pingme.android.adapters.ContactSelectionAdapter;
 import com.pingme.android.databinding.ActivitySelectContactsBinding;
+import com.pingme.android.models.Broadcast;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.FirestoreUtil;
 
