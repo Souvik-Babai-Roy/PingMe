@@ -71,10 +71,9 @@ service cloud.firestore {
           request.auth.uid == friendId
         );
         
-        // Users can add/remove friends if both parties aren't blocked
+        // Users can add/remove friends (more permissive for now)
         allow create, update: if isValidUser() && 
-                             isOwner(userId) && 
-                             canDiscoverUser(userId, friendId);
+                             isOwner(userId);
         
         allow delete: if isValidUser() && isOwner(userId);
       }

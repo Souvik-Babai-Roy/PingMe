@@ -267,10 +267,113 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             PopupMenu popup = new PopupMenu(context, anchor);
             popup.getMenuInflater().inflate(R.menu.chat_context_menu, popup.getMenu());
             popup.setOnMenuItemClickListener(item -> {
-                // TODO: Implement context actions (mute, pin, delete)
-                return true;
+                int itemId = item.getItemId();
+                if (itemId == R.id.menu_unfriend) {
+                    showUnfriendConfirmation(chat);
+                    return true;
+                } else if (itemId == R.id.menu_block_user) {
+                    showBlockConfirmation(chat);
+                    return true;
+                } else if (itemId == R.id.menu_clear_chat) {
+                    showClearChatConfirmation(chat);
+                    return true;
+                } else if (itemId == R.id.menu_delete_chat) {
+                    showDeleteChatConfirmation(chat);
+                    return true;
+                }
+                return false;
             });
             popup.show();
+        }
+
+        private void showUnfriendConfirmation(Chat chat) {
+            User friend = getFriendFromChat(chat);
+            if (friend == null) return;
+
+            new androidx.appcompat.app.AlertDialog.Builder(context)
+                    .setTitle("Remove Friend")
+                    .setMessage("Are you sure you want to remove " + friend.getName() + " from your friends? You can add them back later.")
+                    .setPositiveButton("Remove", (dialog, which) -> {
+                        FirestoreUtil.removeFriend(currentUserId, friend.getId(), new FirestoreUtil.FriendActionCallback() {
+                            @Override
+                            public void onSuccess() {
+                                // Remove chat from list
+                                int position = chats.indexOf(chat);
+                                if (position != -1) {
+                                    chats.remove(position);
+                                    notifyItemRemoved(position);
+                                }
+                            }
+
+                            @Override
+                            public void onError(String error) {
+                                // Show error message
+                            }
+                        });
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        }
+
+        private void showBlockConfirmation(Chat chat) {
+            User friend = getFriendFromChat(chat);
+            if (friend == null) return;
+
+            new androidx.appcompat.app.AlertDialog.Builder(context)
+                    .setTitle("Block User")
+                    .setMessage("Are you sure you want to block " + friend.getName() + "? They won't be able to send you messages.")
+                    .setPositiveButton("Block", (dialog, which) -> {
+                        FirestoreUtil.blockUser(currentUserId, friend.getId(), new FirestoreUtil.FriendActionCallback() {
+                            @Override
+                            public void onSuccess() {
+                                // Remove chat from list
+                                int position = chats.indexOf(chat);
+                                if (position != -1) {
+                                    chats.remove(position);
+                                    notifyItemRemoved(position);
+                                }
+                            }
+
+                            @Override
+                            public void onError(String error) {
+                                // Show error message
+                            }
+                        });
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        }
+
+        private void showClearChatConfirmation(Chat chat) {
+            new androidx.appcompat.app.AlertDialog.Builder(context)
+                    .setTitle("Clear Chat")
+                    .setMessage("Are you sure you want to clear this chat? This action cannot be undone.")
+                    .setPositiveButton("Clear", (dialog, which) -> {
+                        // TODO: Implement clear chat functionality
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        }
+
+        private void showDeleteChatConfirmation(Chat chat) {
+            new androidx.appcompat.app.AlertDialog.Builder(context)
+                    .setTitle("Delete Chat")
+                    .setMessage("Are you sure you want to delete this chat? This action cannot be undone.")
+                    .setPositiveButton("Delete", (dialog, which) -> {
+                        // TODO: Implement delete chat functionality
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        }
+
+        private User getFriendFromChat(Chat chat) {
+            // Get the friend user from the chat participants
+            for (User participant : chat.getParticipants()) {
+                if (!participant.getId().equals(currentUserId)) {
+                    return participant;
+                }
+            }
+            return null;
         }
     }
 }

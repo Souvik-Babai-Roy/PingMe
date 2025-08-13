@@ -172,36 +172,73 @@ public class FirestoreUtil {
     }
 
     public static void removeFriend(String currentUserId, String friendId, FriendActionCallback callback) {
+        if (currentUserId == null || friendId == null) {
+            if (callback != null) callback.onError("Invalid user IDs");
+            return;
+        }
+        
         getFriendsRef(currentUserId).document(friendId).delete()
                 .addOnSuccessListener(aVoid -> {
                     getFriendsRef(friendId).document(currentUserId).delete()
-                            .addOnSuccessListener(aVoid2 -> callback.onSuccess())
-                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                            .addOnSuccessListener(aVoid2 -> {
+                                if (callback != null) callback.onSuccess();
+                            })
+                            .addOnFailureListener(e -> {
+                                if (callback != null) callback.onError(e.getMessage());
+                            });
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
     }
 
     public static void blockUser(String currentUserId, String blockedUserId, FriendActionCallback callback) {
+        if (currentUserId == null || blockedUserId == null) {
+            if (callback != null) callback.onError("Invalid user IDs");
+            return;
+        }
+        
         // First update Realtime Database
         Map<String, Object> blockData = new HashMap<>();
         blockData.put("blockedAt", System.currentTimeMillis());
         
         getRealtimeBlockedUsersRef(currentUserId).child(blockedUserId).setValue(true)
                 .addOnSuccessListener(aVoid -> {
-                    // Update chat to inactive
-                    String chatId = generateChatId(currentUserId, blockedUserId);
-                    getUserChatsRef(currentUserId).child(chatId).child("isActive").setValue(false);
-                    getUserChatsRef(blockedUserId).child(chatId).child("isActive").setValue(false);
-                    
-                    // Update Firestore
-                    getBlockedUsersRef(currentUserId).document(blockedUserId).set(blockData)
-                            .addOnSuccessListener(aVoid2 -> {
-                                // Remove friendship
-                                removeFriend(currentUserId, blockedUserId, callback);
-                            })
-                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                    try {
+                        // Update chat to inactive
+                        String chatId = generateChatId(currentUserId, blockedUserId);
+                        getUserChatsRef(currentUserId).child(chatId).child("isActive").setValue(false);
+                        getUserChatsRef(blockedUserId).child(chatId).child("isActive").setValue(false);
+                        
+                        // Update Firestore
+                        getBlockedUsersRef(currentUserId).document(blockedUserId).set(blockData)
+                                .addOnSuccessListener(aVoid2 -> {
+                                    // Remove friendship (with safer callback handling)
+                                    removeFriend(currentUserId, blockedUserId, new FriendActionCallback() {
+                                        @Override
+                                        public void onSuccess() {
+                                            if (callback != null) callback.onSuccess();
+                                        }
+
+                                        @Override
+                                        public void onError(String error) {
+                                            // Even if unfriend fails, blocking succeeded
+                                            Log.w(TAG, "Failed to remove friendship after blocking: " + error);
+                                            if (callback != null) callback.onSuccess();
+                                        }
+                                    });
+                                })
+                                .addOnFailureListener(e -> {
+                                    if (callback != null) callback.onError(e.getMessage());
+                                });
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error in blockUser", e);
+                        if (callback != null) callback.onError("Blocking failed: " + e.getMessage());
+                    }
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
     }
 
     public static void unblockUser(String currentUserId, String unblockedUserId, FriendActionCallback callback) {

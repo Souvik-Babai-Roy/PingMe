@@ -274,8 +274,28 @@ public class ChatsFragment extends Fragment {
                 Log.d(TAG, "Chat " + chatId + " - otherUser: " + otherUserId + " lastMessage: " + lastMessage);
 
                 if (otherUserId != null) {
-                    Chat existingChat = findChatById(chatId);
-                    if (existingChat != null) {
+                    // First check if users are still friends before updating chat
+                    final String finalOtherUserId = otherUserId;
+                    FirestoreUtil.checkFriendship(currentUserId, finalOtherUserId, areFriends -> {
+                        if (!areFriends) {
+                            Log.d(TAG, "Users are no longer friends, removing chat: " + chatId);
+                            // Remove chat from list
+                            Chat chatToRemove = findChatById(chatId);
+                            if (chatToRemove != null) {
+                                int position = chatList.indexOf(chatToRemove);
+                                if (position != -1) {
+                                    chatList.remove(position);
+                                    if (adapter != null) {
+                                        adapter.notifyItemRemoved(position);
+                                    }
+                                }
+                            }
+                            return;
+                        }
+                        
+                        // Users are friends, proceed with chat update
+                        Chat existingChat = findChatById(chatId);
+                        if (existingChat != null) {
                         // Update last message; if blank but type is media, set placeholder
                         String effectiveLastMessage = lastMessage;
                         if ((effectiveLastMessage == null || effectiveLastMessage.trim().isEmpty()) && lastMessageType != null) {
@@ -305,13 +325,14 @@ public class ChatsFragment extends Fragment {
                             existingChat.setActive(isActive != null ? isActive : true);
                         }
 
-                        calculateUnreadCount(existingChat);
-                        updateChatInList(existingChat);
-                    } else {
-                        loadOtherUserDetails(chatId, otherUserId, lastMessage,
-                                lastMessageTimestamp != null ? lastMessageTimestamp : 0,
-                                lastMessageSenderId, lastMessageType);
-                    }
+                            calculateUnreadCount(existingChat);
+                            updateChatInList(existingChat);
+                        } else {
+                            loadOtherUserDetails(chatId, finalOtherUserId, lastMessage,
+                                    lastMessageTimestamp != null ? lastMessageTimestamp : 0,
+                                    lastMessageSenderId, lastMessageType);
+                        }
+                    }); // Close friendship check callback
                 }
             }
 
@@ -326,9 +347,16 @@ public class ChatsFragment extends Fragment {
                                       long lastMessageTimestamp, String lastMessageSenderId, String lastMessageType) {
         Log.d(TAG, "Loading other user details: " + otherUserId + " for chat: " + chatId);
 
-        // Load user details from Firestore
-        FirestoreUtil.getUserRef(otherUserId).get()
-                .addOnSuccessListener(documentSnapshot -> {
+        // First verify friendship before loading user details
+        FirestoreUtil.checkFriendship(currentUserId, otherUserId, areFriends -> {
+            if (!areFriends) {
+                Log.d(TAG, "Users are not friends, skipping chat: " + chatId);
+                return;
+            }
+
+            // Load user details from Firestore
+            FirestoreUtil.getUserRef(otherUserId).get()
+                    .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         User otherUser = documentSnapshot.toObject(User.class);
                         if (otherUser != null) {
@@ -350,10 +378,11 @@ public class ChatsFragment extends Fragment {
                             });
                         }
                     }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to load other user details", e);
-                });
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to load other user details", e);
+                    });
+        }); // Close friendship check callback
     }
 
     private void loadUserPresence(User user, Runnable onComplete) {
@@ -468,10 +497,15 @@ public class ChatsFragment extends Fragment {
     }
 
     private void updateEmptyState(boolean isEmpty) {
+        if (binding == null) {
+            return; // Fragment is destroyed, don't update UI
+        }
         if (binding.emptyView != null) {
             binding.emptyView.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
         }
-        binding.recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+        if (binding.recyclerView != null) {
+            binding.recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+        }
     }
 
     public void refreshChats() {
