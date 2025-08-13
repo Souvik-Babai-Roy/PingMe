@@ -39,12 +39,12 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:layout_marginBottom="16dp"
-                android:background="?attr/colorSurfaceVariant"
+                android:background="@color/surface_color"
                 android:padding="4dp">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnTextMode"
-                    style="@style/Widget.Material3.Button.TextButton"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -53,7 +53,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnImageMode"
-                    style="@style/Widget.Material3.Button.TextButton"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -75,7 +75,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="What's on your mind?"
-                    app:hintTextColor="?attr/colorOnSurfaceVariant">
+                    app:hintTextColor="@color/textColorSecondary">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etStatusText"
@@ -93,7 +93,7 @@
                 <!-- Change Background Color Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnChangeColor"
-                    style="@style/Widget.Material3.Button.TextButton"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
@@ -115,7 +115,7 @@
                 <!-- Select Image Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSelectImage"
-                    style="@style/Widget.Material3.Button.Outlined"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
@@ -142,7 +142,7 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnRemoveImage"
-                        style="@style/Widget.Material3.Button.IconButton.Filled"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                         android:layout_width="36dp"
                         android:layout_height="36dp"
                         android:layout_gravity="top|end"
