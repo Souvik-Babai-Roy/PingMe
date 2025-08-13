@@ -439,6 +439,119 @@ public class FirestoreUtil {
         void onResult(boolean areFriends);
     }
 
+    // ===== SEARCH FUNCTIONALITY =====
+
+    public static void searchAllChats(String userId, String query, SearchCallback callback) {
+        if (userId == null || query == null) {
+            callback.onError("Invalid search parameters");
+            return;
+        }
+
+        getUserChatsRef(userId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                List<SearchResult> results = new ArrayList<>();
+                String lowerQuery = query.toLowerCase();
+
+                for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
+                    String chatId = chatSnapshot.getKey();
+                    if (chatId != null) {
+                        // Search in chat messages
+                        searchMessagesInChat(chatId, lowerQuery, results);
+                    }
+                }
+
+                callback.onSearchComplete(results);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                callback.onError("Search failed");
+            }
+        });
+    }
+
+    private static void searchMessagesInChat(String chatId, String query, List<SearchResult> results) {
+        getMessagesRef(chatId).orderByChild("timestamp")
+                .limitToLast(100) // Limit to recent messages for performance
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                            Object messageObj = snapshot.getValue();
+                            if (messageObj instanceof Map) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> messageData = (Map<String, Object>) messageObj;
+                                String text = (String) messageData.get("text");
+                                String fileName = (String) messageData.get("fileName");
+                                
+                                if ((text != null && text.toLowerCase().contains(query)) ||
+                                    (fileName != null && fileName.toLowerCase().contains(query))) {
+                                    
+                                    // Create a simple message object for search results
+                                    Message message = new Message();
+                                    message.setId(snapshot.getKey());
+                                    message.setText(text != null ? text : "");
+                                    message.setFileName(fileName);
+                                    Object timestamp = messageData.get("timestamp");
+                                    if (timestamp instanceof Long) {
+                                        message.setTimestamp((Long) timestamp);
+                                    }
+                                    
+                                    results.add(new SearchResult(chatId, message));
+                                }
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        // Continue with other chats
+                    }
+                });
+    }
+
+    // Search result class
+    public static class SearchResult {
+        private String chatId;
+        private Message message;
+        private String contactName;
+        private String chatName;
+        private String contactImageUrl;
+
+        public SearchResult(String chatId, Message message) {
+            this.chatId = chatId;
+            this.message = message;
+        }
+
+        public String getChatId() { return chatId; }
+        public Message getMessage() { return message; }
+
+        public String getContactName() { return contactName; }
+        public void setContactName(String contactName) { this.contactName = contactName; }
+
+        public String getChatName() { return chatName; }
+        public void setChatName(String chatName) { this.chatName = chatName; }
+
+        public String getContactImageUrl() { return contactImageUrl; }
+        public void setContactImageUrl(String contactImageUrl) { this.contactImageUrl = contactImageUrl; }
+
+        public String getMessageText() {
+            return message != null ? message.getText() : null;
+        }
+
+        public long getTimestamp() {
+            return message != null ? message.getTimestamp() : 0;
+        }
+    }
+
+    // ===== CALLBACK INTERFACES FOR SEARCH =====
+
+    public interface SearchCallback {
+        void onSearchComplete(List<SearchResult> results);
+        void onError(String error);
+    }
+
     // Keep existing methods for backward compatibility but update them to work with new structure
     
     // ===== DEPRECATED METHODS (for backward compatibility) =====
