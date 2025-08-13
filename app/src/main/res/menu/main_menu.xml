@@ -8,15 +8,15 @@
         app:showAsAction="ifRoom" />
         
     <item 
-        android:id="@+id/action_settings"
-        android:title="Settings"
-        android:icon="@drawable/ic_settings"
-        app:showAsAction="never" />
-        
-    <item 
         android:id="@+id/action_profile"
         android:title="Profile"
         android:icon="@drawable/ic_person"
+        app:showAsAction="never" />
+        
+    <item 
+        android:id="@+id/action_settings"
+        android:title="Settings"
+        android:icon="@drawable/ic_settings"
         app:showAsAction="never" />
         
     <item 
@@ -25,9 +25,10 @@
         android:icon="@drawable/ic_block"
         app:showAsAction="never" />
         
-    <!-- Legacy menu items for compatibility -->
-    <item android:id="@+id/menu_account" android:title="Account"/>
-    <item android:id="@+id/menu_settings" android:title="Settings"/>
-    <item android:id="@+id/menu_logout" android:title="Logout"/>
+    <item 
+        android:id="@+id/action_logout"
+        android:title="Logout"
+        android:icon="@drawable/ic_logout"
+        app:showAsAction="never" />
     
 </menu>

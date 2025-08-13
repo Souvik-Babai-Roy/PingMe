@@ -11,7 +11,7 @@
         ".read": "auth != null && (data.child('participants').child(auth.uid).exists())",
         ".write": "auth != null && (data.child('participants').child(auth.uid).exists() || newData.child('participants').child(auth.uid).exists())",
         
-        // Chat metadata
+        // Chat metadata validation
         "id": {
           ".validate": "newData.isString() && newData.val() === $chatId"
         },
@@ -88,6 +88,15 @@
           },
           "thumbnailUrl": {
             ".validate": "newData.isString()"
+          },
+          "fileName": {
+            ".validate": "newData.isString()"
+          },
+          "fileSize": {
+            ".validate": "newData.isNumber()"
+          },
+          "duration": {
+            ".validate": "newData.isNumber()"
           }
         }
       }
@@ -100,7 +109,10 @@
         ".write": "auth != null && auth.uid === $userId",
         
         "$chatId": {
-          ".validate": "newData.isBoolean()"
+          ".validate": "newData.isBoolean() || newData.hasChildren()",
+          "isActive": {
+            ".validate": "newData.isBoolean()"
+          }
         }
       }
     },
@@ -120,9 +132,12 @@
     // User presence - Online/offline status
     "presence": {
       "$userId": {
-        ".read": true,  // Anyone can read presence (privacy controlled at app level)
+        ".read": true,  // Anyone can read presence for friend discovery
         ".write": "auth != null && auth.uid === $userId",
         
+        "isOnline": {
+          ".validate": "newData.isBoolean()"
+        },
         "online": {
           ".validate": "newData.isBoolean()"
         },
@@ -139,39 +154,40 @@
         ".write": "auth != null && auth.uid === $userId",
         
         "$blockedUserId": {
-          ".validate": "newData.isNumber()"  // Timestamp of when blocked
+          ".validate": "newData.isBoolean() || newData.isNumber()"
         }
       }
     },
     
-    // Cleared chats - Track when users cleared their chat history
-    "cleared_chats": {
-      "$chatId": {
-        "$userId": {
-          ".read": "auth != null && auth.uid === $userId",
-          ".write": "auth != null && auth.uid === $userId",
-          ".validate": "newData.isNumber()"  // Timestamp of when cleared
+    // Broadcasts - Group messaging
+    "broadcasts": {
+      "$broadcastId": {
+        ".read": "auth != null && (data.child('creatorId').val() === auth.uid || data.child('members').child(auth.uid).exists())",
+        ".write": "auth != null && (data.child('creatorId').val() === auth.uid || newData.child('creatorId').val() === auth.uid)",
+        
+        "id": {
+          ".validate": "newData.isString()"
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 50"
+        },
+        "creatorId": {
+          ".validate": "newData.isString()"
+        },
+        "members": {
+          ".validate": "newData.hasChildren()"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
         }
       }
     },
     
-    // User specific chat data - For one-sided operations
-    "user_specific_chats": {
+    // User broadcasts - Track which broadcasts each user belongs to
+    "user_broadcasts": {
       "$userId": {
         ".read": "auth != null && auth.uid === $userId",
-        ".write": "auth != null && auth.uid === $userId",
-        
-        "$chatId": {
-          "lastMessage": {
-            ".validate": "newData.isString()"
-          },
-          "lastMessageType": {
-            ".validate": "newData.isString()"
-          },
-          "clearedAt": {
-            ".validate": "newData.isNumber()"
-          }
-        }
+        ".write": "auth != null && auth.uid === $userId"
       }
     },
     
@@ -225,40 +241,6 @@
         },
         "duration": {
           ".validate": "newData.isNumber()"
-        }
-      }
-    },
-    
-    // Group chats (for future implementation)
-    "groups": {
-      "$groupId": {
-        ".read": "auth != null && data.child('members').child(auth.uid).exists()",
-        ".write": "auth != null && (data.child('members').child(auth.uid).exists() || data.child('admins').child(auth.uid).exists())",
-        
-        "name": {
-          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 50"
-        },
-        "description": {
-          ".validate": "newData.isString() && newData.val().length <= 500"
-        },
-        "imageUrl": {
-          ".validate": "newData.isString()"
-        },
-        "createdBy": {
-          ".validate": "newData.isString()"
-        },
-        "createdAt": {
-          ".validate": "newData.isNumber()"
-        },
-        "members": {
-          "$memberId": {
-            ".validate": "newData.isBoolean()"
-          }
-        },
-        "admins": {
-          "$adminId": {
-            ".validate": "newData.isBoolean()"
-          }
         }
       }
     },

@@ -61,6 +61,11 @@ public class PreferenceUtils {
         }
     }
 
+    public static void clearUserData(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        prefs.edit().clear().apply();
+    }
+
     // FIXED: Save theme selection with immediate UI update
     public static void setThemePreference(Context context, String themeValue) {
         savePreference(context, PREF_THEME, themeValue);
