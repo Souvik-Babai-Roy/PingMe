@@ -36,6 +36,7 @@ firebaseMessagingDirectboot = "25.0.0"
 lifecycleProcess = "2.9.2"
 imagepicker = "2.1"
 swiperefreshlayout = "1.1.0"
+playServicesAppsearch = "16.0.1"
 
 [libraries]
 androidx-espresso-core-v351 = { module = "androidx.test.espresso:espresso-core", version.ref = "espressoCore" }
@@ -83,6 +84,7 @@ multidex = { group = "androidx.multidex", name = "multidex", version.ref = "mult
 lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
 imagepicker = { group = "com.github.dhaval2404", name = "imagepicker", version.ref = "imagepicker" }
 zego_uikit_prebuilt_call_android = { module = "com.github.ZEGOCLOUD:zego_uikit_prebuilt_call_android" }
+play-services-appsearch = { group = "com.google.android.gms", name = "play-services-appsearch", version.ref = "playServicesAppsearch" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

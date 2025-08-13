@@ -86,6 +86,7 @@ dependencies {
     // Image loading
     implementation libs.glide
     implementation libs.androidx.swiperefreshlayout
+    implementation libs.play.services.appsearch
     annotationProcessor libs.glide.compiler
 
     // Permission handling
