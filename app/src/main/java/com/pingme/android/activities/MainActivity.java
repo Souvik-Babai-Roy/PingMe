@@ -86,6 +86,8 @@ public class MainActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("PingMe");
         }
+        // Set popup theme based on current theme
+        binding.toolbar.setPopupTheme(R.style.PopupMenuStyle);
     }
 
     private void setupViewPager() {

@@ -19,6 +19,7 @@
         <!-- Text -->
         <item name="android:textColorPrimary">@color/textColorPrimary</item>
         <item name="android:textColorSecondary">@color/textColorSecondary</item>
+        <item name="colorOnSurfaceVariant">@color/textColorSecondary</item>
 
         <!-- Status bar -->
         <item name="android:statusBarColor">@color/colorPrimaryDark</item>
@@ -27,6 +28,16 @@
         <!-- Navigation bar -->
         <item name="android:navigationBarColor">@color/background_color</item>
         <item name="android:windowLightNavigationBar">true</item>
+        
+        <!-- Menu styling -->
+        <item name="actionMenuTextColor">@color/white</item>
+        <item name="actionOverflowMenuStyle">@style/OverflowMenuStyle</item>
+    </style>
+    
+    <!-- Light Overflow Menu Style -->
+    <style name="OverflowMenuStyle" parent="Widget.MaterialComponents.PopupMenu.Overflow">
+        <item name="android:popupBackground">@color/surface_color</item>
+        <item name="android:textColor">@color/textColorPrimary</item>
     </style>
 
     <style name="Theme.PingMe" parent="Base.Theme.PingMe" />
@@ -77,13 +88,14 @@
 
     <!-- Input Field Style -->
     <style name="InputFieldStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-        <item name="boxStrokeColor">@color/input_stroke_color</item>
+        <item name="boxStrokeColor">?attr/colorPrimary</item>
         <item name="boxCornerRadiusTopStart">12dp</item>
         <item name="boxCornerRadiusTopEnd">12dp</item>
         <item name="boxCornerRadiusBottomStart">12dp</item>
         <item name="boxCornerRadiusBottomEnd">12dp</item>
-        <item name="hintTextColor">@color/textColorSecondary</item>
-        <item name="android:textColorHint">@color/textColorSecondary</item>
+        <item name="hintTextColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:textColorHint">?attr/colorOnSurfaceVariant</item>
+        <item name="boxBackgroundColor">?attr/colorSurface</item>
     </style>
 
     <!-- Toolbar -->

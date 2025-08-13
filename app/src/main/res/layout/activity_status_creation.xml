@@ -75,7 +75,10 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="What's on your mind?"
-                    app:hintTextColor="@color/textColorSecondary">
+                    style="@style/InputFieldStyle"
+                    app:hintTextColor="?attr/colorOnSurfaceVariant"
+                    app:boxStrokeColor="?attr/colorPrimary"
+                    app:boxBackgroundColor="?attr/colorSurface">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etStatusText"

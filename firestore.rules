@@ -43,12 +43,12 @@ service cloud.firestore {
 
     // Users collection - core user profiles
     match /users/{userId} {
-      // Users can read their own profile, friends' profiles, OR for friend discovery if not blocked
+      // Users can read their own profile, friends' profiles, OR for friend discovery
       allow read: if isValidUser() && (
         isOwner(userId) || 
         areFriends(request.auth.uid, userId) ||
-        // Allow reading for friend discovery (email search)
-        canDiscoverUser(userId, request.auth.uid)
+        // Allow reading for friend discovery (more permissive for email search)
+        true  // Authenticated users can discover others for friend requests
       );
       
       // Users can only create/update their own profile
@@ -94,14 +94,14 @@ service cloud.firestore {
 
     // Status collection - user status updates (stories)
     match /status/{statusId} {
-      // Users can read status from friends only
-      allow read: if isValidUser() && 
-                 areFriends(request.auth.uid, resource.data.userId);
+      // Users can read status from friends only (or their own)
+      allow read: if isValidUser() && (
+        resource.data.userId == request.auth.uid ||
+        areFriends(request.auth.uid, resource.data.userId)
+      );
       
-      // Users can create their own status
+      // Users can create their own status (simplified validation)
       allow create: if isValidUser() && 
-                   isOwner(resource.data.userId) &&
-                   request.resource.data.keys().hasAll(['userId', 'timestamp', 'expiryTime']) &&
                    request.resource.data.userId == request.auth.uid;
       
       // Users can update their own status
