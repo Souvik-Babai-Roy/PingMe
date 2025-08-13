@@ -376,15 +376,28 @@ public class FirestoreUtil {
         
         Log.d(TAG, "Sending message to chat: " + chatId + " from: " + senderId + " text: " + text);
         
-        // First ensure chat exists
+        // First ensure chat exists, if not create it
         getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (!dataSnapshot.exists()) {
-                    Log.d(TAG, "Chat doesn't exist, cannot send message");
-                    return;
+                    Log.d(TAG, "Chat doesn't exist, creating it first");
+                    // Get the other user ID from chat ID
+                    String[] userIds = chatId.split("_");
+                    if (userIds.length == 2) {
+                        String otherUserId = userIds[0].equals(senderId) ? userIds[1] : userIds[0];
+                        createNewChatInRealtime(chatId, senderId, otherUserId);
+                        // Wait a moment then send message
+                        new android.os.Handler().postDelayed(() -> {
+                            sendMessageToRealtime(chatId, senderId, text, type, mediaData);
+                        }, 1000);
+                    } else {
+                        Log.e(TAG, "Invalid chat ID format: " + chatId);
+                    }
+                } else {
+                    Log.d(TAG, "Chat exists, sending message");
+                    sendMessageToRealtime(chatId, senderId, text, type, mediaData);
                 }
-                sendMessageToRealtime(chatId, senderId, text, type, mediaData);
             }
 
             @Override
@@ -395,43 +408,58 @@ public class FirestoreUtil {
     }
 
     public static void sendMessageToRealtime(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
-        String messageId = getMessagesRef(chatId).push().getKey();
+        Log.d(TAG, "=== STARTING MESSAGE SEND ===");
+        Log.d(TAG, "Chat ID: " + chatId);
+        Log.d(TAG, "Sender ID: " + senderId);
+        Log.d(TAG, "Text: " + text);
+        
+        DatabaseReference messagesRef = getMessagesRef(chatId);
+        String messageId = messagesRef.push().getKey();
+        
         if (messageId == null) {
             Log.e(TAG, "Failed to generate message ID");
             return;
         }
         
-        Log.d(TAG, "Sending message to Realtime DB - messageId: " + messageId);
+        Log.d(TAG, "Generated message ID: " + messageId);
+        Log.d(TAG, "Messages ref path: " + messagesRef.toString());
         
         Map<String, Object> messageData = new HashMap<>();
         messageData.put("id", messageId);
         messageData.put("senderId", senderId);
         messageData.put("text", text);
-        messageData.put("type", type);
+        messageData.put("type", type != null ? type : "text");
         messageData.put("timestamp", System.currentTimeMillis());
-        messageData.put("status", Message.STATUS_SENT);
+        messageData.put("status", 1); // Message.STATUS_SENT
         
         if (mediaData != null) {
             messageData.putAll(mediaData);
         }
         
+        Log.d(TAG, "Message data: " + messageData.toString());
+        
         // Add message to chat
-        getMessagesRef(chatId).child(messageId).setValue(messageData)
+        messagesRef.child(messageId).setValue(messageData)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Message sent successfully: " + messageId);
+                    Log.d(TAG, "✅ MESSAGE SENT SUCCESSFULLY: " + messageId);
                     
                     // Update chat's last message
                     Map<String, Object> chatUpdate = new HashMap<>();
                     chatUpdate.put("lastMessage", text);
                     chatUpdate.put("lastMessageTimestamp", System.currentTimeMillis());
                     chatUpdate.put("lastMessageSenderId", senderId);
-                    chatUpdate.put("lastMessageType", type);
+                    chatUpdate.put("lastMessageType", type != null ? type : "text");
+                    
+                    Log.d(TAG, "Updating chat with: " + chatUpdate.toString());
                     
                     getChatRef(chatId).updateChildren(chatUpdate)
-                            .addOnSuccessListener(aVoid2 -> Log.d(TAG, "Chat updated successfully"))
-                            .addOnFailureListener(e -> Log.e(TAG, "Failed to update chat", e));
+                            .addOnSuccessListener(aVoid2 -> Log.d(TAG, "✅ CHAT UPDATED SUCCESSFULLY"))
+                            .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO UPDATE CHAT: " + e.getMessage(), e));
                 })
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to send message", e));
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ FAILED TO SEND MESSAGE: " + e.getMessage(), e);
+                    Log.e(TAG, "Error details: " + e.toString());
+                });
     }
 
     public static void editMessage(String chatId, String messageId, String newText) {

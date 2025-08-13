@@ -348,14 +348,20 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void setupMessageListener() {
-        Log.d(TAG, "Setting up message listener for chat: " + chatId);
+        Log.d(TAG, "=== SETTING UP MESSAGE LISTENER ===");
+        Log.d(TAG, "Chat ID: " + chatId);
+        Log.d(TAG, "Messages ref path: " + FirestoreUtil.getMessagesRef(chatId).toString());
 
         messageListener = new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
+                Log.d(TAG, "🔄 Message child added: " + dataSnapshot.getKey());
+                Log.d(TAG, "Raw data: " + dataSnapshot.getValue());
+                
                 Message message = dataSnapshot.getValue(Message.class);
                 if (message != null) {
                     message.setId(dataSnapshot.getKey());
+                    Log.d(TAG, "✅ Parsed message: " + message.getText());
 
                     FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
                     if (firebaseUser == null) {
@@ -376,6 +382,8 @@ public class ChatActivity extends AppCompatActivity {
                     } else {
                         processIncomingMessage(message);
                     }
+                } else {
+                    Log.w(TAG, "❌ Failed to parse message from: " + dataSnapshot.getKey());
                 }
             }
 
