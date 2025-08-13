@@ -10,6 +10,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.pingme.android.models.Chat;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.FirestoreUtil;
@@ -44,12 +45,10 @@ public class ChatRepository {
         activeListeners.clear();
     }
 
-    // Add this method that the ViewModel expects
     public LiveData<List<Chat>> getChatsLiveData() {
         return chatsLiveData;
     }
 
-    // Modified to work with the ViewModel pattern
     public void loadChats(String userId) {
         // First, get blocked users from Realtime Database
         FirestoreUtil.getRealtimeBlockedUsersRef(currentUserId).addListenerForSingleValueEvent(new ValueEventListener() {
@@ -74,7 +73,6 @@ public class ChatRepository {
         });
     }
 
-    // Keep the original method for backward compatibility
     public LiveData<List<Chat>> loadChats() {
         loadChats(currentUserId);
         return chatsLiveData;
@@ -87,9 +85,9 @@ public class ChatRepository {
                     List<Chat> friendChats = new ArrayList<>();
 
                     for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        User friend = doc.toObject(User.class);
-                        if (friend != null && !blockedUserIds.contains(friend.getId())) {
-                            friend.setId(doc.getId());
+                        Map<String, Object> friendData = doc.getData();
+                        if (friendData != null && !blockedUserIds.contains(doc.getId())) {
+                            User friend = createUserFromFriendData(doc.getId(), friendData);
 
                             // Create empty chat for friend
                             Chat friendChat = new Chat();
@@ -112,6 +110,16 @@ public class ChatRepository {
                     chatsLiveData.setValue(friendChats);
                 })
                 .addOnFailureListener(e -> chatsLiveData.setValue(Collections.emptyList()));
+    }
+
+    private User createUserFromFriendData(String friendId, Map<String, Object> friendData) {
+        User friend = new User();
+        friend.setId(friendId);
+        friend.setName((String) friendData.get("name"));
+        friend.setEmail((String) friendData.get("email"));
+        friend.setImageUrl((String) friendData.get("imageUrl"));
+        friend.setAbout((String) friendData.get("about"));
+        return friend;
     }
 
     private void loadActiveChats(List<String> blockedUserIds) {
@@ -290,7 +298,6 @@ public class ChatRepository {
         });
     }
 
-    // Add the searchChats method that the ViewModel expects
     public LiveData<List<Chat>> searchChats(String query, String userId) {
         MutableLiveData<List<Chat>> searchResults = new MutableLiveData<>();
 
@@ -321,16 +328,33 @@ public class ChatRepository {
     }
 
     public void blockUser(String userId) {
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("blockedUsers/" + currentUserId + "/" + userId, true);
-        updates.put("friends/" + currentUserId + "/" + userId, null);
-        updates.put("friends/" + userId + "/" + currentUserId, null);
+        FirestoreUtil.blockUser(currentUserId, userId, new FirestoreUtil.FriendActionCallback() {
+            @Override
+            public void onSuccess() {
+                // Refresh chats to remove blocked user
+                loadChats(currentUserId);
+            }
 
-        FirestoreUtil.getRealtimeDatabase().updateChildren(updates);
+            @Override
+            public void onError(String error) {
+                // Handle error if needed
+            }
+        });
     }
 
     public void unblockUser(String userId) {
-        FirestoreUtil.getRealtimeBlockedUsersRef(currentUserId).child(userId).removeValue();
+        FirestoreUtil.unblockUser(currentUserId, userId, new FirestoreUtil.FriendActionCallback() {
+            @Override
+            public void onSuccess() {
+                // Refresh chats if needed
+                loadChats(currentUserId);
+            }
+
+            @Override
+            public void onError(String error) {
+                // Handle error if needed
+            }
+        });
     }
 
     public interface PrivacyUpdateCallback {

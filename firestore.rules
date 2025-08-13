@@ -18,7 +18,7 @@ service cloud.firestore {
     
     // Check if user is blocked by another user
     function isBlocked(blockerId, blockedId) {
-      return exists(/databases/$(database)/documents/blocked_users/$(blockerId)/blocked/$(blockedId));
+      return exists(/databases/$(database)/documents/users/$(blockerId)/blocked/$(blockedId));
     }
     
     // Check if users are friends
@@ -34,23 +34,21 @@ service cloud.firestore {
              request.resource.data.name.size() >= 1 &&
              request.resource.data.name.size() <= 50;
     }
-
-    // Public user lookup collection for email searching
-    match /user_public/{userId} {
-      allow read: if isValidUser();
-      allow create, update: if isValidUser() && isOwner(userId) &&
-        request.resource.data.keys().hasAll(['userId','name','emailLowercase']) &&
-        request.resource.data.userId == request.auth.uid &&
-        request.resource.data.emailLowercase is string;
-      allow delete: if false;
+    
+    // Check if user can be discovered (for friend requests)
+    function canDiscoverUser(userId) {
+      return isValidUser() && 
+             !isBlocked(userId, request.auth.uid) && 
+             !isBlocked(request.auth.uid, userId);
     }
 
-    // Users collection - core user profiles
+    // Users collection - simplified structure with everything in one place
     match /users/{userId} {
-      // Users can read their own profile and profiles of their friends
+      // Users can read their own profile, friends' profiles, OR for friend discovery if not blocked
       allow read: if isValidUser() && (
         isOwner(userId) || 
-        areFriends(request.auth.uid, userId)
+        areFriends(request.auth.uid, userId) ||
+        canDiscoverUser(userId)
       );
       
       // Users can only create/update their own profile
@@ -67,8 +65,8 @@ service cloud.firestore {
 
       // Friends subcollection - manage friendships
       match /friends/{friendId} {
-        // Users can read their own friends list
-        allow read: if isValidUser() && isOwner(userId);
+        // Users can read their own friends list or if they are the friend being checked
+        allow read: if isValidUser() && (isOwner(userId) || request.auth.uid == friendId);
         
         // Users can add/remove friends if both parties aren't blocked
         allow create, update: if isValidUser() && 
@@ -78,54 +76,67 @@ service cloud.firestore {
         
         allow delete: if isValidUser() && isOwner(userId);
       }
-    }
-
-    // Status collection - user status updates (stories)
-    match /status/{statusId} {
-      // Users can read status from friends only
-      allow read: if isValidUser() && 
-                 areFriends(request.auth.uid, resource.data.userId);
       
-      // Users can create their own status
-      allow create: if isValidUser() && 
-                   isOwner(resource.data.userId) &&
-                   request.resource.data.keys().hasAll(['userId', 'timestamp', 'expiryTime']) &&
-                   request.resource.data.userId == request.auth.uid;
-      
-      // Users can update their own status
-      allow update: if isValidUser() && 
-                   isOwner(resource.data.userId);
-      
-      // Users can delete their own status
-      allow delete: if isValidUser() && 
-                   isOwner(resource.data.userId);
-    }
-
-    // Blocked users collection - manage blocked relationships
-    match /blocked_users/{userId} {
-      // Users can only access their own blocked users list
-      allow read, write: if isValidUser() && isOwner(userId);
-      
+      // Blocked users subcollection - manage blocked relationships
       match /blocked/{blockedUserId} {
-        // Users can manage their own blocked users
+        // Users can only manage their own blocked users
+        allow read, write: if isValidUser() && isOwner(userId);
+      }
+      
+      // User settings subcollection - manage preferences
+      match /settings/{settingId} {
+        // Users can only read/write their own settings
         allow read, write: if isValidUser() && isOwner(userId);
       }
     }
 
-    // Presence collection - user online/offline status
-    match /presence/{userId} {
-      // Anyone can read presence if they're friends and user allows it
+    // Messages collection - for chat functionality
+    match /messages/{messageId} {
+      // Users can read messages in chats they participate in and are friends
       allow read: if isValidUser() && 
-                 areFriends(request.auth.uid, userId);
+                 resource.data.participants != null &&
+                 resource.data.participants[request.auth.uid] == true &&
+                 (
+                   resource.data.senderId == request.auth.uid ||
+                   (areFriends(request.auth.uid, resource.data.senderId) && 
+                    !isBlocked(resource.data.senderId, request.auth.uid) &&
+                    !isBlocked(request.auth.uid, resource.data.senderId))
+                 );
       
-      // Users can only update their own presence
-      allow write: if isValidUser() && isOwner(userId);
+      // Users can create messages in chats with friends
+      allow create: if isValidUser() && 
+                   request.resource.data.senderId == request.auth.uid &&
+                   request.resource.data.participants != null &&
+                   request.resource.data.participants[request.auth.uid] == true;
+      
+      // Users can update their own messages
+      allow update: if isValidUser() && 
+                   resource.data.senderId == request.auth.uid;
+      
+      // Users can delete their own messages
+      allow delete: if isValidUser() && 
+                   resource.data.senderId == request.auth.uid;
     }
 
-    // User settings and preferences
-    match /user_settings/{userId} {
-      // Users can only read/write their own settings
-      allow read, write: if isValidUser() && isOwner(userId);
+    // Chats collection - for chat metadata
+    match /chats/{chatId} {
+      // Users can read chats they participate in
+      allow read: if isValidUser() && 
+                 resource.data.participants != null &&
+                 resource.data.participants[request.auth.uid] == true;
+      
+      // Users can create chats with friends
+      allow create: if isValidUser() && 
+                   request.resource.data.participants != null &&
+                   request.resource.data.participants[request.auth.uid] == true;
+      
+      // Users can update chats they participate in
+      allow update: if isValidUser() && 
+                   resource.data.participants != null &&
+                   resource.data.participants[request.auth.uid] == true;
+      
+      // Users cannot delete chats
+      allow delete: if false;
     }
 
     // Notifications collection
@@ -133,7 +144,7 @@ service cloud.firestore {
       // Users can only read their own notifications
       allow read: if isValidUser() && isOwner(userId);
       
-      // System and friends can create notifications
+      // Friends can create notifications for each other
       allow create: if isValidUser() && (
         isOwner(userId) || 
         areFriends(request.auth.uid, userId)
