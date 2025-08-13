@@ -426,7 +426,7 @@ public class CloudinaryUtil {
 
     public static void uploadImage(android.net.Uri imageUri, String folder, android.content.Context context, ImageUploadCallback callback) {
         try {
-            cloudinary.uploader().upload(imageUri)
+            MediaManager.get().upload(imageUri)
                     .option("folder", folder)
                     .callback(new com.cloudinary.android.callback.UploadCallback() {
                         @Override

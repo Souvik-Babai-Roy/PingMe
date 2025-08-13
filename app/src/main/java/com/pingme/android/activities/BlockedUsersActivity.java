@@ -76,25 +76,18 @@ public class BlockedUsersActivity extends AppCompatActivity {
         
         FirestoreUtil.getBlockedUsers(currentUserId, new FirestoreUtil.BlockedUsersCallback() {
             @Override
-            public void onBlockedUsersLoaded(QuerySnapshot querySnapshot) {
+            public void onBlockedUsersLoaded(List<User> users) {
                 blockedUsers.clear();
+                blockedUsers.addAll(users);
                 
-                List<String> blockedUserIds = new ArrayList<>();
-                for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                    String blockedUserId = doc.getString("blockedUserId");
-                    if (blockedUserId != null) {
-                        blockedUserIds.add(blockedUserId);
-                    }
-                }
-
-                if (blockedUserIds.isEmpty()) {
+                if (users.isEmpty()) {
                     showEmptyState(true);
-                    showLoading(false);
-                    return;
+                } else {
+                    showEmptyState(false);
+                    adapter.notifyDataSetChanged();
                 }
-
-                // Load user details for each blocked user
-                loadBlockedUserDetails(blockedUserIds, querySnapshot);
+                
+                showLoading(false);
             }
 
             @Override

@@ -210,7 +210,7 @@ public class BroadcastListActivity extends AppCompatActivity {
 
         FirestoreUtil.createBroadcastList(name, currentUserId, selectedContactIds, new FirestoreUtil.BroadcastCallback() {
             @Override
-            public void onSuccess(String broadcastId) {
+            public void onBroadcastCreated(Broadcast broadcast) {
                 binding.progressBar.setVisibility(View.GONE);
                 Toast.makeText(BroadcastListActivity.this, "Broadcast list created successfully", Toast.LENGTH_SHORT).show();
                 loadBroadcasts(); // Reload the list

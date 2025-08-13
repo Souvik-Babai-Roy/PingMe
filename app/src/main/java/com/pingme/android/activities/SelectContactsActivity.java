@@ -243,7 +243,7 @@ public class SelectContactsActivity extends AppCompatActivity {
 
         FirestoreUtil.createBroadcastList(broadcastName, currentUserId, selectedContactIds, new FirestoreUtil.BroadcastCallback() {
             @Override
-            public void onSuccess(String broadcastId) {
+            public void onBroadcastCreated(Broadcast broadcast) {
                 runOnUiThread(() -> {
                     binding.progressBar.setVisibility(View.GONE);
                     Toast.makeText(SelectContactsActivity.this, "Broadcast list created successfully", Toast.LENGTH_SHORT).show();
