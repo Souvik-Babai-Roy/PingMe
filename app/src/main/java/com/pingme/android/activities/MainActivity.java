@@ -14,7 +14,6 @@ import com.pingme.android.adapters.ViewPagerAdapter;
 import com.pingme.android.databinding.ActivityMainBinding;
 import com.pingme.android.fragments.CallsFragment;
 import com.pingme.android.fragments.ChatsFragment;
-import com.pingme.android.fragments.StatusFragment;
 import com.pingme.android.utils.FirestoreUtil;
 import com.pingme.android.utils.PreferenceUtils;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -26,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private String currentUserId;
 
-    // FIXED: Add result launcher for settings/profile activities
+    // Add result launcher for settings/profile activities
     private final ActivityResultLauncher<Intent> settingsLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
                     result -> {
@@ -50,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         mAuth = FirebaseAuth.getInstance();
-        // FIXED: Check for null user to prevent crash
+        // Check for null user to prevent crash
         if (mAuth.getCurrentUser() == null) {
             // User not authenticated, redirect to auth
             startActivity(new Intent(this, AuthActivity.class));
@@ -59,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
         }
         currentUserId = mAuth.getCurrentUser().getUid();
 
-        // FIXED: Apply theme and sync preferences before setting up UI
+        // Apply theme and sync preferences before setting up UI
         applyCurrentTheme();
         syncUserPreferences();
 
@@ -70,13 +69,13 @@ public class MainActivity extends AppCompatActivity {
         updateFCMToken();
     }
 
-    // FIXED: Apply current theme
+    // Apply current theme
     private void applyCurrentTheme() {
         String savedTheme = PreferenceUtils.getThemePreference(this);
         PreferenceUtils.applyTheme(savedTheme);
     }
 
-    // FIXED: Sync user preferences from Firestore
+    // Sync user preferences from Firestore
     private void syncUserPreferences() {
         PreferenceUtils.syncPreferencesFromFirestore(this);
     }
@@ -91,71 +90,62 @@ public class MainActivity extends AppCompatActivity {
     private void setupViewPager() {
         ViewPagerAdapter adapter = new ViewPagerAdapter(this);
         adapter.addFragment(new ChatsFragment(), "CHATS");
-        adapter.addFragment(new StatusFragment(), "STATUS");
         adapter.addFragment(new CallsFragment(), "CALLS");
 
         binding.viewPager.setAdapter(adapter);
-        // FIXED: Reduce offscreen limit to improve memory usage and tab switching
+        // Reduce offscreen limit to improve memory usage and tab switching
         binding.viewPager.setOffscreenPageLimit(1);
 
         new TabLayoutMediator(binding.tabLayout, binding.viewPager,
-                (tab, position) -> tab.setText(adapter.getPageTitle(position))
+                (tab, position) -> tab.setText(adapter.getTabTitle(position))
         ).attach();
-
-        // FIXED: Add page change callback to refresh data when switching tabs
-        binding.viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                super.onPageSelected(position);
-                
-                // Refresh fragment data when switching to it
-                if (position == 0) { // Chats fragment
-                    // Get the fragment and refresh if it exists
-                    ChatsFragment chatsFragment = (ChatsFragment) adapter.getFragment(0);
-                    if (chatsFragment != null) {
-                        chatsFragment.refreshChats();
-                    }
-                }
-                
-                // Update FAB based on current tab (existing logic)
-                switch (position) {
-                    case 0: // Chats
-                        binding.fab.setImageResource(R.drawable.ic_chat_add);
-                        binding.fab.setContentDescription("Add Friend");
-                        break;
-                    case 1: // Status
-                        binding.fab.setImageResource(R.drawable.ic_camera);
-                        binding.fab.setContentDescription("Add Status");
-                        break;
-                    case 2: // Calls
-                        binding.fab.setImageResource(R.drawable.ic_baseline_person_24);
-                        binding.fab.setContentDescription("New Call");
-                        break;
-                }
-            }
-        });
-
-        binding.viewPager.setCurrentItem(0);
     }
 
     private void setupFAB() {
-        // FAB for adding friends (visible on Chats tab)
         binding.fab.setOnClickListener(v -> {
             int currentTab = binding.viewPager.getCurrentItem();
-            switch (currentTab) {
-                case 0: // Chats tab
-                    startActivity(new Intent(this, AddFriendActivity.class));
-                    break;
-                case 1: // Status tab
-                    // TODO: Add status creation
-                    break;
-                case 2: // Calls tab
-                    // TODO: Start new call
-                    break;
+            if (currentTab == 0) { // Chats tab
+                startActivity(new Intent(this, AddFriendActivity.class));
+            } else if (currentTab == 1) { // Calls tab
+                // Open contacts for calling
+                startActivity(new Intent(this, SelectContactsActivity.class));
             }
         });
+    }
 
+    private void updateUserPresence() {
+        if (currentUserId != null) {
+            FirestoreUtil.updatePresence(currentUserId, true);
+        }
+    }
 
+    private void updateFCMToken() {
+        if (currentUserId == null) return;
+
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful()) {
+                        return;
+                    }
+
+                    // Get new FCM registration token
+                    String token = task.getResult();
+                    if (token != null) {
+                        // Update token in user profile
+                        FirestoreUtil.getUserRef(currentUserId)
+                                .update("fcmToken", token);
+                    }
+                });
+    }
+
+    // Check if recreation is needed (theme change, etc.)
+    private void recreateIfNeeded() {
+        String currentTheme = PreferenceUtils.getThemePreference(this);
+        String appliedTheme = PreferenceUtils.getAppliedTheme();
+        
+        if (!currentTheme.equals(appliedTheme)) {
+            recreate();
+        }
     }
 
     @Override
@@ -166,82 +156,45 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        int itemId = item.getItemId();
+        int id = item.getItemId();
 
-        if (itemId == R.id.menu_account) {
-            // FIXED: Use result launcher instead of direct startActivity
-            Intent intent = new Intent(this, EditProfileActivity.class);
-            profileLauncher.launch(intent);
+        if (id == R.id.action_search) {
+            startActivity(new Intent(this, SearchActivity.class));
             return true;
-        } else if (itemId == R.id.menu_settings) {
-            // FIXED: Use result launcher for settings
-            Intent intent = new Intent(this, SettingsActivity.class);
-            settingsLauncher.launch(intent);
+        } else if (id == R.id.action_settings) {
+            settingsLauncher.launch(new Intent(this, SettingsActivity.class));
             return true;
-        } else if (itemId == R.id.menu_logout) {
-            logout();
+        } else if (id == R.id.action_profile) {
+            profileLauncher.launch(new Intent(this, EditProfileActivity.class));
+            return true;
+        } else if (id == R.id.action_blocked_users) {
+            startActivity(new Intent(this, BlockedUsersActivity.class));
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    private void logout() {
-        // Set user offline before logout
-        FirestoreUtil.updateUserPresence(currentUserId, false);
-
-        FirebaseAuth.getInstance().signOut();
-        startActivity(new Intent(this, AuthActivity.class));
-        finish();
-    }
-
-    private void updateUserPresence() {
-        if (currentUserId != null) {
-            FirestoreUtil.updateUserPresence(currentUserId, true);
-        }
-    }
-
-    private void setUserOffline() {
-        if (currentUserId != null) {
-            FirestoreUtil.updateUserPresence(currentUserId, false);
-        }
-    }
-
-    private void updateFCMToken() {
-        FirebaseMessaging.getInstance().getToken()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && task.getResult() != null) {
-                        String token = task.getResult();
-                        FirestoreUtil.updateFCMToken(currentUserId, token);
-                    }
-                });
-    }
-
-    // FIXED: Helper method to recreate activity if theme changed
-    private void recreateIfNeeded() {
-        // This will be called when returning from settings
-        // The PreferenceUtils will handle recreation if theme changed
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
         updateUserPresence();
-
-        // FIXED: Recheck theme in case it was changed in settings
-        String currentTheme = PreferenceUtils.getThemePreference(this);
-        PreferenceUtils.applyTheme(currentTheme);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        setUserOffline();
+        if (currentUserId != null) {
+            FirestoreUtil.updatePresence(currentUserId, false);
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        setUserOffline();
+        if (currentUserId != null) {
+            FirestoreUtil.updatePresence(currentUserId, false);
+        }
+        binding = null;
     }
 }

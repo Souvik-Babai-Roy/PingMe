@@ -3,6 +3,8 @@ package com.pingme.android.models;
 import androidx.annotation.NonNull;
 import com.google.firebase.firestore.PropertyName;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class User {
@@ -29,8 +31,10 @@ public class User {
 
     // Additional fields
     private long joinedAt;
-    private String status;
     private boolean isBlocked;
+    
+    // Friend relationship status (not stored in Firestore, used for UI state)
+    private String friendshipStatus = "none"; // none, friend, blocked, pending
 
     // Default constructor
     public User() {
@@ -49,13 +53,12 @@ public class User {
     }
 
     // Constructor for setup profile
-    public User(String id, String name, String email, String imageUrl, String status) {
+    public User(String id, String name, String email, String imageUrl) {
         this();
         this.id = id;
         this.name = name;
         this.email = email;
         this.imageUrl = imageUrl;
-        this.status = status;
     }
 
     // Getters
@@ -69,8 +72,8 @@ public class User {
     public long getLastSeen() { return lastSeen; }
     public String getFcmToken() { return fcmToken; }
     public long getJoinedAt() { return joinedAt; }
-    public String getStatus() { return status; }
     public boolean isBlocked() { return isBlocked; }
+    public String getFriendshipStatus() { return friendshipStatus; }
 
     // Privacy settings getters
     public boolean isProfilePhotoEnabled() { return profilePhotoEnabled; }
@@ -89,8 +92,8 @@ public class User {
     public void setLastSeen(long lastSeen) { this.lastSeen = lastSeen; }
     public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
     public void setJoinedAt(long joinedAt) { this.joinedAt = joinedAt; }
-    public void setStatus(String status) { this.status = status; }
     public void setBlocked(boolean blocked) { isBlocked = blocked; }
+    public void setFriendshipStatus(String friendshipStatus) { this.friendshipStatus = friendshipStatus; }
 
     // Privacy settings setters
     public void setProfilePhotoEnabled(boolean profilePhotoEnabled) {
@@ -160,6 +163,19 @@ public class User {
         return "offline";
     }
 
+    // Friend management helper methods
+    public boolean isFriend() {
+        return "friend".equals(friendshipStatus);
+    }
+
+    public boolean isBlockedByMe() {
+        return "blocked".equals(friendshipStatus);
+    }
+
+    public boolean canBeAdded() {
+        return "none".equals(friendshipStatus);
+    }
+
     // Validation methods
     public boolean isValidEmail() {
         return email != null && email.contains("@") && email.contains(".");
@@ -191,8 +207,8 @@ public class User {
         copy.aboutEnabled = this.aboutEnabled;
         copy.readReceiptsEnabled = this.readReceiptsEnabled;
         copy.joinedAt = this.joinedAt;
-        copy.status = this.status;
         copy.isBlocked = this.isBlocked;
+        copy.friendshipStatus = this.friendshipStatus;
         return copy;
     }
 
@@ -217,14 +233,14 @@ public class User {
                 Objects.equals(imageUrl, user.imageUrl) &&
                 Objects.equals(about, user.about) &&
                 Objects.equals(fcmToken, user.fcmToken) &&
-                Objects.equals(status, user.status);
+                Objects.equals(friendshipStatus, user.friendshipStatus);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(id, name, email, phoneNumber, imageUrl, about, isOnline,
                 lastSeen, fcmToken, profilePhotoEnabled, lastSeenEnabled, aboutEnabled,
-                readReceiptsEnabled, joinedAt, status, isBlocked);
+                readReceiptsEnabled, joinedAt, isBlocked, friendshipStatus);
     }
 
     @NonNull
@@ -241,6 +257,7 @@ public class User {
                 ", lastSeenEnabled=" + lastSeenEnabled +
                 ", readReceiptsEnabled=" + readReceiptsEnabled +
                 ", isBlocked=" + isBlocked +
+                ", friendshipStatus='" + friendshipStatus + '\'' +
                 '}';
     }
 }

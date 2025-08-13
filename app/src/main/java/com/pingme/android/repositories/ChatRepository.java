@@ -5,11 +5,8 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.pingme.android.models.Chat;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.FirestoreUtil;
@@ -25,7 +22,6 @@ import java.util.concurrent.Executors;
 public class ChatRepository {
     private final String currentUserId;
     private final Executor executor = Executors.newFixedThreadPool(4);
-    private final Map<String, ValueEventListener> activeListeners = new HashMap<>();
     private final MutableLiveData<List<Chat>> chatsLiveData = new MutableLiveData<>();
 
     public ChatRepository() {
@@ -37,246 +33,129 @@ public class ChatRepository {
         }
     }
 
-    public void cleanup() {
-        for (Map.Entry<String, ValueEventListener> entry : activeListeners.entrySet()) {
-            FirestoreUtil.getChatRef(entry.getKey()).removeEventListener(entry.getValue());
-        }
-        activeListeners.clear();
-    }
-
-    // Add this method that the ViewModel expects
     public LiveData<List<Chat>> getChatsLiveData() {
         return chatsLiveData;
     }
 
-    // Modified to work with the ViewModel pattern
     public void loadChats(String userId) {
-        // First, get blocked users from Realtime Database
-        FirestoreUtil.getRealtimeBlockedUsersRef(currentUserId).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot blockedSnapshot) {
-                List<String> blockedUserIds = new ArrayList<>();
-                for (DataSnapshot snapshot : blockedSnapshot.getChildren()) {
-                    blockedUserIds.add(snapshot.getKey());
-                }
-
-                // Load friends from Firestore and create empty chats
-                loadFriendsAsEmptyChats(blockedUserIds);
-
-                // Then load actual chats from Realtime Database
-                loadActiveChats(blockedUserIds);
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                chatsLiveData.setValue(Collections.emptyList());
-            }
-        });
+        loadFriendsAsChats();
     }
 
-    // Keep the original method for backward compatibility
     public LiveData<List<Chat>> loadChats() {
         loadChats(currentUserId);
         return chatsLiveData;
     }
 
-    private void loadFriendsAsEmptyChats(List<String> blockedUserIds) {
+    private void loadFriendsAsChats() {
+        // Load friends from the simplified structure
         FirestoreUtil.getFriendsRef(currentUserId)
                 .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Chat> friendChats = new ArrayList<>();
-
-                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        User friend = doc.toObject(User.class);
-                        if (friend != null && !blockedUserIds.contains(friend.getId())) {
-                            friend.setId(doc.getId());
-
-                            // Create empty chat for friend
-                            Chat friendChat = new Chat();
-                            String chatId = FirestoreUtil.generateChatId(currentUserId, friend.getId());
-                            friendChat.setId(chatId);
-                            friendChat.setOtherUser(friend);
-                            friendChat.setLastMessage("Tap to start messaging");
-                            friendChat.setLastMessageTimestamp(System.currentTimeMillis());
-                            friendChat.setLastMessageSenderId("");
-                            friendChat.setLastMessageType("empty_chat");
-
-                            friendChats.add(friendChat);
-                        }
-                    }
-
-                    // Sort friends alphabetically
-                    Collections.sort(friendChats, (c1, c2) ->
-                            c1.getOtherUser().getName().compareToIgnoreCase(c2.getOtherUser().getName()));
-
-                    chatsLiveData.setValue(friendChats);
-                })
+                .addOnSuccessListener(this::processFriendsData)
                 .addOnFailureListener(e -> chatsLiveData.setValue(Collections.emptyList()));
     }
 
-    private void loadActiveChats(List<String> blockedUserIds) {
-        FirestoreUtil.getUserChatsRef(currentUserId)
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        List<String> chatIds = new ArrayList<>();
-                        for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
-                            Boolean isActive = chatSnapshot.getValue(Boolean.class);
-                            if (isActive != null && isActive) {
-                                chatIds.add(chatSnapshot.getKey());
-                            } else {
-                                // Remove inactive chats from user's list
-                                chatSnapshot.getRef().removeValue();
-                            }
-                        }
-
-                        if (!chatIds.isEmpty()) {
-                            loadChatDetails(chatIds, blockedUserIds);
-                        }
-                    }
-
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-                        // Keep existing empty chats if loading active chats fails
-                    }
-                });
-    }
-
-    private void loadChatDetails(List<String> chatIds, List<String> blockedUserIds) {
-        List<Chat> chats = Collections.synchronizedList(new ArrayList<>());
-        MutableLiveData<Integer> completionCounter = new MutableLiveData<>(0);
-
-        completionCounter.observeForever(count -> {
-            if (count == chatIds.size()) {
-                mergeChatsWithFriends(chats, blockedUserIds);
-            }
-        });
-
-        for (String chatId : chatIds) {
-            loadSingleChat(chatId, chats, completionCounter, blockedUserIds);
-        }
-    }
-
-    private void loadSingleChat(String chatId, List<Chat> chats, MutableLiveData<Integer> completionCounter, List<String> blockedUserIds) {
-        ValueEventListener listener = new ValueEventListener() {
-            @Override
-            @SuppressWarnings("unchecked")
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    String lastMessage = dataSnapshot.child("lastMessage").getValue(String.class);
-                    Long lastMessageTimestamp = dataSnapshot.child("lastMessageTimestamp").getValue(Long.class);
-                    String lastMessageSenderId = dataSnapshot.child("lastMessageSenderId").getValue(String.class);
-                    String lastMessageType = dataSnapshot.child("lastMessageType").getValue(String.class);
-
-                    // Get participants
-                    Map<String, Boolean> participantsMap = (Map<String, Boolean>) dataSnapshot.child("participants").getValue();
-                    if (participantsMap != null) {
-                        List<String> participants = new ArrayList<>(participantsMap.keySet());
-                        if (participants.size() == 2) {
-                            String otherUserId = participants.get(0).equals(currentUserId)
-                                    ? participants.get(1)
-                                    : participants.get(0);
-
-                            if (blockedUserIds.contains(otherUserId)) {
-                                completionCounter.setValue(completionCounter.getValue() + 1);
-                                return;
-                            }
-
-                            loadUserForChat(chatId, otherUserId, lastMessage,
-                                    lastMessageTimestamp != null ? lastMessageTimestamp : 0,
-                                    lastMessageSenderId, lastMessageType, chats, completionCounter);
-                            return;
-                        }
-                    }
-                }
-                completionCounter.setValue(completionCounter.getValue() + 1);
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                completionCounter.setValue(completionCounter.getValue() + 1);
-            }
-        };
-
-        activeListeners.put(chatId, listener);
-        FirestoreUtil.getChatRef(chatId).addValueEventListener(listener);
-    }
-
-    private void loadUserForChat(String chatId, String userId, String lastMessage,
-                                 long lastMessageTimestamp, String lastMessageSenderId, String lastMessageType,
-                                 List<Chat> chats, MutableLiveData<Integer> completionCounter) {
-        FirestoreUtil.getUserRef(userId).get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
-                        DocumentSnapshot userSnapshot = task.getResult();
-                        User otherUser = userSnapshot.toObject(User.class);
-                        if (otherUser != null) {
-                            otherUser.setId(userSnapshot.getId());
-
-                            Chat chat = new Chat();
-                            chat.setId(chatId);
-                            chat.setOtherUser(otherUser);
-                            chat.setLastMessage(lastMessage != null ? lastMessage : "");
-                            chat.setLastMessageTimestamp(lastMessageTimestamp);
-                            chat.setLastMessageSenderId(lastMessageSenderId != null ? lastMessageSenderId : "");
-                            chat.setLastMessageType(lastMessageType != null ? lastMessageType : "text");
-
-                            synchronized (chats) {
-                                chats.add(chat);
-                            }
-                        }
-                    }
-                    completionCounter.setValue(completionCounter.getValue() + 1);
-                });
-    }
-
-    private void mergeChatsWithFriends(List<Chat> activeChats, List<String> blockedUserIds) {
-        // Get current empty chats (friends)
-        List<Chat> currentChats = chatsLiveData.getValue();
-        if (currentChats == null) currentChats = new ArrayList<>();
-
-        // Create a map of user IDs from active chats
-        Map<String, Chat> activeChatMap = new HashMap<>();
-        for (Chat chat : activeChats) {
-            activeChatMap.put(chat.getOtherUser().getId(), chat);
+    private void processFriendsData(QuerySnapshot querySnapshot) {
+        if (querySnapshot.isEmpty()) {
+            chatsLiveData.setValue(Collections.emptyList());
+            return;
         }
 
-        // Merge: replace empty chats with active ones, keep empty ones for friends without messages
-        List<Chat> mergedChats = new ArrayList<>();
-        for (Chat friendChat : currentChats) {
-            String friendId = friendChat.getOtherUser().getId();
-            if (activeChatMap.containsKey(friendId)) {
-                // Replace with active chat
-                mergedChats.add(activeChatMap.get(friendId));
-            } else {
-                // Keep empty friend chat
-                mergedChats.add(friendChat);
+        List<Chat> friendChats = new ArrayList<>();
+        
+        for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+            Map<String, Object> friendData = doc.getData();
+            if (friendData != null) {
+                // Create User object from friend data
+                User friend = createUserFromFriendData(doc.getId(), friendData);
+                
+                // Create chat for this friend
+                Chat friendChat = createChatForFriend(friend);
+                friendChats.add(friendChat);
             }
         }
 
-        // Add any active chats that don't have corresponding friends (shouldn't happen normally)
-        for (Chat activeChat : activeChats) {
-            boolean found = false;
-            for (Chat friendChat : currentChats) {
-                if (friendChat.getOtherUser().getId().equals(activeChat.getOtherUser().getId())) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                mergedChats.add(activeChat);
-            }
-        }
+        // Sort friends alphabetically
+        Collections.sort(friendChats, (c1, c2) ->
+                c1.getOtherUser().getName().compareToIgnoreCase(c2.getOtherUser().getName()));
 
-        sortChats(mergedChats);
-        chatsLiveData.setValue(mergedChats);
+        chatsLiveData.setValue(friendChats);
+        
+        // Now load actual chat data from Firestore chats collection to update last messages
+        loadChatMessages(friendChats);
     }
 
-    private void sortChats(List<Chat> chats) {
+    private User createUserFromFriendData(String friendId, Map<String, Object> friendData) {
+        User friend = new User();
+        friend.setId(friendId);
+        friend.setName((String) friendData.get("name"));
+        friend.setEmail((String) friendData.get("email"));
+        friend.setImageUrl((String) friendData.get("imageUrl"));
+        friend.setAbout((String) friendData.get("about"));
+        return friend;
+    }
+
+    private Chat createChatForFriend(User friend) {
+        Chat friendChat = new Chat();
+        String chatId = FirestoreUtil.generateChatId(currentUserId, friend.getId());
+        friendChat.setId(chatId);
+        friendChat.setOtherUser(friend);
+        friendChat.setLastMessage("Tap to start messaging");
+        friendChat.setLastMessageTimestamp(System.currentTimeMillis());
+        friendChat.setLastMessageSenderId("");
+        friendChat.setLastMessageType("empty_chat");
+        return friendChat;
+    }
+
+    private void loadChatMessages(List<Chat> friendChats) {
+        if (friendChats.isEmpty()) return;
+
+        // Create a map for quick lookup
+        Map<String, Chat> chatMap = new HashMap<>();
+        for (Chat chat : friendChats) {
+            chatMap.put(chat.getId(), chat);
+        }
+
+        // Load actual chat data from Firestore
+        for (Chat chat : friendChats) {
+            FirestoreUtil.getChatsCollectionRef()
+                    .document(chat.getId())
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            // Update chat with real data
+                            updateChatFromFirestore(chat, documentSnapshot);
+                        }
+                        // Update the list with modified chat
+                        updateChatsDisplay(friendChats);
+                    })
+                    .addOnFailureListener(e -> {
+                        // Keep the empty chat even if loading fails
+                        updateChatsDisplay(friendChats);
+                    });
+        }
+    }
+
+    private void updateChatFromFirestore(Chat chat, DocumentSnapshot chatDoc) {
+        String lastMessage = chatDoc.getString("lastMessage");
+        Long lastTimestamp = chatDoc.getLong("lastMessageTimestamp");
+        String lastSenderId = chatDoc.getString("lastMessageSenderId");
+        String lastType = chatDoc.getString("lastMessageType");
+
+        if (lastMessage != null && !lastMessage.isEmpty()) {
+            chat.setLastMessage(lastMessage);
+            chat.setLastMessageTimestamp(lastTimestamp != null ? lastTimestamp : System.currentTimeMillis());
+            chat.setLastMessageSenderId(lastSenderId != null ? lastSenderId : "");
+            chat.setLastMessageType(lastType != null ? lastType : "text");
+        }
+    }
+
+    private void updateChatsDisplay(List<Chat> chats) {
+        // Sort chats: active chats first (by timestamp), then empty chats (by name)
         Collections.sort(chats, (c1, c2) -> {
-            // Empty chats (friends without messages) go to bottom, sorted by name
-            boolean c1IsEmpty = "empty_chat".equals(c1.getLastMessageType()) || c1.getLastMessageTimestamp() == 0;
-            boolean c2IsEmpty = "empty_chat".equals(c2.getLastMessageType()) || c2.getLastMessageTimestamp() == 0;
+            boolean c1IsEmpty = "empty_chat".equals(c1.getLastMessageType()) || 
+                              "Tap to start messaging".equals(c1.getLastMessage());
+            boolean c2IsEmpty = "empty_chat".equals(c2.getLastMessageType()) || 
+                              "Tap to start messaging".equals(c2.getLastMessage());
 
             if (c1IsEmpty && c2IsEmpty) {
                 // Both empty - sort by name
@@ -288,9 +167,10 @@ public class ChatRepository {
             // Both have messages - sort by timestamp (newest first)
             return Long.compare(c2.getLastMessageTimestamp(), c1.getLastMessageTimestamp());
         });
+
+        chatsLiveData.setValue(chats);
     }
 
-    // Add the searchChats method that the ViewModel expects
     public LiveData<List<Chat>> searchChats(String query, String userId) {
         MutableLiveData<List<Chat>> searchResults = new MutableLiveData<>();
 
@@ -317,20 +197,52 @@ public class ChatRepository {
 
     public void createNewEmptyChat(String friendId) {
         String chatId = FirestoreUtil.generateChatId(currentUserId, friendId);
-        FirestoreUtil.createNewChatInRealtime(chatId, currentUserId, friendId);
+        
+        // Create chat in Firestore
+        Map<String, Object> chatData = new HashMap<>();
+        chatData.put("id", chatId);
+        chatData.put("type", "direct");
+        chatData.put("createdAt", System.currentTimeMillis());
+        chatData.put("lastMessage", "");
+        chatData.put("lastMessageTimestamp", System.currentTimeMillis());
+        chatData.put("lastMessageSenderId", "");
+
+        Map<String, Boolean> participants = new HashMap<>();
+        participants.put(currentUserId, true);
+        participants.put(friendId, true);
+        chatData.put("participants", participants);
+
+        FirestoreUtil.getChatsCollectionRef().document(chatId).set(chatData);
     }
 
     public void blockUser(String userId) {
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("blockedUsers/" + currentUserId + "/" + userId, true);
-        updates.put("friends/" + currentUserId + "/" + userId, null);
-        updates.put("friends/" + userId + "/" + currentUserId, null);
+        FirestoreUtil.blockUser(currentUserId, userId, new FirestoreUtil.FriendActionCallback() {
+            @Override
+            public void onSuccess() {
+                // Refresh chats to remove blocked user
+                loadFriendsAsChats();
+            }
 
-        FirestoreUtil.getRealtimeDatabase().updateChildren(updates);
+            @Override
+            public void onError(String error) {
+                // Handle error if needed
+            }
+        });
     }
 
     public void unblockUser(String userId) {
-        FirestoreUtil.getRealtimeBlockedUsersRef(currentUserId).child(userId).removeValue();
+        FirestoreUtil.unblockUser(currentUserId, userId, new FirestoreUtil.FriendActionCallback() {
+            @Override
+            public void onSuccess() {
+                // Refresh chats if needed
+                loadFriendsAsChats();
+            }
+
+            @Override
+            public void onError(String error) {
+                // Handle error if needed
+            }
+        });
     }
 
     public interface PrivacyUpdateCallback {
