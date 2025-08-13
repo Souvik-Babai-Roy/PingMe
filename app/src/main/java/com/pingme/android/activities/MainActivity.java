@@ -14,6 +14,7 @@ import com.pingme.android.adapters.ViewPagerAdapter;
 import com.pingme.android.databinding.ActivityMainBinding;
 import com.pingme.android.fragments.CallsFragment;
 import com.pingme.android.fragments.ChatsFragment;
+import com.pingme.android.fragments.StatusFragment;
 import com.pingme.android.utils.FirestoreUtil;
 import com.pingme.android.utils.PreferenceUtils;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -90,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
     private void setupViewPager() {
         ViewPagerAdapter adapter = new ViewPagerAdapter(this);
         adapter.addFragment(new ChatsFragment(), "CHATS");
+        adapter.addFragment(new StatusFragment(), "STATUS");
         adapter.addFragment(new CallsFragment(), "CALLS");
 
         binding.viewPager.setAdapter(adapter);
@@ -99,16 +101,51 @@ public class MainActivity extends AppCompatActivity {
         new TabLayoutMediator(binding.tabLayout, binding.viewPager,
                 (tab, position) -> tab.setText(adapter.getTabTitle(position))
         ).attach();
+
+        // Add page change callback to update FAB
+        binding.viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                updateFABForCurrentTab(position);
+            }
+        });
+
+        // Set initial FAB state
+        updateFABForCurrentTab(0);
+    }
+
+    private void updateFABForCurrentTab(int position) {
+        switch (position) {
+            case 0: // Chats
+                binding.fab.setImageResource(R.drawable.ic_chat_add);
+                binding.fab.setContentDescription("Add Friend");
+                break;
+            case 1: // Status
+                binding.fab.setImageResource(R.drawable.ic_camera);
+                binding.fab.setContentDescription("Add Status");
+                break;
+            case 2: // Calls
+                binding.fab.setImageResource(R.drawable.ic_baseline_person_24);
+                binding.fab.setContentDescription("New Call");
+                break;
+        }
     }
 
     private void setupFAB() {
         binding.fab.setOnClickListener(v -> {
             int currentTab = binding.viewPager.getCurrentItem();
-            if (currentTab == 0) { // Chats tab
-                startActivity(new Intent(this, AddFriendActivity.class));
-            } else if (currentTab == 1) { // Calls tab
-                // Open contacts for calling
-                startActivity(new Intent(this, SelectContactsActivity.class));
+            switch (currentTab) {
+                case 0: // Chats tab
+                    startActivity(new Intent(this, AddFriendActivity.class));
+                    break;
+                case 1: // Status tab
+                    startActivity(new Intent(this, StatusCreationActivity.class));
+                    break;
+                case 2: // Calls tab
+                    // Open contacts for calling
+                    startActivity(new Intent(this, SelectContactsActivity.class));
+                    break;
             }
         });
     }

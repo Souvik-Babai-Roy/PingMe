@@ -252,27 +252,40 @@ public class FirestoreUtil {
 
         Log.d(TAG, "Blocking user: " + userToBlockId + " by user: " + currentUserId);
 
-        Map<String, Object> blockData = new HashMap<>();
-        blockData.put("blockedAt", System.currentTimeMillis());
-        blockData.put("blockedUserId", userToBlockId);
+        // Add to blocked users in Realtime Database
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("blocked_users/" + currentUserId + "/" + userToBlockId, System.currentTimeMillis());
 
-        getBlockedUsersRef(currentUserId).document(userToBlockId).set(blockData)
+        // Hide active chats (don't delete, just mark as inactive)
+        String chatId = generateChatId(currentUserId, userToBlockId);
+        updates.put("user_chats/" + currentUserId + "/" + chatId, false);
+
+        getRealtimeDatabase().updateChildren(updates)
                 .addOnSuccessListener(aVoid -> {
-                    // Remove from friends list if they were friends
-                    removeFriend(currentUserId, userToBlockId, new FriendActionCallback() {
-                        @Override
-                        public void onSuccess() {
-                            Log.d(TAG, "User blocked and removed from friends successfully");
-                            callback.onSuccess();
-                        }
+                    // Also add to Firestore blocked users collection
+                    Map<String, Object> blockData = new HashMap<>();
+                    blockData.put("blockedAt", System.currentTimeMillis());
+                    blockData.put("blockedUserId", userToBlockId);
 
-                        @Override
-                        public void onError(String error) {
-                            // Blocking succeeded but friend removal failed - still consider success
-                            Log.d(TAG, "User blocked successfully (friend removal failed: " + error + ")");
-                            callback.onSuccess();
-                        }
-                    });
+                    getBlockedUsersRef(currentUserId).document(userToBlockId).set(blockData)
+                            .addOnSuccessListener(aVoid1 -> {
+                                // Remove from friends list if they were friends
+                                removeFriend(currentUserId, userToBlockId, new FriendActionCallback() {
+                                    @Override
+                                    public void onSuccess() {
+                                        Log.d(TAG, "User blocked and removed from friends successfully");
+                                        callback.onSuccess();
+                                    }
+
+                                    @Override
+                                    public void onError(String error) {
+                                        // Blocking succeeded but friend removal failed - still consider success
+                                        Log.d(TAG, "User blocked successfully (friend removal failed: " + error + ")");
+                                        callback.onSuccess();
+                                    }
+                                });
+                            })
+                            .addOnFailureListener(e -> callback.onError("Failed to block user in Firestore: " + e.getMessage()));
                 })
                 .addOnFailureListener(e -> callback.onError("Failed to block user: " + e.getMessage()));
     }
@@ -285,10 +298,25 @@ public class FirestoreUtil {
 
         Log.d(TAG, "Unblocking user: " + userToUnblockId + " by user: " + currentUserId);
 
-        getBlockedUsersRef(currentUserId).document(userToUnblockId).delete()
+        // Remove from Realtime Database
+        getRealtimeBlockedUsersRef(currentUserId).child(userToUnblockId).removeValue()
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "User unblocked successfully");
-                    callback.onSuccess();
+                    // Remove from Firestore
+                    getBlockedUsersRef(currentUserId).document(userToUnblockId).delete()
+                            .addOnSuccessListener(aVoid1 -> {
+                                // Restore chat if they're still friends
+                                checkFriendship(currentUserId, userToUnblockId, areFriends -> {
+                                    if (areFriends) {
+                                        String chatId = generateChatId(currentUserId, userToUnblockId);
+                                        getUserChatsRef(currentUserId).child(chatId).setValue(true);
+                                        Log.d(TAG, "Chat restored after unblocking");
+                                    }
+                                });
+
+                                Log.d(TAG, "User unblocked successfully");
+                                callback.onSuccess();
+                            })
+                            .addOnFailureListener(e -> callback.onError("Failed to unblock user in Firestore: " + e.getMessage()));
                 })
                 .addOnFailureListener(e -> callback.onError("Failed to unblock user: " + e.getMessage()));
     }
@@ -299,11 +327,19 @@ public class FirestoreUtil {
     public static void checkIfBlocked(String currentUserId, String otherUserId, BlockStatusCallback callback) {
         if (currentUserId == null || otherUserId == null || callback == null) return;
 
-        getBlockedUsersRef(currentUserId).document(otherUserId).get()
-                .addOnSuccessListener(documentSnapshot -> callback.onResult(documentSnapshot.exists()))
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to check block status", e);
-                    callback.onResult(false); // Default to not blocked if check fails
+        getRealtimeBlockedUsersRef(currentUserId).child(otherUserId)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        boolean isBlocked = dataSnapshot.exists();
+                        callback.onResult(isBlocked);
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        Log.e(TAG, "Failed to check block status", databaseError.toException());
+                        callback.onResult(false);
+                    }
                 });
     }
 
@@ -417,10 +453,8 @@ public class FirestoreUtil {
         createChatBetweenFriends(currentUserId, friendId);
     }
 
-    @Deprecated
     public static CollectionReference getStatusCollectionRef() {
-        // Return empty collection since we're removing status functionality
-        return FirebaseFirestore.getInstance().collection("deprecated_status");
+        return FirebaseFirestore.getInstance().collection("status");
     }
 
     @Deprecated
@@ -429,27 +463,54 @@ public class FirestoreUtil {
         return FirebaseFirestore.getInstance().collection("deprecated_user_public");
     }
 
-    @Deprecated
     public static DatabaseReference getUserChatsRef(String userId) {
-        // Chats are now managed in Firestore
-        return getRealtimeDatabase().child("deprecated_user_chats").child(userId);
+        return getRealtimeDatabase().child("user_chats").child(userId);
     }
 
-    @Deprecated
     public static DatabaseReference getChatRef(String chatId) {
-        // Chats are now managed in Firestore  
-        return getRealtimeDatabase().child("deprecated_chats").child(chatId);
+        return getRealtimeDatabase().child("chats").child(chatId);
     }
 
-    @Deprecated
+    public static DatabaseReference getChatsRef() {
+        return getRealtimeDatabase().child("chats");
+    }
+
     public static DatabaseReference getMessagesRef(String chatId) {
-        // Messages are now managed in Firestore
-        return getRealtimeDatabase().child("deprecated_messages").child(chatId);
+        return getRealtimeDatabase().child("messages").child(chatId);
     }
 
-    @Deprecated
     public static DatabaseReference getRealtimeBlockedUsersRef(String userId) {
-        // Blocked users are now managed in Firestore
-        return getRealtimeDatabase().child("deprecated_blocked_users").child(userId);
+        return getRealtimeDatabase().child("blocked_users").child(userId);
+    }
+
+    public static void createNewChatInRealtime(String chatId, String user1Id, String user2Id) {
+        Log.d(TAG, "Creating new chat: " + chatId + " between " + user1Id + " and " + user2Id);
+
+        Map<String, Object> chatData = new HashMap<>();
+        chatData.put("id", chatId);
+
+        // Participants as a map for easier querying
+        Map<String, Boolean> participants = new HashMap<>();
+        participants.put(user1Id, true);
+        participants.put(user2Id, true);
+        chatData.put("participants", participants);
+
+        chatData.put("lastMessage", "");
+        chatData.put("lastMessageTimestamp", System.currentTimeMillis());
+        chatData.put("lastMessageSenderId", "");
+        chatData.put("lastMessageType", "empty_chat");
+        chatData.put("createdAt", System.currentTimeMillis());
+        chatData.put("type", "direct");
+        chatData.put("isActive", true);
+
+        // Create chat and update user chat references atomically
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("chats/" + chatId, chatData);
+        updates.put("user_chats/" + user1Id + "/" + chatId, true);
+        updates.put("user_chats/" + user2Id + "/" + chatId, true);
+
+        getRealtimeDatabase().updateChildren(updates)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Chat created successfully: " + chatId))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to create chat: " + chatId, e));
     }
 }
