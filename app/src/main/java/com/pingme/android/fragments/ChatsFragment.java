@@ -202,7 +202,12 @@ public class ChatsFragment extends Fragment {
 
                 for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
                     String chatId = chatSnapshot.getKey();
-                    Boolean isActive = chatSnapshot.getValue(Boolean.class);
+                    Boolean isActive = true; // Default to active
+                    
+                    // Read isActive from the object structure
+                    if (chatSnapshot.hasChild("isActive")) {
+                        isActive = chatSnapshot.child("isActive").getValue(Boolean.class);
+                    }
 
                     Log.d(TAG, "Found chat: " + chatId + " active: " + isActive);
 

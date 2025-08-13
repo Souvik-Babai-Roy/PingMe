@@ -582,8 +582,12 @@ public class FirestoreUtil {
         // Create chat and update user chat references atomically
         Map<String, Object> updates = new HashMap<>();
         updates.put("chats/" + chatId, chatData);
-        updates.put("user_chats/" + user1Id + "/" + chatId, true);
-        updates.put("user_chats/" + user2Id + "/" + chatId, true);
+        
+        // Use consistent object structure for user_chats
+        Map<String, Object> chatRef = new HashMap<>();
+        chatRef.put("isActive", true);
+        updates.put("user_chats/" + user1Id + "/" + chatId, chatRef);
+        updates.put("user_chats/" + user2Id + "/" + chatId, chatRef);
 
         getRealtimeDatabase().updateChildren(updates)
                 .addOnSuccessListener(aVoid -> Log.d(TAG, "Chat created successfully: " + chatId))
