@@ -61,6 +61,16 @@ public class User {
         this.imageUrl = imageUrl;
     }
 
+    // Constructor for setup profile with phone number
+    public User(String id, String name, String email, String phoneNumber, String imageUrl) {
+        this();
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.phoneNumber = phoneNumber;
+        this.imageUrl = imageUrl;
+    }
+
     // Getters
     public String getId() { return id; }
     public String getName() { return name != null ? name : ""; }

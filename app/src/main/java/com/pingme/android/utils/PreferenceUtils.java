@@ -48,6 +48,19 @@ public class PreferenceUtils {
         }
     }
 
+    public static String getAppliedTheme() {
+        int currentMode = AppCompatDelegate.getDefaultNightMode();
+        switch (currentMode) {
+            case AppCompatDelegate.MODE_NIGHT_NO:
+                return "light";
+            case AppCompatDelegate.MODE_NIGHT_YES:
+                return "dark";
+            case AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM:
+            default:
+                return "auto";
+        }
+    }
+
     // FIXED: Save theme selection with immediate UI update
     public static void setThemePreference(Context context, String themeValue) {
         savePreference(context, PREF_THEME, themeValue);

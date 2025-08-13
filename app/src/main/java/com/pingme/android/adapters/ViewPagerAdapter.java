@@ -42,4 +42,11 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
         }
         return null;
     }
+
+    public String getTabTitle(int position) {
+        if (position >= 0 && position < titles.size()) {
+            return titles.get(position);
+        }
+        return "";
+    }
 }

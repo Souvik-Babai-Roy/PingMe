@@ -57,91 +57,74 @@ public class FirestoreUtil {
         return getUserRef(userId).collection("settings");
     }
 
-    public static CollectionReference getMessagesCollectionRef() {
-        return FirebaseFirestore.getInstance().collection(COLLECTION_MESSAGES);
+    public static CollectionReference getStatusCollectionRef() {
+        return FirebaseFirestore.getInstance().collection("status");
     }
 
-    public static CollectionReference getChatsCollectionRef() {
-        return FirebaseFirestore.getInstance().collection(COLLECTION_CHATS);
+    // ===== REALTIME DATABASE REFERENCES =====
+
+    private static DatabaseReference getRealtimeDatabase() {
+        return FirebaseDatabase.getInstance().getReference();
     }
 
-    public static CollectionReference getNotificationsCollectionRef() {
-        return FirebaseFirestore.getInstance().collection(COLLECTION_NOTIFICATIONS);
+    public static DatabaseReference getUserChatsRef(String userId) {
+        return getRealtimeDatabase().child("user_chats").child(userId);
     }
 
-    public static CollectionReference getReportsCollectionRef() {
-        return FirebaseFirestore.getInstance().collection(COLLECTION_REPORTS);
+    public static DatabaseReference getChatRef(String chatId) {
+        return getRealtimeDatabase().child("chats").child(chatId);
+    }
+
+    public static DatabaseReference getChatsRef() {
+        return getRealtimeDatabase().child("chats");
+    }
+
+    public static DatabaseReference getMessagesRef(String chatId) {
+        return getRealtimeDatabase().child("messages").child(chatId);
+    }
+
+    public static DatabaseReference getBroadcastRef(String broadcastId) {
+        return getRealtimeDatabase().child("broadcasts").child(broadcastId);
+    }
+
+    public static DatabaseReference getPresenceRef(String userId) {
+        return getRealtimeDatabase().child(RT_PRESENCE).child(userId);
+    }
+
+    public static DatabaseReference getTypingRef(String chatId) {
+        return getRealtimeDatabase().child(RT_TYPING).child(chatId);
     }
 
     // ===== USER MANAGEMENT =====
 
     public static void createUser(User user) {
-        if (user == null || user.getId() == null) return;
+        getUserRef(user.getId()).set(user)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "User created successfully"))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to create user", e));
+    }
 
-        Log.d(TAG, "Creating user: " + user.getId());
-
-        Map<String, Object> userData = new HashMap<>();
-        userData.put("name", user.getName());
-        userData.put("email", user.getEmail());
-        userData.put("phoneNumber", user.getPhoneNumber());
-        userData.put("imageUrl", user.getImageUrl());
-        userData.put("about", user.getAbout());
-        userData.put("joinedAt", user.getJoinedAt());
-        userData.put("isOnline", user.isOnline());
-        userData.put("lastSeen", user.getLastSeen());
-        userData.put("fcmToken", user.getFcmToken());
-
-        // Privacy settings
-        userData.put("profile_photo_enabled", user.isProfilePhotoEnabled());
-        userData.put("last_seen_enabled", user.isLastSeenEnabled());
-        userData.put("about_enabled", user.isAboutEnabled());
-        userData.put("read_receipts_enabled", user.isReadReceiptsEnabled());
-
-        getUserRef(user.getId()).set(userData)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "User created successfully: " + user.getId()))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to create user: " + user.getId(), e));
+    public static void createUserWithDiscoverableProfile(User user) {
+        createUser(user);
+        // Additional profile setup if needed
     }
 
     public static void updateUser(User user) {
-        if (user == null || user.getId() == null) return;
-
-        Log.d(TAG, "Updating user: " + user.getId());
-
-        Map<String, Object> userData = new HashMap<>();
-        userData.put("name", user.getName());
-        userData.put("email", user.getEmail());
-        userData.put("phoneNumber", user.getPhoneNumber());
-        userData.put("imageUrl", user.getImageUrl());
-        userData.put("about", user.getAbout());
-        userData.put("fcmToken", user.getFcmToken());
-
-        // Privacy settings
-        userData.put("profile_photo_enabled", user.isProfilePhotoEnabled());
-        userData.put("last_seen_enabled", user.isLastSeenEnabled());
-        userData.put("about_enabled", user.isAboutEnabled());
-        userData.put("read_receipts_enabled", user.isReadReceiptsEnabled());
-
-        getUserRef(user.getId()).update(userData)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "User updated successfully: " + user.getId()))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to update user: " + user.getId(), e));
+        getUserRef(user.getId()).set(user)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "User updated successfully"))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to update user", e));
     }
 
-    // ===== FRIEND MANAGEMENT =====
+    // ===== SEARCH FUNCTIONALITY =====
 
-    /**
-     * Search user by email for friend requests
-     */
     public static void searchUserByEmail(String email, UserSearchCallback callback) {
-        if (email == null || callback == null) return;
-
         getUsersCollectionRef()
-                .whereEqualTo("email", email.toLowerCase().trim())
+                .whereEqualTo("email", email.toLowerCase())
+                .limit(1)
                 .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && !task.getResult().isEmpty()) {
-                        User user = task.getResult().getDocuments().get(0).toObject(User.class);
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!querySnapshot.isEmpty()) {
+                        User user = querySnapshot.getDocuments().get(0).toObject(User.class);
                         if (user != null) {
-                            user.setId(task.getResult().getDocuments().get(0).getId());
                             callback.onUserFound(user);
                         } else {
                             callback.onUserNotFound();
@@ -150,180 +133,90 @@ public class FirestoreUtil {
                         callback.onUserNotFound();
                     }
                 })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Search failed", e);
-                    callback.onError(e.getMessage());
-                });
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
-    /**
-     * Add a friend
-     */
-    public static void addFriend(String currentUserId, User friendUser, FriendActionCallback callback) {
-        if (currentUserId == null || friendUser == null || callback == null) return;
+    // ===== FRIEND MANAGEMENT =====
 
-        Log.d(TAG, "Adding friend: " + friendUser.getId() + " for user: " + currentUserId);
+    public static void addFriend(String currentUserId, String friendId, FriendActionCallback callback) {
+        Map<String, Object> friendData = new HashMap<>();
+        friendData.put("userId", friendId);
+        friendData.put("addedAt", System.currentTimeMillis());
 
-        // Check if already blocked
-        checkIfBlocked(currentUserId, friendUser.getId(), isBlocked -> {
-            if (isBlocked) {
-                callback.onError("Cannot add blocked user");
-                return;
-            }
-
-            checkIfBlocked(friendUser.getId(), currentUserId, hasBlockedMe -> {
-                if (hasBlockedMe) {
-                    callback.onError("Cannot add this user");
-                    return;
-                }
-
-                // Get current user data
-                getUserRef(currentUserId).get().addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        User currentUser = documentSnapshot.toObject(User.class);
-                        if (currentUser != null) {
-                            currentUser.setId(currentUserId);
-                            performAddFriend(currentUser, friendUser, callback);
-                        } else {
-                            callback.onError("Failed to get current user data");
-                        }
-                    } else {
-                        callback.onError("Current user not found");
-                    }
-                }).addOnFailureListener(e -> callback.onError("Failed to get current user: " + e.getMessage()));
-            });
-        });
-    }
-
-    private static void performAddFriend(User currentUser, User friendUser, FriendActionCallback callback) {
-        // Create friend data objects
-        Map<String, Object> currentUserData = createFriendData(currentUser);
-        Map<String, Object> friendUserData = createFriendData(friendUser);
-
-        // Add to both users' friends lists
-        getFriendsRef(currentUser.getId()).document(friendUser.getId()).set(friendUserData)
+        getFriendsRef(currentUserId).document(friendId).set(friendData)
                 .addOnSuccessListener(aVoid -> {
-                    getFriendsRef(friendUser.getId()).document(currentUser.getId()).set(currentUserData)
-                            .addOnSuccessListener(aVoid1 -> {
-                                Log.d(TAG, "Friendship created successfully between " + currentUser.getId() + " and " + friendUser.getId());
-                                createChatBetweenFriends(currentUser.getId(), friendUser.getId());
+                    // Add reverse friendship
+                    Map<String, Object> reverseFriendData = new HashMap<>();
+                    reverseFriendData.put("userId", currentUserId);
+                    reverseFriendData.put("addedAt", System.currentTimeMillis());
+                    
+                    getFriendsRef(friendId).document(currentUserId).set(reverseFriendData)
+                            .addOnSuccessListener(aVoid2 -> {
+                                // Create chat between friends
+                                String chatId = generateChatId(currentUserId, friendId);
+                                createNewChatInRealtime(chatId, currentUserId, friendId);
                                 callback.onSuccess();
                             })
-                            .addOnFailureListener(e -> callback.onError("Failed to add to friend's list: " + e.getMessage()));
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
                 })
-                .addOnFailureListener(e -> callback.onError("Failed to add to your friends list: " + e.getMessage()));
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
-    private static Map<String, Object> createFriendData(User user) {
-        Map<String, Object> friendData = new HashMap<>();
-        friendData.put("name", user.getName());
-        friendData.put("email", user.getEmail());
-        friendData.put("imageUrl", user.getImageUrl());
-        friendData.put("about", user.getAbout());
-        friendData.put("addedAt", System.currentTimeMillis());
-        return friendData;
-    }
-
-    /**
-     * Remove a friend
-     */
     public static void removeFriend(String currentUserId, String friendId, FriendActionCallback callback) {
-        if (currentUserId == null || friendId == null || callback == null) return;
-
-        Log.d(TAG, "Removing friend: " + friendId + " from user: " + currentUserId);
-
         getFriendsRef(currentUserId).document(friendId).delete()
                 .addOnSuccessListener(aVoid -> {
                     getFriendsRef(friendId).document(currentUserId).delete()
-                            .addOnSuccessListener(aVoid1 -> {
-                                Log.d(TAG, "Friendship removed successfully");
-                                callback.onSuccess();
-                            })
-                            .addOnFailureListener(e -> callback.onError("Failed to remove from friend's list: " + e.getMessage()));
+                            .addOnSuccessListener(aVoid2 -> callback.onSuccess())
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
                 })
-                .addOnFailureListener(e -> callback.onError("Failed to remove from your friends list: " + e.getMessage()));
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
-    /**
-     * Block a user
-     */
-    public static void blockUser(String currentUserId, String userToBlockId, FriendActionCallback callback) {
-        if (currentUserId == null || userToBlockId == null || callback == null) return;
-
-        Log.d(TAG, "Blocking user: " + userToBlockId + " by user: " + currentUserId);
-
-        // Add to blocked users in Realtime Database
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("blocked_users/" + currentUserId + "/" + userToBlockId, System.currentTimeMillis());
-
-        // Hide active chats (don't delete, just mark as inactive)
-        String chatId = generateChatId(currentUserId, userToBlockId);
-        updates.put("user_chats/" + currentUserId + "/" + chatId, false);
-
-        getRealtimeDatabase().updateChildren(updates)
+    public static void blockUser(String currentUserId, String blockedUserId, FriendActionCallback callback) {
+        // First update Realtime Database
+        Map<String, Object> blockData = new HashMap<>();
+        blockData.put("blockedAt", System.currentTimeMillis());
+        
+        getRealtimeBlockedUsersRef(currentUserId).child(blockedUserId).setValue(true)
                 .addOnSuccessListener(aVoid -> {
-                    // Also add to Firestore blocked users collection
-                    Map<String, Object> blockData = new HashMap<>();
-                    blockData.put("blockedAt", System.currentTimeMillis());
-                    blockData.put("blockedUserId", userToBlockId);
-
-                    getBlockedUsersRef(currentUserId).document(userToBlockId).set(blockData)
-                            .addOnSuccessListener(aVoid1 -> {
-                                // Remove from friends list if they were friends
-                                removeFriend(currentUserId, userToBlockId, new FriendActionCallback() {
-                                    @Override
-                                    public void onSuccess() {
-                                        Log.d(TAG, "User blocked and removed from friends successfully");
-                                        callback.onSuccess();
-                                    }
-
-                                    @Override
-                                    public void onError(String error) {
-                                        // Blocking succeeded but friend removal failed - still consider success
-                                        Log.d(TAG, "User blocked successfully (friend removal failed: " + error + ")");
-                                        callback.onSuccess();
-                                    }
-                                });
+                    // Update chat to inactive
+                    String chatId = generateChatId(currentUserId, blockedUserId);
+                    getUserChatsRef(currentUserId).child(chatId).child("isActive").setValue(false);
+                    getUserChatsRef(blockedUserId).child(chatId).child("isActive").setValue(false);
+                    
+                    // Update Firestore
+                    getBlockedUsersRef(currentUserId).document(blockedUserId).set(blockData)
+                            .addOnSuccessListener(aVoid2 -> {
+                                // Remove friendship
+                                removeFriend(currentUserId, blockedUserId, callback);
                             })
-                            .addOnFailureListener(e -> callback.onError("Failed to block user in Firestore: " + e.getMessage()));
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
                 })
-                .addOnFailureListener(e -> callback.onError("Failed to block user: " + e.getMessage()));
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
-    /**
-     * Unblock a user
-     */
-    public static void unblockUser(String currentUserId, String userToUnblockId, FriendActionCallback callback) {
-        if (currentUserId == null || userToUnblockId == null || callback == null) return;
-
-        Log.d(TAG, "Unblocking user: " + userToUnblockId + " by user: " + currentUserId);
-
+    public static void unblockUser(String currentUserId, String unblockedUserId, FriendActionCallback callback) {
         // Remove from Realtime Database
-        getRealtimeBlockedUsersRef(currentUserId).child(userToUnblockId).removeValue()
+        getRealtimeBlockedUsersRef(currentUserId).child(unblockedUserId).removeValue()
                 .addOnSuccessListener(aVoid -> {
                     // Remove from Firestore
-                    getBlockedUsersRef(currentUserId).document(userToUnblockId).delete()
-                            .addOnSuccessListener(aVoid1 -> {
-                                // Restore chat if they're still friends
-                                checkFriendship(currentUserId, userToUnblockId, areFriends -> {
+                    getBlockedUsersRef(currentUserId).document(unblockedUserId).delete()
+                            .addOnSuccessListener(aVoid2 -> {
+                                // Check if they are still friends and restore chat if needed
+                                checkFriendship(currentUserId, unblockedUserId, areFriends -> {
                                     if (areFriends) {
-                                        String chatId = generateChatId(currentUserId, userToUnblockId);
-                                        getUserChatsRef(currentUserId).child(chatId).setValue(true);
-                                        Log.d(TAG, "Chat restored after unblocking");
+                                        String chatId = generateChatId(currentUserId, unblockedUserId);
+                                        getUserChatsRef(currentUserId).child(chatId).child("isActive").setValue(true);
+                                        getUserChatsRef(unblockedUserId).child(chatId).child("isActive").setValue(true);
                                     }
+                                    callback.onSuccess();
                                 });
-
-                                Log.d(TAG, "User unblocked successfully");
-                                callback.onSuccess();
                             })
-                            .addOnFailureListener(e -> callback.onError("Failed to unblock user in Firestore: " + e.getMessage()));
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
                 })
-                .addOnFailureListener(e -> callback.onError("Failed to unblock user: " + e.getMessage()));
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
-    /**
-     * Check if a user is blocked
-     */
     public static void checkIfBlocked(String currentUserId, String otherUserId, BlockStatusCallback callback) {
         if (currentUserId == null || otherUserId == null || callback == null) return;
 
@@ -343,140 +236,234 @@ public class FirestoreUtil {
                 });
     }
 
-    /**
-     * Check if users are friends
-     */
-    public static void checkFriendship(String userId1, String userId2, FriendshipStatusCallback callback) {
-        if (userId1 == null || userId2 == null || callback == null) return;
-
-        getFriendsRef(userId1).document(userId2).get()
+    public static void checkFriendship(String currentUserId, String otherUserId, FriendshipStatusCallback callback) {
+        getFriendsRef(currentUserId).document(otherUserId)
+                .get()
                 .addOnSuccessListener(documentSnapshot -> callback.onResult(documentSnapshot.exists()))
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to check friendship status", e);
-                    callback.onResult(false); // Default to not friends if check fails
+                .addOnFailureListener(e -> callback.onResult(false));
+    }
+
+    public static void getBlockedUsers(String userId, BlockedUsersCallback callback) {
+        getBlockedUsersRef(userId).get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<String> blockedUserIds = new ArrayList<>();
+                    querySnapshot.forEach(doc -> blockedUserIds.add(doc.getId()));
+                    
+                    if (blockedUserIds.isEmpty()) {
+                        callback.onBlockedUsersLoaded(new ArrayList<>());
+                        return;
+                    }
+                    
+                    // Load user details
+                    List<User> blockedUsers = new ArrayList<>();
+                    for (String blockedId : blockedUserIds) {
+                        getUserRef(blockedId).get()
+                                .addOnSuccessListener(userDoc -> {
+                                    User user = userDoc.toObject(User.class);
+                                    if (user != null) {
+                                        blockedUsers.add(user);
+                                    }
+                                    
+                                    if (blockedUsers.size() == blockedUserIds.size()) {
+                                        callback.onBlockedUsersLoaded(blockedUsers);
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    // ===== MESSAGING =====
+
+    public static void sendMessageWithDeliveryTracking(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
+        Message message = new Message();
+        message.setId(getMessagesRef(chatId).push().getKey());
+        message.setSenderId(senderId);
+        message.setText(text);
+        message.setType(type);
+        message.setTimestamp(System.currentTimeMillis());
+        message.setStatus(Message.STATUS_SENT);
+        
+        if (mediaData != null) {
+            if (mediaData.containsKey("imageUrl")) message.setImageUrl((String) mediaData.get("imageUrl"));
+            if (mediaData.containsKey("videoUrl")) message.setVideoUrl((String) mediaData.get("videoUrl"));
+            if (mediaData.containsKey("audioUrl")) message.setAudioUrl((String) mediaData.get("audioUrl"));
+            if (mediaData.containsKey("fileUrl")) message.setFileUrl((String) mediaData.get("fileUrl"));
+            if (mediaData.containsKey("fileName")) message.setFileName((String) mediaData.get("fileName"));
+            if (mediaData.containsKey("fileSize")) message.setFileSize((Long) mediaData.get("fileSize"));
+            if (mediaData.containsKey("duration")) message.setDuration((Long) mediaData.get("duration"));
+        }
+        
+        sendMessageToRealtime(chatId, senderId, text, type, mediaData);
+    }
+
+    public static void sendMessageToRealtime(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
+        String messageId = getMessagesRef(chatId).push().getKey();
+        if (messageId == null) return;
+        
+        Map<String, Object> messageData = new HashMap<>();
+        messageData.put("id", messageId);
+        messageData.put("senderId", senderId);
+        messageData.put("text", text);
+        messageData.put("type", type);
+        messageData.put("timestamp", System.currentTimeMillis());
+        messageData.put("status", Message.STATUS_SENT);
+        
+        if (mediaData != null) {
+            messageData.putAll(mediaData);
+        }
+        
+        // Add message to chat
+        getMessagesRef(chatId).child(messageId).setValue(messageData);
+        
+        // Update chat's last message
+        Map<String, Object> chatUpdate = new HashMap<>();
+        chatUpdate.put("lastMessage", text);
+        chatUpdate.put("lastMessageTimestamp", System.currentTimeMillis());
+        chatUpdate.put("lastMessageSenderId", senderId);
+        chatUpdate.put("lastMessageType", type);
+        
+        getChatRef(chatId).updateChildren(chatUpdate);
+    }
+
+    public static void editMessage(String chatId, String messageId, String newText) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("text", newText);
+        updates.put("isEdited", true);
+        updates.put("editTimestamp", System.currentTimeMillis());
+        
+        getMessagesRef(chatId).child(messageId).updateChildren(updates);
+    }
+
+    public static void deleteMessageForUser(String chatId, String messageId, String userId) {
+        getMessagesRef(chatId).child(messageId).child("deletedFor").child(userId).setValue(true);
+    }
+
+    public static void deleteMessageForEveryone(String chatId, String messageId, String userId) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("text", "This message was deleted");
+        updates.put("isDeleted", true);
+        updates.put("deletedBy", userId);
+        updates.put("deletedAt", System.currentTimeMillis());
+        
+        getMessagesRef(chatId).child(messageId).updateChildren(updates);
+    }
+
+    public static void markAllMessagesAsRead(String chatId, String userId) {
+        getMessagesRef(chatId).orderByChild("status")
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        Map<String, Object> updates = new HashMap<>();
+                        for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
+                            String senderId = messageSnapshot.child("senderId").getValue(String.class);
+                            if (!userId.equals(senderId)) {
+                                updates.put(messageSnapshot.getKey() + "/status", Message.STATUS_READ);
+                                updates.put(messageSnapshot.getKey() + "/readAt", System.currentTimeMillis());
+                            }
+                        }
+                        
+                        if (!updates.isEmpty()) {
+                            getMessagesRef(chatId).updateChildren(updates);
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        Log.e(TAG, "Failed to mark messages as read", databaseError.toException());
+                    }
                 });
     }
 
-    // ===== CHAT MANAGEMENT =====
-
-    public static String generateChatId(String userId1, String userId2) {
-        if (userId1.compareTo(userId2) < 0) {
-            return userId1 + "_" + userId2;
-        } else {
-            return userId2 + "_" + userId1;
-        }
+    public static void clearChatHistory(String chatId) {
+        getMessagesRef(chatId).removeValue()
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Chat history cleared: " + chatId))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to clear chat history: " + chatId, e));
     }
 
-    private static void createChatBetweenFriends(String userId1, String userId2) {
-        String chatId = generateChatId(userId1, userId2);
-        Log.d(TAG, "Creating chat between friends: " + chatId);
+    // ===== PRESENCE & TYPING =====
 
-        Map<String, Object> chatData = new HashMap<>();
-        chatData.put("id", chatId);
-        chatData.put("type", "direct");
-        chatData.put("createdAt", System.currentTimeMillis());
-        chatData.put("lastMessage", "");
-        chatData.put("lastMessageTimestamp", System.currentTimeMillis());
-        chatData.put("lastMessageSenderId", "");
-
-        Map<String, Boolean> participants = new HashMap<>();
-        participants.put(userId1, true);
-        participants.put(userId2, true);
-        chatData.put("participants", participants);
-
-        getChatsCollectionRef().document(chatId).set(chatData)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "Chat created successfully: " + chatId))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to create chat: " + chatId, e));
+    public static void updatePresence(String userId, boolean isOnline) {
+        Map<String, Object> presenceData = new HashMap<>();
+        presenceData.put("isOnline", isOnline);
+        presenceData.put("lastSeen", System.currentTimeMillis());
+        
+        getPresenceRef(userId).setValue(presenceData);
     }
 
-    // ===== REALTIME DATABASE METHODS (for presence and typing) =====
-
-    public static DatabaseReference getRealtimeDatabase() {
-        return FirebaseDatabase.getInstance().getReference();
-    }
-
-    public static DatabaseReference getRealtimePresenceRef(String userId) {
-        return getRealtimeDatabase().child(RT_PRESENCE).child(userId);
-    }
-
-    public static DatabaseReference getTypingRef(String chatId) {
-        return getRealtimeDatabase().child(RT_TYPING).child(chatId);
+    public static void updateUserPresence(String userId, boolean isOnline) {
+        updatePresence(userId, isOnline);
     }
 
     public static void setTyping(String chatId, String userId, boolean isTyping) {
-        if (chatId == null || userId == null) return;
-        getTypingRef(chatId).child(userId).setValue(isTyping);
+        if (isTyping) {
+            getTypingRef(chatId).child(userId).setValue(System.currentTimeMillis());
+        } else {
+            getTypingRef(chatId).child(userId).removeValue();
+        }
     }
 
-    public static void updatePresence(String userId, boolean isOnline) {
-        if (userId == null) return;
+    // ===== BROADCAST FUNCTIONALITY =====
 
-        Map<String, Object> presenceData = new HashMap<>();
-        presenceData.put("online", isOnline);
-        presenceData.put("lastSeen", System.currentTimeMillis());
-
-        getRealtimePresenceRef(userId).setValue(presenceData);
+    public static void createBroadcastList(String name, String creatorId, List<String> memberIds, BroadcastCallback callback) {
+        String broadcastId = getBroadcastRef("").push().getKey();
+        if (broadcastId == null) {
+            callback.onError("Failed to generate broadcast ID");
+            return;
+        }
+        
+        Map<String, Object> broadcastData = new HashMap<>();
+        broadcastData.put("id", broadcastId);
+        broadcastData.put("name", name);
+        broadcastData.put("creatorId", creatorId);
+        broadcastData.put("members", memberIds);
+        broadcastData.put("createdAt", System.currentTimeMillis());
+        
+        getBroadcastRef(broadcastId).setValue(broadcastData)
+                .addOnSuccessListener(aVoid -> {
+                    Broadcast broadcast = new Broadcast();
+                    broadcast.setId(broadcastId);
+                    broadcast.setName(name);
+                    broadcast.setCreatorId(creatorId);
+                    callback.onBroadcastCreated(broadcast);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
-    // ===== CALLBACK INTERFACES =====
+    public static void loadUserBroadcasts(String userId, BroadcastListCallback callback) {
+        getRealtimeDatabase().child("user_broadcasts").child(userId)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        List<Broadcast> broadcasts = new ArrayList<>();
+                        for (DataSnapshot broadcastSnapshot : dataSnapshot.getChildren()) {
+                            Broadcast broadcast = broadcastSnapshot.getValue(Broadcast.class);
+                            if (broadcast != null) {
+                                broadcasts.add(broadcast);
+                            }
+                        }
+                        callback.onBroadcastsLoaded(broadcasts);
+                    }
 
-    public interface UserSearchCallback {
-        void onUserFound(User user);
-        void onUserNotFound();
-        void onError(String error);
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                        callback.onError(databaseError.getMessage());
+                    }
+                });
     }
 
-    public interface FriendActionCallback {
-        void onSuccess();
-        void onError(String error);
+    // ===== FCM TOKEN MANAGEMENT =====
+
+    public static void updateFCMToken(String userId, String token) {
+        getUserRef(userId).update("fcmToken", token)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "FCM token updated"))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to update FCM token", e));
     }
 
-    public interface BlockStatusCallback {
-        void onResult(boolean isBlocked);
-    }
+    // ===== UTILITY METHODS =====
 
-    public interface FriendshipStatusCallback {
-        void onResult(boolean areFriends);
-    }
-
-    // Keep existing methods for backward compatibility but update them to work with new structure
-    
-    // ===== DEPRECATED METHODS (for backward compatibility) =====
-    
-    @Deprecated
-    public static void searchUserForFriendRequest(String email, UserSearchCallback callback) {
-        searchUserByEmail(email, callback);
-    }
-
-    @Deprecated
-    public static void createEmptyFriendChat(String currentUserId, String friendId) {
-        createChatBetweenFriends(currentUserId, friendId);
-    }
-
-    public static CollectionReference getStatusCollectionRef() {
-        return FirebaseFirestore.getInstance().collection("status");
-    }
-
-    @Deprecated
-    public static CollectionReference getUserPublicCollectionRef() {
-        // No longer needed with simplified structure
-        return FirebaseFirestore.getInstance().collection("deprecated_user_public");
-    }
-
-    public static DatabaseReference getUserChatsRef(String userId) {
-        return getRealtimeDatabase().child("user_chats").child(userId);
-    }
-
-    public static DatabaseReference getChatRef(String chatId) {
-        return getRealtimeDatabase().child("chats").child(chatId);
-    }
-
-    public static DatabaseReference getChatsRef() {
-        return getRealtimeDatabase().child("chats");
-    }
-
-    public static DatabaseReference getMessagesRef(String chatId) {
-        return getRealtimeDatabase().child("messages").child(chatId);
+    public static String generateChatId(String userId1, String userId2) {
+        return userId1.compareTo(userId2) < 0 ? userId1 + "_" + userId2 : userId2 + "_" + userId1;
     }
 
     public static DatabaseReference getRealtimeBlockedUsersRef(String userId) {
@@ -621,7 +608,41 @@ public class FirestoreUtil {
         }
     }
 
-    // ===== CALLBACK INTERFACES FOR SEARCH =====
+    // ===== CALLBACK INTERFACES =====
+
+    public interface UserSearchCallback {
+        void onUserFound(User user);
+        void onUserNotFound();
+        void onError(String error);
+    }
+
+    public interface FriendActionCallback {
+        void onSuccess();
+        void onError(String error);
+    }
+
+    public interface BlockStatusCallback {
+        void onResult(boolean isBlocked);
+    }
+
+    public interface FriendshipStatusCallback {
+        void onResult(boolean areFriends);
+    }
+
+    public interface BlockedUsersCallback {
+        void onBlockedUsersLoaded(List<User> blockedUsers);
+        void onError(String error);
+    }
+
+    public interface BroadcastCallback {
+        void onBroadcastCreated(Broadcast broadcast);
+        void onError(String error);
+    }
+
+    public interface BroadcastListCallback {
+        void onBroadcastsLoaded(List<Broadcast> broadcasts);
+        void onError(String error);
+    }
 
     public interface SearchCallback {
         void onSearchComplete(List<SearchResult> results);

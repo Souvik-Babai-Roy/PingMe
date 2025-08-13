@@ -82,12 +82,12 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusView
             // Set status indicator based on viewed status
             if (status.isViewed()) {
                 // User has viewed this status
-                binding.statusIndicator.setStrokeWidth(2);
-                binding.statusIndicator.setStrokeColor(context.getColor(R.color.gray_light));
+                binding.statusIndicator.setBorderWidth(2);
+                binding.statusIndicator.setBorderColor(context.getColor(R.color.gray_light));
             } else {
                 // User hasn't viewed this status
-                binding.statusIndicator.setStrokeWidth(6);
-                binding.statusIndicator.setStrokeColor(context.getColor(R.color.colorPrimary));
+                binding.statusIndicator.setBorderWidth(6);
+                binding.statusIndicator.setBorderColor(context.getColor(R.color.colorPrimary));
             }
 
             // Handle different status types

@@ -421,4 +421,11 @@ public class CloudinaryUtil {
 
         return future;
     }
+
+    // ===== CALLBACK INTERFACES =====
+
+    public interface UploadCallback {
+        void onUploadSuccess(String imageUrl);
+        void onUploadError(String error);
+    }
 }
