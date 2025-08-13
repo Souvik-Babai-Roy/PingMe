@@ -6,51 +6,63 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
+        
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical">
+            
+            <!-- My Status Section -->
             <LinearLayout
                 android:id="@+id/layoutMyStatus"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:padding="16dp"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:background="?attr/selectableItemBackground">
+                
                 <ImageView
                     android:id="@+id/ivMyStatus"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
                     android:src="@drawable/ic_baseline_person_24"
                     android:background="@drawable/senderchatdrawable"/>
+                
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:layout_marginStart="16dp">
+                    
                     <TextView
-                        android:id="@+id/tvMyStatusName"
+                        android:id="@+id/textMyStatusTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="My Status"
                         android:textStyle="bold"
                         android:textSize="16sp"/>
+                    
                     <TextView
-                        android:id="@+id/tvMyStatusText"
+                        android:id="@+id/textMyStatusSubtitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Tap to add status update"
                         android:textColor="@color/textColorSecondary"
                         android:textSize="14sp"/>
+                    
                     <TextView
-                        android:id="@+id/tvMyStatusTime"
+                        android:id="@+id/textMyStatusTime"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text=""
                         android:textColor="@color/textColorTertiary"
-                        android:textSize="12sp"/>
+                        android:textSize="12sp"
+                        android:visibility="gone"/>
+                        
                 </LinearLayout>
+                
                 <ImageView
                     android:id="@+id/ivMyStatusIndicator"
                     android:layout_width="16dp"
@@ -58,7 +70,10 @@
                     android:src="@drawable/ic_check"
                     android:visibility="gone"
                     android:layout_marginStart="8dp"/>
+                    
             </LinearLayout>
+            
+            <!-- Status List -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerViewStatus"
                 android:layout_width="match_parent"
@@ -67,7 +82,22 @@
                 android:padding="8dp"
                 android:clipToPadding="false"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+            
+            <!-- No Status Text -->
+            <TextView
+                android:id="@+id/textNoStatus"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="No statuses to show"
+                android:textColor="@color/textColorSecondary"
+                android:textSize="16sp"
+                android:visibility="gone"/>
+                
         </LinearLayout>
+        
+        <!-- Empty State (alternative) -->
         <LinearLayout
             android:id="@+id/layoutEmptyState"
             android:layout_width="match_parent"
@@ -75,11 +105,13 @@
             android:gravity="center"
             android:orientation="vertical"
             android:visibility="gone">
+            
             <ImageView
                 android:layout_width="96dp"
                 android:layout_height="96dp"
                 android:src="@drawable/ic_baseline_person_24"
                 app:tint="@color/colorPrimary" />
+                
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -87,7 +119,18 @@
                 android:textColor="@color/textColorSecondary"
                 android:textSize="18sp"
                 android:layout_marginTop="16dp"/>
+                
         </LinearLayout>
+        
+        <!-- Progress Bar -->
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+        
+        <!-- Add Status FAB -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fabAddStatus"
             android:layout_width="wrap_content"
@@ -99,5 +142,6 @@
             app:srcCompat="@drawable/ic_camera"
             app:elevation="6dp"
             android:contentDescription="Add Status" />
+            
     </FrameLayout>
 </layout>

@@ -19,6 +19,11 @@
     <color name="textColorPrimary">#1A1A1A</color>
     <color name="textColorSecondary">#4A4A4A</color>
     <color name="textColorTertiary">#757575</color>
+    
+    <!-- Gray Colors -->
+    <color name="gray_light">#E0E0E0</color>
+    <color name="gray_medium">#9E9E9E</color>
+    <color name="gray_dark">#424242</color>
 
     <!-- Message Bubble Colors -->
     <color name="sender_bubble">#D1C4E9</color>

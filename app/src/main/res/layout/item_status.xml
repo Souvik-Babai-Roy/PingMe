@@ -1,42 +1,128 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:padding="12dp"
     android:background="?attr/selectableItemBackground">
-    <ImageView
-        android:id="@+id/ivProfile"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:src="@drawable/ic_profile"/>
+
+    <!-- User Profile Section -->
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/imageUserProfile"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:src="@drawable/ic_person_outline"
+            app:civ_border_width="2dp"
+            app:civ_border_color="@color/gray_light" />
+            
+        <!-- Status Indicator Ring -->
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/statusIndicator"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="center"
+            app:civ_border_width="2dp"
+            app:civ_border_color="@color/gray_light"
+            android:visibility="visible" />
+            
+    </FrameLayout>
+
+    <!-- Status Content Section -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:layout_marginStart="16dp">
+        android:layout_marginStart="16dp"
+        android:layout_gravity="center_vertical">
+
+        <!-- User Name -->
         <TextView
-            android:id="@+id/tvName"
+            android:id="@+id/textUserName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="User Name"
             android:textStyle="bold"
-            android:textSize="16sp"/>
+            android:textSize="16sp"
+            android:textColor="?attr/colorOnSurface"
+            tools:text="John Doe" />
+
+        <!-- Status Preview -->
+        <FrameLayout
+            android:id="@+id/statusPreview"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/rounded_card_background"
+            android:visibility="visible">
+
+            <!-- Status Text -->
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:padding="16dp"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/white"
+                android:visibility="gone"
+                tools:text="Hello World!"
+                tools:visibility="visible" />
+
+            <!-- Status Image -->
+            <ImageView
+                android:id="@+id/statusImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                tools:src="@tools:sample/backgrounds/scenic"
+                tools:visibility="visible" />
+
+            <!-- Play Icon for Videos -->
+            <ImageView
+                android:id="@+id/playIcon"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_play_circle"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+        </FrameLayout>
+
+        <!-- Viewer Count (for own statuses) -->
         <TextView
-            android:id="@+id/tvContent"
+            android:id="@+id/textViewerCount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Status content"
-            android:textColor="@color/textColorSecondary"
-            android:textSize="14sp"/>
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textColor="@color/textColorTertiary"
+            android:visibility="gone"
+            tools:text="3 views"
+            tools:visibility="visible" />
+
     </LinearLayout>
+
+    <!-- Time Section -->
     <TextView
-        android:id="@+id/tvTime"
+        android:id="@+id/textTime"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="10:30 AM"
         android:textColor="@color/textColorTertiary"
         android:textSize="12sp"
-        android:layout_gravity="center_vertical"/>
+        android:layout_gravity="top"
+        android:layout_marginTop="4dp"
+        tools:text="2h ago" />
+
 </LinearLayout>
