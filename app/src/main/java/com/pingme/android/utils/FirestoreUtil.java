@@ -4,6 +4,10 @@ import android.util.Log;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import androidx.annotation.NonNull;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -365,30 +369,39 @@ public class FirestoreUtil {
     // ===== MESSAGING =====
 
     public static void sendMessageWithDeliveryTracking(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
-        Message message = new Message();
-        message.setId(getMessagesRef(chatId).push().getKey());
-        message.setSenderId(senderId);
-        message.setText(text);
-        message.setType(type);
-        message.setTimestamp(System.currentTimeMillis());
-        message.setStatus(Message.STATUS_SENT);
-        
-        if (mediaData != null) {
-            if (mediaData.containsKey("imageUrl")) message.setImageUrl((String) mediaData.get("imageUrl"));
-            if (mediaData.containsKey("videoUrl")) message.setVideoUrl((String) mediaData.get("videoUrl"));
-            if (mediaData.containsKey("audioUrl")) message.setAudioUrl((String) mediaData.get("audioUrl"));
-            if (mediaData.containsKey("fileUrl")) message.setFileUrl((String) mediaData.get("fileUrl"));
-            if (mediaData.containsKey("fileName")) message.setFileName((String) mediaData.get("fileName"));
-            if (mediaData.containsKey("fileSize")) message.setFileSize((Long) mediaData.get("fileSize"));
-            if (mediaData.containsKey("duration")) message.setDuration((Long) mediaData.get("duration"));
+        if (chatId == null || senderId == null || text == null) {
+            Log.e(TAG, "Invalid parameters for sending message");
+            return;
         }
         
-        sendMessageToRealtime(chatId, senderId, text, type, mediaData);
+        Log.d(TAG, "Sending message to chat: " + chatId + " from: " + senderId + " text: " + text);
+        
+        // First ensure chat exists
+        getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (!dataSnapshot.exists()) {
+                    Log.d(TAG, "Chat doesn't exist, cannot send message");
+                    return;
+                }
+                sendMessageToRealtime(chatId, senderId, text, type, mediaData);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Failed to check chat existence", databaseError.toException());
+            }
+        });
     }
 
     public static void sendMessageToRealtime(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
         String messageId = getMessagesRef(chatId).push().getKey();
-        if (messageId == null) return;
+        if (messageId == null) {
+            Log.e(TAG, "Failed to generate message ID");
+            return;
+        }
+        
+        Log.d(TAG, "Sending message to Realtime DB - messageId: " + messageId);
         
         Map<String, Object> messageData = new HashMap<>();
         messageData.put("id", messageId);
@@ -403,16 +416,22 @@ public class FirestoreUtil {
         }
         
         // Add message to chat
-        getMessagesRef(chatId).child(messageId).setValue(messageData);
-        
-        // Update chat's last message
-        Map<String, Object> chatUpdate = new HashMap<>();
-        chatUpdate.put("lastMessage", text);
-        chatUpdate.put("lastMessageTimestamp", System.currentTimeMillis());
-        chatUpdate.put("lastMessageSenderId", senderId);
-        chatUpdate.put("lastMessageType", type);
-        
-        getChatRef(chatId).updateChildren(chatUpdate);
+        getMessagesRef(chatId).child(messageId).setValue(messageData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Message sent successfully: " + messageId);
+                    
+                    // Update chat's last message
+                    Map<String, Object> chatUpdate = new HashMap<>();
+                    chatUpdate.put("lastMessage", text);
+                    chatUpdate.put("lastMessageTimestamp", System.currentTimeMillis());
+                    chatUpdate.put("lastMessageSenderId", senderId);
+                    chatUpdate.put("lastMessageType", type);
+                    
+                    getChatRef(chatId).updateChildren(chatUpdate)
+                            .addOnSuccessListener(aVoid2 -> Log.d(TAG, "Chat updated successfully"))
+                            .addOnFailureListener(e -> Log.e(TAG, "Failed to update chat", e));
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to send message", e));
     }
 
     public static void editMessage(String chatId, String messageId, String newText) {
