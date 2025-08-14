@@ -1,5 +1,6 @@
 package com.pingme.android.activities;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -115,9 +116,32 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
 
     @Override
     public void onFriendClick(User friend) {
-        // Show friend profile instead of opening chat
-        Toast.makeText(this, "Friend: " + friend.getDisplayName(), Toast.LENGTH_SHORT).show();
-        // TODO: Implement friend profile view if needed
+        // Start chat with the clicked friend
+        startChatWithFriend(friend);
+    }
+    
+    private void startChatWithFriend(User friend) {
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            Toast.makeText(this, "User authentication error", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        if (friend.getId() == null || friend.getId().isEmpty()) {
+            Toast.makeText(this, "Friend data error", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Generate chat ID (same logic as FriendsFragment)
+        String chatId = currentUserId + "_" + friend.getId();
+        if (currentUserId.compareTo(friend.getId()) > 0) {
+            chatId = friend.getId() + "_" + currentUserId;
+        }
+        
+        // Open chat activity
+        Intent intent = new Intent(this, ChatActivity.class);
+        intent.putExtra("chatId", chatId);
+        intent.putExtra("receiverId", friend.getId());
+        startActivity(intent);
     }
 
     private void loadCurrentUser() {
