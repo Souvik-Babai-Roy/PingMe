@@ -1100,4 +1100,300 @@ public class FirestoreUtil {
     public static CollectionReference getFriendRequestsRef(String userId) {
         return getUserRef(userId).collection("friend_requests");
     }
+
+    // ===== CHAT MANAGEMENT =====
+
+    public static CollectionReference getChatManagementCollectionRef() {
+        return FirebaseFirestore.getInstance().collection("chat_management");
+    }
+
+    public static DocumentReference getChatManagementRef(String chatId) {
+        return getChatManagementCollectionRef().document(chatId);
+    }
+
+    public static CollectionReference getChatHistoryCollectionRef() {
+        return FirebaseFirestore.getInstance().collection("chat_history");
+    }
+
+    public static DocumentReference getChatHistoryRef(String chatId) {
+        return getChatHistoryCollectionRef().document(chatId);
+    }
+
+    public static void clearChat(String chatId, String userId) {
+        Log.d(TAG, "Clearing chat: " + chatId + " for user: " + userId);
+        
+        // Get all messages in the chat
+        getMessagesRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    // Mark all messages as cleared for this user
+                    for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
+                        Message message = messageSnapshot.getValue(Message.class);
+                        if (message != null) {
+                            message.markAsClearedForUser(userId);
+                            
+                            // Update message in database
+                            getMessagesRef(chatId).child(messageSnapshot.getKey())
+                                    .child("clearedFor")
+                                    .child(userId)
+                                    .setValue(System.currentTimeMillis());
+                        }
+                    }
+                    
+                    // Update chat management
+                    updateChatClearedStatus(chatId, userId);
+                    
+                    // Store in chat history
+                    storeClearedChatHistory(chatId, userId, dataSnapshot);
+                    
+                    Log.d(TAG, "Chat cleared successfully for user: " + userId);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Failed to clear chat", databaseError.toException());
+            }
+        });
+    }
+
+    public static void deleteChat(String chatId, String userId) {
+        Log.d(TAG, "Deleting chat: " + chatId + " for user: " + userId);
+        
+        // Get chat info before deletion
+        getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot chatSnapshot) {
+                if (chatSnapshot.exists()) {
+                    // Store chat info in history
+                    storeDeletedChatHistory(chatId, userId, chatSnapshot);
+                    
+                    // Mark chat as deleted for this user in chat management
+                    updateChatDeletedStatus(chatId, userId);
+                    
+                    // Remove from user's chat list
+                    getUserChatsRef(userId).child(chatId).removeValue();
+                    
+                    Log.d(TAG, "Chat deleted successfully for user: " + userId);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Failed to delete chat", databaseError.toException());
+            }
+        });
+    }
+
+    public static void deleteMessage(String chatId, String messageId, String userId) {
+        Log.d(TAG, "Deleting message: " + messageId + " for user: " + userId);
+        
+        // Get message before deletion
+        getMessagesRef(chatId).child(messageId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot messageSnapshot) {
+                if (messageSnapshot.exists()) {
+                    Message message = messageSnapshot.getValue(Message.class);
+                    if (message != null) {
+                        // Store in chat history
+                        storeDeletedMessageHistory(chatId, messageId, message, userId, "delete_message");
+                        
+                        // Mark message as deleted for this user
+                        message.markAsDeletedForUser(userId);
+                        
+                        // Update message in database
+                        getMessagesRef(chatId).child(messageId)
+                                .child("deletedFor")
+                                .child(userId)
+                                .setValue(System.currentTimeMillis());
+                        
+                        Log.d(TAG, "Message deleted successfully for user: " + userId);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Failed to delete message", databaseError.toException());
+            }
+        });
+    }
+
+    private static void updateChatClearedStatus(String chatId, String userId) {
+        getChatManagementRef(chatId).get().addOnSuccessListener(documentSnapshot -> {
+            ChatManagement chatManagement;
+            if (documentSnapshot.exists()) {
+                chatManagement = documentSnapshot.toObject(ChatManagement.class);
+                if (chatManagement == null) {
+                    chatManagement = new ChatManagement(chatId);
+                }
+            } else {
+                chatManagement = new ChatManagement(chatId);
+            }
+            
+            chatManagement.addParticipant(userId);
+            chatManagement.markChatAsClearedForUser(userId);
+            
+            getChatManagementRef(chatId).set(chatManagement);
+        });
+    }
+
+    private static void updateChatDeletedStatus(String chatId, String userId) {
+        getChatManagementRef(chatId).get().addOnSuccessListener(documentSnapshot -> {
+            ChatManagement chatManagement;
+            if (documentSnapshot.exists()) {
+                chatManagement = documentSnapshot.toObject(ChatManagement.class);
+                if (chatManagement == null) {
+                    chatManagement = new ChatManagement(chatId);
+                }
+            } else {
+                chatManagement = new ChatManagement(chatId);
+            }
+            
+            chatManagement.addParticipant(userId);
+            chatManagement.markChatAsDeletedForUser(userId);
+            
+            getChatManagementRef(chatId).set(chatManagement);
+        });
+    }
+
+    private static void storeClearedChatHistory(String chatId, String userId, DataSnapshot messagesSnapshot) {
+        getChatHistoryRef(chatId).get().addOnSuccessListener(documentSnapshot -> {
+            ChatHistory chatHistory;
+            if (documentSnapshot.exists()) {
+                chatHistory = documentSnapshot.toObject(ChatHistory.class);
+                if (chatHistory == null) {
+                    chatHistory = new ChatHistory(chatId);
+                }
+            } else {
+                chatHistory = new ChatHistory(chatId);
+            }
+            
+            // Store all cleared messages
+            for (DataSnapshot messageSnapshot : messagesSnapshot.getChildren()) {
+                Message message = messageSnapshot.getValue(Message.class);
+                if (message != null) {
+                    ChatHistory.DeletedMessage deletedMessage = 
+                        new ChatHistory.DeletedMessage(message, userId, "clear_chat");
+                    chatHistory.addDeletedMessage(messageSnapshot.getKey(), deletedMessage);
+                }
+            }
+            
+            getChatHistoryRef(chatId).set(chatHistory);
+        });
+    }
+
+    private static void storeDeletedChatHistory(String chatId, String userId, DataSnapshot chatSnapshot) {
+        getChatHistoryRef(chatId).get().addOnSuccessListener(documentSnapshot -> {
+            ChatHistory chatHistory;
+            if (documentSnapshot.exists()) {
+                chatHistory = documentSnapshot.toObject(ChatHistory.class);
+                if (chatHistory == null) {
+                    chatHistory = new ChatHistory(chatId);
+                }
+            } else {
+                chatHistory = new ChatHistory(chatId);
+            }
+            
+            // Extract chat info
+            Map<String, Object> chatData = (Map<String, Object>) chatSnapshot.getValue();
+            if (chatData != null) {
+                String[] participants = new String[0];
+                Long createdAt = System.currentTimeMillis();
+                
+                if (chatData.containsKey("participants")) {
+                    Map<String, Object> participantsMap = (Map<String, Object>) chatData.get("participants");
+                    if (participantsMap != null) {
+                        participants = participantsMap.keySet().toArray(new String[0]);
+                    }
+                }
+                
+                if (chatData.containsKey("createdAt")) {
+                    createdAt = (Long) chatData.get("createdAt");
+                }
+                
+                ChatHistory.ChatInfo chatInfo = new ChatHistory.ChatInfo(participants, createdAt);
+                ChatHistory.DeletedChat deletedChat = 
+                    new ChatHistory.DeletedChat(chatInfo, userId, "delete_chat");
+                chatHistory.addDeletedChat(userId, deletedChat);
+                
+                getChatHistoryRef(chatId).set(chatHistory);
+            }
+        });
+    }
+
+    private static void storeDeletedMessageHistory(String chatId, String messageId, Message message, 
+                                                  String userId, String deletionType) {
+        getChatHistoryRef(chatId).get().addOnSuccessListener(documentSnapshot -> {
+            ChatHistory chatHistory;
+            if (documentSnapshot.exists()) {
+                chatHistory = documentSnapshot.toObject(ChatHistory.class);
+                if (chatHistory == null) {
+                    chatHistory = new ChatHistory(chatId);
+                }
+            } else {
+                chatHistory = new ChatHistory(chatId);
+            }
+            
+            ChatHistory.DeletedMessage deletedMessage = 
+                new ChatHistory.DeletedMessage(message, userId, deletionType);
+            chatHistory.addDeletedMessage(messageId, deletedMessage);
+            
+            getChatHistoryRef(chatId).set(chatHistory);
+        });
+    }
+
+    public static void getVisibleMessages(String chatId, String userId, ValueEventListener listener) {
+        getMessagesRef(chatId).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                // Filter messages based on user's deletion/clear status
+                for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
+                    Message message = messageSnapshot.getValue(Message.class);
+                    if (message != null && message.isVisibleForUser(userId)) {
+                        // This message is visible for the user
+                        listener.onDataChange(messageSnapshot);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                listener.onCancelled(databaseError);
+            }
+        });
+    }
+
+    public static void getActiveChatsForUser(String userId, ValueEventListener listener) {
+        getUserChatsRef(userId).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                // Filter chats based on user's deletion status
+                for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
+                    String chatId = chatSnapshot.getKey();
+                    if (chatId != null) {
+                        // Check if chat is active for this user
+                        getChatManagementRef(chatId).get().addOnSuccessListener(documentSnapshot -> {
+                            if (documentSnapshot.exists()) {
+                                ChatManagement chatManagement = documentSnapshot.toObject(ChatManagement.class);
+                                if (chatManagement != null && chatManagement.isChatActiveForUser(userId)) {
+                                    // This chat is active for the user
+                                    listener.onDataChange(chatSnapshot);
+                                }
+                            } else {
+                                // No chat management record, assume active
+                                listener.onDataChange(chatSnapshot);
+                            }
+                        });
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                listener.onCancelled(databaseError);
+            }
+        });
+    }
 }

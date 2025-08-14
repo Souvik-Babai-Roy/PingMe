@@ -23,6 +23,7 @@ import com.pingme.android.databinding.FragmentChatsBinding;
 import com.pingme.android.models.Chat;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.models.ChatManagement;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -125,8 +126,8 @@ public class ChatsFragment extends Fragment {
                         
                         // Only add chats that have messages (lastMessageTimestamp > 0)
                         if (chatData.getLastMessageTimestamp() > 0) {
-                            // Load the other user's information
-                            loadChatUserInfo(chatData);
+                            // Check if chat is not deleted for current user
+                            checkChatVisibility(chatData);
                         }
                     }
                 }
@@ -143,6 +144,31 @@ public class ChatsFragment extends Fragment {
         };
 
         FirestoreUtil.getUserChatsRef(currentUserId).addValueEventListener(userChatsListener);
+    }
+
+    private void checkChatVisibility(Chat chat) {
+        // Check if chat is deleted for current user
+        FirestoreUtil.getChatManagementRef(chat.getId()).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        ChatManagement chatManagement = documentSnapshot.toObject(ChatManagement.class);
+                        if (chatManagement != null && chatManagement.isChatActiveForUser(currentUserId)) {
+                            // Chat is active for current user, load user info
+                            loadChatUserInfo(chat);
+                        } else {
+                            // Chat is deleted for current user, skip it
+                            Log.d(TAG, "Chat " + chat.getId() + " is deleted for user " + currentUserId);
+                        }
+                    } else {
+                        // No chat management record, assume active
+                        loadChatUserInfo(chat);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to check chat visibility for: " + chat.getId(), e);
+                    // On error, assume chat is active
+                    loadChatUserInfo(chat);
+                });
     }
 
     private void loadChatUserInfo(Chat chat) {

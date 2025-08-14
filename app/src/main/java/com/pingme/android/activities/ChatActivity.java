@@ -136,9 +136,9 @@ public class ChatActivity extends AppCompatActivity {
 
         String[] options;
         if (isBlocked) {
-            options = new String[]{"Unblock User", "Clear Chat"};
+            options = new String[]{"Unblock User", "Clear Chat", "Delete Chat"};
         } else {
-            options = new String[]{"Block User", "Remove Friend", "Clear Chat"};
+            options = new String[]{"Block User", "Remove Friend", "Clear Chat", "Delete Chat"};
         }
 
         builder.setItems(options, (dialog, which) -> {
@@ -148,7 +148,10 @@ public class ChatActivity extends AppCompatActivity {
                         unblockUser();
                         break;
                     case 1: // Clear Chat
-                        clearChatHistory();
+                        showClearChatConfirmation();
+                        break;
+                    case 2: // Delete Chat
+                        showDeleteChatConfirmation();
                         break;
                 }
             } else {
@@ -160,13 +163,77 @@ public class ChatActivity extends AppCompatActivity {
                         removeFriend();
                         break;
                     case 2: // Clear Chat
-                        clearChatHistory();
+                        showClearChatConfirmation();
+                        break;
+                    case 3: // Delete Chat
+                        showDeleteChatConfirmation();
                         break;
                 }
             }
         });
 
         builder.show();
+    }
+
+    private void showClearChatConfirmation() {
+        new AlertDialog.Builder(this)
+                .setTitle("🗑️ Clear Chat")
+                .setMessage("Clear all messages in this chat?\n\nThis action cannot be undone.")
+                .setPositiveButton("Clear", (dialog, which) -> {
+                    clearChat();
+                })
+                .setNegativeButton("Cancel", null)
+                .setIcon(R.drawable.ic_delete)
+                .show();
+    }
+
+    private void showDeleteChatConfirmation() {
+        new AlertDialog.Builder(this)
+                .setTitle("❌ Delete Chat")
+                .setMessage("Delete this chat?\n\nAll messages will be removed from your device.")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    deleteChat();
+                })
+                .setNegativeButton("Cancel", null)
+                .setIcon(R.drawable.ic_delete)
+                .show();
+    }
+
+    private void clearChat() {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        showLoading(true);
+        
+        FirestoreUtil.clearChat(chatId, currentUser.getUid());
+        
+        // Clear messages from local list
+        messages.clear();
+        updateMessagesWithDateHeaders();
+        
+        showLoading(false);
+        Toast.makeText(this, "Chat cleared successfully", Toast.LENGTH_SHORT).show();
+    }
+
+    private void deleteChat() {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        showLoading(true);
+        
+        FirestoreUtil.deleteChat(chatId, currentUser.getUid());
+        
+        showLoading(false);
+        Toast.makeText(this, "Chat deleted successfully", Toast.LENGTH_SHORT).show();
+        
+        // Close the chat activity
+        finish();
     }
 
     private void loadCurrentUser() {

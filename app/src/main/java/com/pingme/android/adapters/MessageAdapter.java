@@ -110,9 +110,23 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         if (holder instanceof DateHeaderViewHolder && item instanceof String) {
             ((DateHeaderViewHolder) holder).bind((String) item);
         } else if (holder instanceof SentMessageViewHolder && item instanceof Message) {
-            ((SentMessageViewHolder) holder).bind((Message) item);
+            Message message = (Message) item;
+            // Check if message is visible for current user
+            if (message.isVisibleForUser(currentUserId)) {
+                ((SentMessageViewHolder) holder).bind(message);
+            } else {
+                // Hide deleted/cleared messages
+                holder.itemView.setVisibility(View.GONE);
+            }
         } else if (holder instanceof ReceivedMessageViewHolder && item instanceof Message) {
-            ((ReceivedMessageViewHolder) holder).bind((Message) item);
+            Message message = (Message) item;
+            // Check if message is visible for current user
+            if (message.isVisibleForUser(currentUserId)) {
+                ((ReceivedMessageViewHolder) holder).bind(message);
+            } else {
+                // Hide deleted/cleared messages
+                holder.itemView.setVisibility(View.GONE);
+            }
         }
     }
 

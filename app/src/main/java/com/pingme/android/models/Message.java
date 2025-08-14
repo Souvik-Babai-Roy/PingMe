@@ -2,6 +2,7 @@ package com.pingme.android.models;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.HashMap;
 
 public class Message {
     public static final int STATUS_SENT = 1;
@@ -59,6 +60,10 @@ public class Message {
     // Delivery tracking (WhatsApp-like)
     private Map<String, Long> deliveredTo; // Map of userId -> timestamp when delivered
     private Map<String, Long> readBy; // Map of userId -> timestamp when read
+
+    // Chat management fields (NEW)
+    private Map<String, Long> deletedFor; // Map of userId -> timestamp when deleted for user
+    private Map<String, Long> clearedFor; // Map of userId -> timestamp when cleared for user
 
     // Encryption
     private boolean isEncrypted = false;
@@ -252,6 +257,13 @@ public class Message {
     public Map<String, Long> getReadBy() { return readBy; }
     public void setReadBy(Map<String, Long> readBy) { this.readBy = readBy; }
 
+    // Chat management getters and setters
+    public Map<String, Long> getDeletedFor() { return deletedFor; }
+    public void setDeletedFor(Map<String, Long> deletedFor) { this.deletedFor = deletedFor; }
+
+    public Map<String, Long> getClearedFor() { return clearedFor; }
+    public void setClearedFor(Map<String, Long> clearedFor) { this.clearedFor = clearedFor; }
+
     // Encryption getters and setters
     public boolean isEncrypted() { return isEncrypted; }
     public void setEncrypted(boolean encrypted) { isEncrypted = encrypted; }
@@ -376,6 +388,41 @@ public class Message {
         }
     }
 
+    // Chat management helper methods
+    public boolean isDeletedForUser(String userId) {
+        return deletedFor != null && deletedFor.containsKey(userId);
+    }
+
+    public boolean isClearedForUser(String userId) {
+        return clearedFor != null && clearedFor.containsKey(userId);
+    }
+
+    public boolean isVisibleForUser(String userId) {
+        return !isDeletedForUser(userId) && !isClearedForUser(userId);
+    }
+
+    public void markAsDeletedForUser(String userId) {
+        if (deletedFor == null) {
+            deletedFor = new HashMap<>();
+        }
+        deletedFor.put(userId, System.currentTimeMillis());
+    }
+
+    public void markAsClearedForUser(String userId) {
+        if (clearedFor == null) {
+            clearedFor = new HashMap<>();
+        }
+        clearedFor.put(userId, System.currentTimeMillis());
+    }
+
+    public Long getDeletedTimestampForUser(String userId) {
+        return deletedFor != null ? deletedFor.get(userId) : null;
+    }
+
+    public Long getClearedTimestampForUser(String userId) {
+        return clearedFor != null ? clearedFor.get(userId) : null;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -410,7 +457,9 @@ public class Message {
                 Objects.equals(deletedBy, message.deletedBy) &&
                 Objects.equals(encryptedContent, message.encryptedContent) &&
                 Objects.equals(deliveredTo, message.deliveredTo) &&
-                Objects.equals(readBy, message.readBy);
+                Objects.equals(readBy, message.readBy) &&
+                Objects.equals(deletedFor, message.deletedFor) &&
+                Objects.equals(clearedFor, message.clearedFor);
     }
 
     @Override
@@ -419,7 +468,8 @@ public class Message {
                 videoUrl, audioUrl, thumbnailUrl, duration, fileSize, fileName, fileUrl,
                 action, replyToMessageId, originalMessageId, editedText, editTimestamp,
                 isEdited, isForwarded, isReply, deletedAt, deletedBy, isDeletedForMe,
-                isDeletedForEveryone, isEncrypted, encryptedContent, deliveredTo, readBy);
+                isDeletedForEveryone, isEncrypted, encryptedContent, deliveredTo, readBy,
+                deletedFor, clearedFor);
     }
 
     @Override
