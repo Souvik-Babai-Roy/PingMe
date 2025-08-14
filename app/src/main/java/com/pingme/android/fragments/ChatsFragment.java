@@ -435,33 +435,40 @@ public class ChatsFragment extends Fragment {
     }
 
     private void calculateUnreadCount(Chat chat) {
-        // Count unread messages for this chat
+        Log.d(TAG, "Calculating unread count for chat: " + chat.getId());
+        
         FirestoreUtil.getMessagesRef(chat.getId())
+                .orderByChild("senderId")
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         int unreadCount = 0;
-
+                        
                         for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
                             String senderId = messageSnapshot.child("senderId").getValue(String.class);
-                            Integer status = messageSnapshot.child("status").getValue(Integer.class);
-
-                            // Count messages not sent by current user and not read
-                            if (senderId != null && !senderId.equals(currentUserId) &&
-                                    status != null && status != 3) { // STATUS_READ = 3
-                                unreadCount++;
+                            
+                            // Count messages from other users that haven't been read
+                            if (senderId != null && !currentUserId.equals(senderId)) {
+                                // Check if message has been read by current user
+                                DataSnapshot readBySnapshot = messageSnapshot.child("readBy");
+                                if (!readBySnapshot.hasChild(currentUserId)) {
+                                    unreadCount++;
+                                }
                             }
                         }
-
+                        
                         chat.setUnreadCount(unreadCount);
-                        adapter.addOrUpdateChat(chat);
+                        Log.d(TAG, "Unread count for " + chat.getId() + ": " + unreadCount);
+                        
+                        // Update the chat in the adapter
+                        if (adapter != null) {
+                            adapter.addOrUpdateChat(chat);
+                        }
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError databaseError) {
-                        // Set unread count to 0 on error
-                        chat.setUnreadCount(0);
-                        adapter.addOrUpdateChat(chat);
+                        Log.e(TAG, "Failed to calculate unread count", databaseError.toException());
                     }
                 });
     }

@@ -7,9 +7,9 @@
     // Chats - Direct messaging between users
     "chats": {
       "$chatId": {
-        // Users can read/write chats (more permissive for debugging)
-        ".read": "auth != null",
-        ".write": "auth != null",
+        // Users can read/write chats they participate in
+        ".read": "auth != null && root.child('chats').child($chatId).child('participants').child(auth.uid).exists()",
+        ".write": "auth != null && root.child('chats').child($chatId).child('participants').child(auth.uid).exists()",
         
         // Chat metadata validation
         "id": {
@@ -32,6 +32,9 @@
         "lastMessageType": {
           ".validate": "newData.isString()"
         },
+        "lastMessageId": {
+          ".validate": "newData.isString()"
+        },
         "createdAt": {
           ".validate": "newData.isNumber()"
         },
@@ -47,12 +50,12 @@
     // Messages - Chat messages between users
     "messages": {
       "$chatId": {
-        // Users can read messages from chats they participate in (more permissive)
-        ".read": "auth != null",
+        // Users can read messages from chats they participate in
+        ".read": "auth != null && root.child('chats').child($chatId).child('participants').child(auth.uid).exists()",
         
         "$messageId": {
-          // Users can write messages (simplified for debugging)
-          ".write": "auth != null && newData.child('senderId').val() === auth.uid",
+          // Users can write messages to chats they participate in
+          ".write": "auth != null && root.child('chats').child($chatId).child('participants').child(auth.uid).exists() && newData.child('senderId').val() === auth.uid",
           
           // Message structure validation
           "id": {
@@ -72,6 +75,17 @@
           },
           "type": {
             ".validate": "newData.isString()"
+          },
+          // Delivery tracking
+          "deliveredTo": {
+            "$userId": {
+              ".validate": "newData.isNumber()"
+            }
+          },
+          "readBy": {
+            "$userId": {
+              ".validate": "newData.isNumber()"
+            }
           },
           // Media attachments (optional)
           "imageUrl": {
@@ -132,7 +146,7 @@
     // User presence - Online/offline status
     "presence": {
       "$userId": {
-        ".read": true,  // Anyone can read presence for friend discovery
+        ".read": "auth != null",  // Only authenticated users can read presence
         ".write": "auth != null && auth.uid === $userId",
         
         "isOnline": {

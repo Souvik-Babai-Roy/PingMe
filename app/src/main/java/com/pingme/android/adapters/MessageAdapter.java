@@ -335,13 +335,38 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             switch (status) {
                 case Message.STATUS_SENT:
                     statusIcon.setImageResource(R.drawable.ic_sent);
+                    statusIcon.setColorFilter(context.getResources().getColor(R.color.status_sent));
                     break;
                 case Message.STATUS_DELIVERED:
                     statusIcon.setImageResource(R.drawable.ic_delivered);
+                    statusIcon.setColorFilter(context.getResources().getColor(R.color.status_delivered));
                     break;
                 case Message.STATUS_READ:
                     statusIcon.setImageResource(R.drawable.ic_read);
+                    statusIcon.setColorFilter(context.getResources().getColor(R.color.status_read));
                     break;
+            }
+        }
+
+        private void setMessageStatus(TextView statusText, Message message) {
+            if (message.isSentByCurrentUser(currentUserId)) {
+                String status = message.getStatusText(currentUserId);
+                statusText.setText(status);
+                
+                int deliveryStatus = message.getDeliveryStatus(currentUserId);
+                switch (deliveryStatus) {
+                    case Message.STATUS_SENT:
+                        statusText.setTextColor(context.getResources().getColor(R.color.status_sent));
+                        break;
+                    case Message.STATUS_DELIVERED:
+                        statusText.setTextColor(context.getResources().getColor(R.color.status_delivered));
+                        break;
+                    case Message.STATUS_READ:
+                        statusText.setTextColor(context.getResources().getColor(R.color.status_read));
+                        break;
+                }
+            } else {
+                statusText.setText("");
             }
         }
     }
