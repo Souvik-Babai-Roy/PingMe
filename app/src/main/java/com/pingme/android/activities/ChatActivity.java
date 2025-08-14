@@ -447,9 +447,20 @@ public class ChatActivity extends AppCompatActivity {
 
             FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
             if (firebaseUser != null && !message.getSenderId().equals(firebaseUser.getUid())) {
-                updateMessageStatus(message.getId(), Message.STATUS_DELIVERED);
+                // Mark message as delivered immediately when received
+                FirestoreUtil.markMessageAsDelivered(chatId, message.getId(), firebaseUser.getUid());
+                
+                // Mark as read if chat is active
+                if (isChatActive()) {
+                    FirestoreUtil.markMessageAsRead(chatId, message.getId(), firebaseUser.getUid());
+                }
             }
         }
+    }
+
+    private boolean isChatActive() {
+        // Check if the chat activity is in foreground and user is actively viewing
+        return !isFinishing() && !isDestroyed() && hasWindowFocus();
     }
 
     private void updateMessageInList(Message updatedMessage) {
@@ -950,10 +961,18 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void markMessagesAsRead() {
-        if (!isBlocked) {
+        if (!isBlocked && isChatActive()) {
             FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
             if (currentUser != null) {
-                FirestoreUtil.markAllMessagesAsRead(chatId, currentUser.getUid());
+                String currentUserId = currentUser.getUid();
+                
+                // Mark all unread messages as read
+                for (Message message : messages) {
+                    if (!message.getSenderId().equals(currentUserId) && 
+                        !message.isReadBy(currentUserId)) {
+                        FirestoreUtil.markMessageAsRead(chatId, message.getId(), currentUserId);
+                    }
+                }
             }
         }
     }

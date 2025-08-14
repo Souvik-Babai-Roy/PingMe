@@ -35,10 +35,11 @@ service cloud.firestore {
              request.resource.data.name.size() <= 50;
     }
 
-    // Can discover user for friend requests
+    // Can discover user for friend requests (more restrictive)
     function canDiscoverUser(targetUserId, currentUserId) {
       return !isBlocked(targetUserId, currentUserId) && 
-             !isBlocked(currentUserId, targetUserId);
+             !isBlocked(currentUserId, targetUserId) &&
+             targetUserId != currentUserId;
     }
 
     // Users collection - core user profiles
@@ -47,8 +48,8 @@ service cloud.firestore {
       allow read: if isValidUser() && (
         isOwner(userId) || 
         areFriends(request.auth.uid, userId) ||
-        // Allow reading for friend discovery (more permissive for email search)
-        true  // Authenticated users can discover others for friend requests
+        // Allow reading for friend discovery (restricted to authenticated users)
+        canDiscoverUser(userId, request.auth.uid)
       );
       
       // Users can only create/update their own profile

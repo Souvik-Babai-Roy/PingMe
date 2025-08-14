@@ -430,7 +430,11 @@ public class FirestoreUtil {
         messageData.put("text", text);
         messageData.put("type", type != null ? type : "text");
         messageData.put("timestamp", System.currentTimeMillis());
-        messageData.put("status", 1); // Message.STATUS_SENT
+        messageData.put("status", Message.STATUS_SENT); // Start with sent status
+        
+        // Add delivery tracking
+        messageData.put("deliveredTo", new HashMap<String, Long>());
+        messageData.put("readBy", new HashMap<String, Long>());
         
         if (mediaData != null) {
             messageData.putAll(mediaData);
@@ -449,17 +453,40 @@ public class FirestoreUtil {
                     chatUpdate.put("lastMessageTimestamp", System.currentTimeMillis());
                     chatUpdate.put("lastMessageSenderId", senderId);
                     chatUpdate.put("lastMessageType", type != null ? type : "text");
+                    chatUpdate.put("lastMessageId", messageId);
                     
                     Log.d(TAG, "Updating chat with: " + chatUpdate.toString());
                     
                     getChatRef(chatId).updateChildren(chatUpdate)
-                            .addOnSuccessListener(aVoid2 -> Log.d(TAG, "✅ CHAT UPDATED SUCCESSFULLY"))
+                            .addOnSuccessListener(aVoid2 -> {
+                                Log.d(TAG, "✅ CHAT UPDATED SUCCESSFULLY");
+                                // Trigger delivery notification to other user
+                                triggerDeliveryNotification(chatId, messageId, senderId);
+                            })
                             .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO UPDATE CHAT: " + e.getMessage(), e));
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "❌ FAILED TO SEND MESSAGE: " + e.getMessage(), e);
                     Log.e(TAG, "Error details: " + e.toString());
                 });
+    }
+
+    // New method to trigger delivery notification
+    private static void triggerDeliveryNotification(String chatId, String messageId, String senderId) {
+        // Get the other user in the chat
+        String[] userIds = chatId.split("_");
+        if (userIds.length == 2) {
+            String receiverId = userIds[0].equals(senderId) ? userIds[1] : userIds[0];
+            
+            // Update message status to delivered for the receiver
+            Map<String, Object> deliveryUpdate = new HashMap<>();
+            deliveryUpdate.put("deliveredTo/" + receiverId, System.currentTimeMillis());
+            deliveryUpdate.put("status", Message.STATUS_DELIVERED);
+            
+            getMessagesRef(chatId).child(messageId).updateChildren(deliveryUpdate)
+                    .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ DELIVERY NOTIFICATION SENT"))
+                    .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO SEND DELIVERY NOTIFICATION", e));
+        }
     }
 
     public static void editMessage(String chatId, String messageId, String newText) {
@@ -485,22 +512,36 @@ public class FirestoreUtil {
         getMessagesRef(chatId).child(messageId).updateChildren(updates);
     }
 
+    // Enhanced method to mark messages as read
     public static void markAllMessagesAsRead(String chatId, String userId) {
-        getMessagesRef(chatId).orderByChild("status")
+        Log.d(TAG, "Marking messages as read for user: " + userId + " in chat: " + chatId);
+        
+        getMessagesRef(chatId).orderByChild("senderId")
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         Map<String, Object> updates = new HashMap<>();
+                        boolean hasUpdates = false;
+                        
                         for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
                             String senderId = messageSnapshot.child("senderId").getValue(String.class);
-                            if (!userId.equals(senderId)) {
-                                updates.put(messageSnapshot.getKey() + "/status", Message.STATUS_READ);
-                                updates.put(messageSnapshot.getKey() + "/readAt", System.currentTimeMillis());
+                            
+                            // Only mark messages as read if they're from other users
+                            if (senderId != null && !userId.equals(senderId)) {
+                                String messageId = messageSnapshot.getKey();
+                                if (messageId != null) {
+                                    updates.put(messageId + "/readBy/" + userId, System.currentTimeMillis());
+                                    updates.put(messageId + "/status", Message.STATUS_READ);
+                                    hasUpdates = true;
+                                    Log.d(TAG, "Marking message " + messageId + " as read");
+                                }
                             }
                         }
                         
-                        if (!updates.isEmpty()) {
-                            getMessagesRef(chatId).updateChildren(updates);
+                        if (hasUpdates) {
+                            getMessagesRef(chatId).updateChildren(updates)
+                                    .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ MESSAGES MARKED AS READ"))
+                                    .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO MARK MESSAGES AS READ", e));
                         }
                     }
 
@@ -509,6 +550,35 @@ public class FirestoreUtil {
                         Log.e(TAG, "Failed to mark messages as read", databaseError.toException());
                     }
                 });
+    }
+
+    // New method to mark a specific message as read
+    public static void markMessageAsRead(String chatId, String messageId, String userId) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("readBy/" + userId, System.currentTimeMillis());
+        updates.put("status", Message.STATUS_READ);
+        
+        getMessagesRef(chatId).child(messageId).updateChildren(updates)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ MESSAGE MARKED AS READ: " + messageId))
+                .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO MARK MESSAGE AS READ", e));
+    }
+
+    // New method to mark a specific message as delivered
+    public static void markMessageAsDelivered(String chatId, String messageId, String userId) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("deliveredTo/" + userId, System.currentTimeMillis());
+        updates.put("status", Message.STATUS_DELIVERED);
+        
+        getMessagesRef(chatId).child(messageId).updateChildren(updates)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ MESSAGE MARKED AS DELIVERED: " + messageId))
+                .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO MARK MESSAGE AS DELIVERED", e));
+    }
+
+    // Enhanced method to update message status
+    public static void updateMessageStatus(String chatId, String messageId, int status) {
+        getMessagesRef(chatId).child(messageId).child("status").setValue(status)
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ MESSAGE STATUS UPDATED: " + status))
+                .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO UPDATE MESSAGE STATUS", e));
     }
 
     public static void clearChatHistory(String chatId) {

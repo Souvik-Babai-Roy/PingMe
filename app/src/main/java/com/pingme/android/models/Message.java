@@ -1,5 +1,6 @@
 package com.pingme.android.models;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class Message {
@@ -54,6 +55,10 @@ public class Message {
     private String deletedBy; // Who deleted the message
     private boolean isDeletedForMe = false;
     private boolean isDeletedForEveryone = false;
+
+    // Delivery tracking (WhatsApp-like)
+    private Map<String, Long> deliveredTo; // Map of userId -> timestamp when delivered
+    private Map<String, Long> readBy; // Map of userId -> timestamp when read
 
     // Encryption
     private boolean isEncrypted = false;
@@ -240,6 +245,13 @@ public class Message {
     public boolean isDeletedForEveryone() { return isDeletedForEveryone; }
     public void setDeletedForEveryone(boolean deletedForEveryone) { isDeletedForEveryone = deletedForEveryone; }
 
+    // Delivery tracking getters and setters
+    public Map<String, Long> getDeliveredTo() { return deliveredTo; }
+    public void setDeliveredTo(Map<String, Long> deliveredTo) { this.deliveredTo = deliveredTo; }
+
+    public Map<String, Long> getReadBy() { return readBy; }
+    public void setReadBy(Map<String, Long> readBy) { this.readBy = readBy; }
+
     // Encryption getters and setters
     public boolean isEncrypted() { return isEncrypted; }
     public void setEncrypted(boolean encrypted) { isEncrypted = encrypted; }
@@ -315,6 +327,55 @@ public class Message {
         return true;
     }
 
+    // Delivery tracking helper methods
+    public boolean isDeliveredTo(String userId) {
+        return deliveredTo != null && deliveredTo.containsKey(userId);
+    }
+
+    public boolean isReadBy(String userId) {
+        return readBy != null && readBy.containsKey(userId);
+    }
+
+    public long getDeliveredTimestamp(String userId) {
+        return deliveredTo != null ? deliveredTo.getOrDefault(userId, 0L) : 0L;
+    }
+
+    public long getReadTimestamp(String userId) {
+        return readBy != null ? readBy.getOrDefault(userId, 0L) : 0L;
+    }
+
+    public int getDeliveryStatus(String currentUserId) {
+        if (isSentByCurrentUser(currentUserId)) {
+            // For sent messages, check if delivered and read
+            if (readBy != null && !readBy.isEmpty()) {
+                return STATUS_READ; // Blue double tick
+            } else if (deliveredTo != null && !deliveredTo.isEmpty()) {
+                return STATUS_DELIVERED; // Double tick
+            } else {
+                return STATUS_SENT; // Single tick
+            }
+        }
+        return status; // For received messages, return original status
+    }
+
+    public String getStatusText(String currentUserId) {
+        if (!isSentByCurrentUser(currentUserId)) {
+            return ""; // No status for received messages
+        }
+
+        int deliveryStatus = getDeliveryStatus(currentUserId);
+        switch (deliveryStatus) {
+            case STATUS_SENT:
+                return "✓"; // Single tick
+            case STATUS_DELIVERED:
+                return "✓✓"; // Double tick
+            case STATUS_READ:
+                return "✓✓"; // Blue double tick (color handled in UI)
+            default:
+                return "";
+        }
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -347,7 +408,9 @@ public class Message {
                 Objects.equals(originalMessageId, message.originalMessageId) &&
                 Objects.equals(editedText, message.editedText) &&
                 Objects.equals(deletedBy, message.deletedBy) &&
-                Objects.equals(encryptedContent, message.encryptedContent);
+                Objects.equals(encryptedContent, message.encryptedContent) &&
+                Objects.equals(deliveredTo, message.deliveredTo) &&
+                Objects.equals(readBy, message.readBy);
     }
 
     @Override
@@ -356,7 +419,7 @@ public class Message {
                 videoUrl, audioUrl, thumbnailUrl, duration, fileSize, fileName, fileUrl,
                 action, replyToMessageId, originalMessageId, editedText, editTimestamp,
                 isEdited, isForwarded, isReply, deletedAt, deletedBy, isDeletedForMe,
-                isDeletedForEveryone, isEncrypted, encryptedContent);
+                isDeletedForEveryone, isEncrypted, encryptedContent, deliveredTo, readBy);
     }
 
     @Override

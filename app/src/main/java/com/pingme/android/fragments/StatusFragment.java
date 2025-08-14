@@ -116,10 +116,13 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                 .addOnFailureListener(e -> {
                     showLoading(false);
                     Log.e(TAG, "Failed to load friends", e);
+                    Toast.makeText(getContext(), "Failed to load statuses", Toast.LENGTH_SHORT).show();
                 });
     }
 
     private void loadStatusesFromFriends(List<String> friendIds) {
+        Log.d(TAG, "Loading statuses from " + friendIds.size() + " friends");
+        
         FirestoreUtil.getStatusCollectionRef()
                 .whereIn("userId", friendIds)
                 .whereGreaterThan("expiryTime", System.currentTimeMillis()) // Only non-expired
@@ -128,6 +131,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     statusList.clear();
+                    Log.d(TAG, "Found " + querySnapshot.size() + " statuses");
                     
                     for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
                         Status status = doc.toObject(Status.class);
@@ -160,7 +164,9 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
         } else {
             binding.textNoStatus.setVisibility(View.GONE);
             binding.recyclerViewStatus.setVisibility(View.VISIBLE);
-            statusAdapter.notifyDataSetChanged();
+            if (statusAdapter != null) {
+                statusAdapter.notifyDataSetChanged();
+            }
         }
         
         updateMyStatusUI();
@@ -194,7 +200,13 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                         binding.textMyStatusSubtitle.setText("Tap to add status update");
                     }
                 })
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to check my status", e));
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to check my status", e);
+                    // Set default state on error
+                    binding.textMyStatusTime.setVisibility(View.GONE);
+                    binding.textMyStatusTitle.setText("My Status");
+                    binding.textMyStatusSubtitle.setText("Tap to add status update");
+                });
     }
 
     private boolean hasMyStatus() {
