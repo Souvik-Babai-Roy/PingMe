@@ -128,28 +128,34 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
                             
                             friendsList.add(friend);
                             
-                            // Check if all friends are loaded
-                            if (friendsList.size() == friendDoc.getReference().getParent().get().get().size()) {
-                                // Sort friends by display name (personal name or regular name)
-                                friendsList.sort((f1, f2) -> f1.getDisplayName().compareToIgnoreCase(f2.getDisplayName()));
-                                
-                                // Initially show all friends
-                                filteredFriendsList.clear();
-                                filteredFriendsList.addAll(friendsList);
-                                
-                                showLoading(false);
-                                updateUI();
-                            }
+                            // Check if all friends are loaded by getting the total count
+                            friendDoc.getReference().getParent().get()
+                                .addOnSuccessListener(querySnapshot -> {
+                                    if (friendsList.size() == querySnapshot.size()) {
+                                        // Sort friends by display name (personal name or regular name)
+                                        friendsList.sort((f1, f2) -> f1.getDisplayName().compareToIgnoreCase(f2.getDisplayName()));
+                                        
+                                        // Initially show all friends
+                                        filteredFriendsList.clear();
+                                        filteredFriendsList.addAll(friendsList);
+                                        
+                                        showLoading(false);
+                                        updateUI();
+                                    }
+                                });
                         }
                     }
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to load friend info for: " + friendId, e);
-                    // Continue loading other friends
-                    if (friendsList.size() == friendDoc.getReference().getParent().get().get().size()) {
-                        showLoading(false);
-                        updateUI();
-                    }
+                    // Continue loading other friends - get total count to check completion
+                    friendDoc.getReference().getParent().get()
+                        .addOnSuccessListener(querySnapshot -> {
+                            if (friendsList.size() == querySnapshot.size()) {
+                                showLoading(false);
+                                updateUI();
+                            }
+                        });
                 });
     }
 
