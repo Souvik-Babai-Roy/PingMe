@@ -38,7 +38,7 @@ public class ChatsFragment extends Fragment {
     private ChatListAdapter adapter;
     private String currentUserId;
     private ValueEventListener userChatsListener;
-    private Map<String, ChildEventListener> chatListeners = new HashMap<>();
+    private Map<String, ValueEventListener> chatListeners = new HashMap<>();
     private Map<String, ValueEventListener> typingListeners = new HashMap<>();
     private List<Chat> chatList = new ArrayList<>();
 
@@ -207,31 +207,7 @@ public class ChatsFragment extends Fragment {
     private void loadChatDetails(String chatId) {
         Log.d(TAG, "Loading chat details: " + chatId);
 
-        ChildEventListener chatListener = new ChildEventListener() {
-            @Override
-            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String previousChildName) {
-                Log.d(TAG, "Chat child added: " + dataSnapshot.getKey() + " for chat: " + chatId);
-            }
-
-            @Override
-            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String previousChildName) {
-                Log.d(TAG, "Chat child changed: " + dataSnapshot.getKey() + " for chat: " + chatId);
-            }
-
-            @Override
-            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {}
-
-            @Override
-            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String previousChildName) {}
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Log.e(TAG, "Chat listener cancelled", databaseError.toException());
-            }
-        };
-
-        // Load full chat snapshot once to get last message and participants
-        FirestoreUtil.getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
+        ValueEventListener chatListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (!dataSnapshot.exists()) return;
@@ -323,7 +299,11 @@ public class ChatsFragment extends Fragment {
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 Log.e(TAG, "Failed to load full chat data", databaseError.toException());
             }
-        });
+        };
+
+        // Load full chat snapshot once to get last message and participants
+        FirestoreUtil.getChatRef(chatId).addListenerForSingleValueEvent(chatListener);
+        chatListeners.put(chatId, chatListener);
     }
 
     private void loadOtherUserDetails(String chatId, String otherUserId, String lastMessage,
@@ -499,7 +479,7 @@ public class ChatsFragment extends Fragment {
         
         // If not found, add new chat
         chatList.add(updatedChat);
-        sortChats();
+        sortChats(chatList);
         adapter.notifyDataSetChanged();
     }
 
@@ -542,11 +522,11 @@ public class ChatsFragment extends Fragment {
 
     private void updateEmptyState(boolean isEmpty) {
         if (isEmpty) {
-            binding.layoutEmptyState.setVisibility(View.VISIBLE);
-            binding.recyclerViewChats.setVisibility(View.GONE);
+            binding.emptyView.setVisibility(View.VISIBLE);
+            binding.recyclerView.setVisibility(View.GONE);
         } else {
-            binding.layoutEmptyState.setVisibility(View.GONE);
-            binding.recyclerViewChats.setVisibility(View.VISIBLE);
+            binding.emptyView.setVisibility(View.GONE);
+            binding.recyclerView.setVisibility(View.VISIBLE);
         }
     }
 
@@ -577,7 +557,7 @@ public class ChatsFragment extends Fragment {
             FirestoreUtil.getUserChatsRef(currentUserId).removeEventListener(userChatsListener);
         }
         
-        for (ChildEventListener listener : chatListeners.values()) {
+        for (ValueEventListener listener : chatListeners.values()) {
             // Remove individual chat listeners if needed
         }
         
