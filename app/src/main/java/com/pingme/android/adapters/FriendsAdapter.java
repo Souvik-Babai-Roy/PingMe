@@ -22,15 +22,24 @@ public class FriendsAdapter extends RecyclerView.Adapter<FriendsAdapter.FriendVi
     private Context context;
     private List<User> friendsList;
     private OnFriendClickListener listener;
+    private OnFriendLongClickListener longClickListener;
 
     public interface OnFriendClickListener {
         void onFriendClick(User friend);
+    }
+    
+    public interface OnFriendLongClickListener {
+        void onFriendLongClick(User friend);
     }
 
     public FriendsAdapter(Context context, List<User> friendsList, OnFriendClickListener listener) {
         this.context = context;
         this.friendsList = friendsList;
         this.listener = listener;
+    }
+    
+    public void setOnFriendLongClickListener(OnFriendLongClickListener longClickListener) {
+        this.longClickListener = longClickListener;
     }
 
     @NonNull
@@ -77,6 +86,15 @@ public class FriendsAdapter extends RecyclerView.Adapter<FriendsAdapter.FriendVi
                 if (position != RecyclerView.NO_POSITION && listener != null) {
                     listener.onFriendClick(friendsList.get(position));
                 }
+            });
+            
+            itemView.setOnLongClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && longClickListener != null) {
+                    longClickListener.onFriendLongClick(friendsList.get(position));
+                    return true; // Consume the long press
+                }
+                return false;
             });
         }
 

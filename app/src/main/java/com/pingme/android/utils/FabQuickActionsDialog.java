@@ -13,13 +13,17 @@ import android.view.WindowManager;
 
 import com.pingme.android.R;
 import com.pingme.android.activities.AddFriendActivity;
-
+import com.pingme.android.activities.SearchActivity;
+import com.pingme.android.activities.BroadcastListActivity;
 import com.pingme.android.databinding.DialogFabQuickActionsBinding;
 
 public class FabQuickActionsDialog {
     
     public interface OnActionSelectedListener {
         void onAddFriendSelected();
+        void onSearchUsersSelected();
+        void onNewGroupSelected();
+        void onNewBroadcastSelected();
     }
     
     private final Context context;
@@ -57,6 +61,7 @@ public class FabQuickActionsDialog {
     }
     
     private void setupClickListeners() {
+        // Add Friend
         binding.layoutAddFriend.setOnClickListener(v -> {
             dismiss();
             if (listener != null) {
@@ -64,6 +69,39 @@ public class FabQuickActionsDialog {
             } else {
                 // Default action - open add friend activity
                 context.startActivity(new Intent(context, AddFriendActivity.class));
+            }
+        });
+        
+        // Search Users
+        binding.layoutSearchUsers.setOnClickListener(v -> {
+            dismiss();
+            if (listener != null) {
+                listener.onSearchUsersSelected();
+            } else {
+                // Default action - open search activity
+                context.startActivity(new Intent(context, SearchActivity.class));
+            }
+        });
+        
+        // New Group
+        binding.layoutNewGroup.setOnClickListener(v -> {
+            dismiss();
+            if (listener != null) {
+                listener.onNewGroupSelected();
+            } else {
+                // TODO: Implement new group functionality
+                // context.startActivity(new Intent(context, CreateGroupActivity.class));
+            }
+        });
+        
+        // New Broadcast
+        binding.layoutNewBroadcast.setOnClickListener(v -> {
+            dismiss();
+            if (listener != null) {
+                listener.onNewBroadcastSelected();
+            } else {
+                // Default action - open broadcast list activity
+                context.startActivity(new Intent(context, BroadcastListActivity.class));
             }
         });
         
