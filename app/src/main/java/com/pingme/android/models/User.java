@@ -138,7 +138,7 @@ public class User {
             return name;
         } else if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
             return phoneNumber;
-        } else if (email != null && !email.trim().isEmpty()) {
+        } else if (email != null && !email.trim().isEmpty() && email.contains("@")) {
             return email.split("@")[0];
         }
         return "Unknown User";
