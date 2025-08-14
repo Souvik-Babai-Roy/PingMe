@@ -84,8 +84,8 @@ public class ChatActivity extends AppCompatActivity {
 
     public static void start(android.content.Context context, String chatId, String receiverId) {
         android.content.Intent intent = new android.content.Intent(context, ChatActivity.class);
-        intent.putExtra("chat_id", chatId);
-        intent.putExtra("receiver_id", receiverId);
+        intent.putExtra("chatId", chatId);
+        intent.putExtra("receiverId", receiverId);
         context.startActivity(intent);
     }
 
@@ -99,9 +99,11 @@ public class ChatActivity extends AppCompatActivity {
         receiverId = getIntent().getStringExtra("receiverId");
 
         Log.d(TAG, "ChatActivity created with chatId: " + chatId + " receiverId: " + receiverId);
+        Log.d(TAG, "Intent extras: " + getIntent().getExtras());
 
         if (chatId == null || receiverId == null) {
-            Toast.makeText(this, "Invalid chat", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Invalid chat data - chatId: " + chatId + " receiverId: " + receiverId);
+            Toast.makeText(this, "Invalid chat data. ChatId: " + chatId + " ReceiverId: " + receiverId, Toast.LENGTH_LONG).show();
             finish();
             return;
         }
