@@ -140,10 +140,12 @@ public class AddFriendActivity extends AppCompatActivity {
 
     private void displayFoundUser(User user) {
         binding.layoutUserFound.setVisibility(View.VISIBLE);
-        binding.tvUserName.setText(user.getName());
+        
+        // Always show name (required field)
+        binding.tvUserName.setText(user.getDisplayName());
         binding.tvUserEmail.setText(user.getEmail());
 
-        // Show about if available (privacy is handled in the data retrieval)
+        // Show about if available and user allows it
         if (user.getAbout() != null && !user.getAbout().isEmpty() && user.isAboutEnabled()) {
             binding.tvUserAbout.setVisibility(View.VISIBLE);
             binding.tvUserAbout.setText(user.getAbout());
@@ -153,17 +155,81 @@ public class AddFriendActivity extends AppCompatActivity {
 
         // Load profile image if available and user allows it
         if (user.hasProfilePhoto() && user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
+            binding.ivUserProfile.setVisibility(View.VISIBLE);
             Glide.with(this)
                     .load(user.getImageUrl())
                     .transform(new CircleCrop())
                     .placeholder(R.drawable.ic_person_outline)
+                    .error(R.drawable.ic_person_outline)
                     .into(binding.ivUserProfile);
         } else {
+            binding.ivUserProfile.setVisibility(View.VISIBLE);
             binding.ivUserProfile.setImageResource(R.drawable.ic_person_outline);
         }
 
         // Load user presence if user allows it
         loadUserPresence(user);
+        
+        // Show additional user info based on privacy settings
+        displayUserPrivacyInfo(user);
+    }
+
+    private void displayUserPrivacyInfo(User user) {
+        // Show phone number if available and user allows it
+        if (user.getPhoneNumber() != null && !user.getPhoneNumber().isEmpty()) {
+            binding.tvUserPhone.setVisibility(View.VISIBLE);
+            binding.tvUserPhone.setText("📱 " + user.getPhoneNumber());
+        } else {
+            binding.tvUserPhone.setVisibility(View.GONE);
+        }
+
+        // Show join date if available
+        if (user.getJoinedAt() > 0) {
+            binding.tvUserJoined.setVisibility(View.VISIBLE);
+            String joinDate = formatJoinDate(user.getJoinedAt());
+            binding.tvUserJoined.setText("📅 Joined " + joinDate);
+        } else {
+            binding.tvUserJoined.setVisibility(View.GONE);
+        }
+
+        // Show privacy indicators
+        StringBuilder privacyInfo = new StringBuilder();
+        if (!user.isProfilePhotoEnabled()) {
+            privacyInfo.append("🔒 Profile photo hidden\n");
+        }
+        if (!user.isLastSeenEnabled()) {
+            privacyInfo.append("🔒 Last seen hidden\n");
+        }
+        if (!user.isAboutEnabled()) {
+            privacyInfo.append("🔒 About hidden\n");
+        }
+        if (!user.isReadReceiptsEnabled()) {
+            privacyInfo.append("🔒 Read receipts disabled\n");
+        }
+
+        if (privacyInfo.length() > 0) {
+            binding.tvPrivacyInfo.setVisibility(View.VISIBLE);
+            binding.tvPrivacyInfo.setText(privacyInfo.toString().trim());
+        } else {
+            binding.tvPrivacyInfo.setVisibility(View.GONE);
+        }
+    }
+
+    private String formatJoinDate(long timestamp) {
+        long diff = System.currentTimeMillis() - timestamp;
+        long days = diff / (1000 * 60 * 60 * 24);
+        long months = days / 30;
+        long years = months / 12;
+
+        if (years > 0) {
+            return years + " year" + (years > 1 ? "s" : "") + " ago";
+        } else if (months > 0) {
+            return months + " month" + (months > 1 ? "s" : "") + " ago";
+        } else if (days > 0) {
+            return days + " day" + (days > 1 ? "s" : "") + " ago";
+        } else {
+            return "today";
+        }
     }
 
     private void loadUserPresence(User user) {
@@ -239,33 +305,23 @@ public class AddFriendActivity extends AppCompatActivity {
 
     private void addFriend() {
         if (foundUser == null || currentUser == null) {
-            Toast.makeText(this, "Unable to add friend. Please try again.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Unable to send friend request. Please try again.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         showLoading(true);
 
-        // Use the simplified add friend method
-        FirestoreUtil.addFriend(currentUserId, foundUser, new FirestoreUtil.FriendActionCallback() {
-            @Override
-            public void onSuccess() {
-                showLoading(false);
-                Toast.makeText(AddFriendActivity.this, 
-                    "Friend added successfully! You can now chat with " + foundUser.getName(), 
-                    Toast.LENGTH_SHORT).show();
-                binding.btnAddFriend.setText("Added");
-                binding.btnAddFriend.setEnabled(false);
-                binding.btnAddFriend.setBackgroundTintList(
-                        getColorStateList(android.R.color.darker_gray));
-            }
-
-            @Override
-            public void onError(String error) {
-                showLoading(false);
-                Toast.makeText(AddFriendActivity.this, "Failed to add friend: " + error, 
-                        Toast.LENGTH_SHORT).show();
-            }
-        });
+        // Send friend request instead of directly adding friend
+        FirestoreUtil.sendFriendRequest(currentUserId, foundUser.getEmail());
+        
+        showLoading(false);
+        Toast.makeText(AddFriendActivity.this, 
+            "Friend request sent to " + foundUser.getName(), 
+            Toast.LENGTH_SHORT).show();
+        binding.btnAddFriend.setText("Request Sent");
+        binding.btnAddFriend.setEnabled(false);
+        binding.btnAddFriend.setBackgroundTintList(
+                getColorStateList(android.R.color.darker_gray));
     }
 
     private void showUserNotFound() {

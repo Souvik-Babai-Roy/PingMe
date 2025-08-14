@@ -14,6 +14,7 @@ import com.pingme.android.adapters.ViewPagerAdapter;
 import com.pingme.android.databinding.ActivityMainBinding;
 import com.pingme.android.fragments.CallsFragment;
 import com.pingme.android.fragments.ChatsFragment;
+import com.pingme.android.fragments.FriendsFragment;
 import com.pingme.android.fragments.StatusFragment;
 import com.pingme.android.utils.FirestoreUtil;
 import com.pingme.android.utils.PreferenceUtils;
@@ -98,6 +99,7 @@ public class MainActivity extends AppCompatActivity {
         adapter.addFragment(new ChatsFragment(), "CHATS");
         adapter.addFragment(new StatusFragment(), "STATUS");
         adapter.addFragment(new CallsFragment(), "CALLS");
+        adapter.addFragment(new FriendsFragment(), "FRIENDS");
 
         binding.viewPager.setAdapter(adapter);
         // Reduce offscreen limit to improve memory usage and tab switching
@@ -134,6 +136,10 @@ public class MainActivity extends AppCompatActivity {
                 binding.fab.setImageResource(R.drawable.ic_baseline_person_24);
                 binding.fab.setContentDescription("New Call");
                 break;
+            case 3: // Friends
+                binding.fab.setImageResource(R.drawable.ic_people);
+                binding.fab.setContentDescription("Add Friend");
+                break;
         }
     }
 
@@ -150,6 +156,9 @@ public class MainActivity extends AppCompatActivity {
                 case 2: // Calls tab
                     // Open contacts for calling
                     startActivity(new Intent(this, SelectContactsActivity.class));
+                    break;
+                case 3: // Friends tab
+                    startActivity(new Intent(this, AddFriendActivity.class));
                     break;
             }
         });

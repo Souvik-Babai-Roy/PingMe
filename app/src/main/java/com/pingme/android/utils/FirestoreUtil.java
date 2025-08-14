@@ -17,6 +17,7 @@ import com.pingme.android.models.User;
 import com.pingme.android.models.Chat;
 import com.pingme.android.models.Broadcast;
 import com.google.firebase.auth.FirebaseAuth;
+import com.pingme.android.models.Status;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -125,23 +126,81 @@ public class FirestoreUtil {
     // ===== SEARCH FUNCTIONALITY =====
 
     public static void searchUserByEmail(String email, UserSearchCallback callback) {
+        Log.d(TAG, "Searching for user with email: " + email);
+        
+        if (email == null || email.trim().isEmpty()) {
+            callback.onError("Email cannot be empty");
+            return;
+        }
+
+        // Normalize email to lowercase
+        String normalizedEmail = email.toLowerCase().trim();
+        
         getUsersCollectionRef()
-                .whereEqualTo("email", email.toLowerCase())
+                .whereEqualTo("email", normalizedEmail)
                 .limit(1)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
+                    Log.d(TAG, "Search completed. Found " + querySnapshot.size() + " users");
+                    
                     if (!querySnapshot.isEmpty()) {
                         User user = querySnapshot.getDocuments().get(0).toObject(User.class);
                         if (user != null) {
+                            user.setId(querySnapshot.getDocuments().get(0).getId());
+                            Log.d(TAG, "User found: " + user.getName() + " (" + user.getEmail() + ")");
                             callback.onUserFound(user);
                         } else {
+                            Log.w(TAG, "User document exists but failed to parse");
                             callback.onUserNotFound();
                         }
                     } else {
+                        Log.d(TAG, "No user found with email: " + normalizedEmail);
                         callback.onUserNotFound();
                     }
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Search failed for email: " + normalizedEmail, e);
+                    callback.onError("Search failed: " + e.getMessage());
+                });
+    }
+
+    public static void searchUserByPhoneNumber(String phoneNumber, UserSearchCallback callback) {
+        Log.d(TAG, "Searching for user with phone: " + phoneNumber);
+        
+        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+            callback.onError("Phone number cannot be empty");
+            return;
+        }
+
+        // Normalize phone number
+        String normalizedPhone = phoneNumber.trim().replaceAll("[^0-9+]", "");
+        
+        getUsersCollectionRef()
+                .whereEqualTo("phoneNumber", normalizedPhone)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    Log.d(TAG, "Phone search completed. Found " + querySnapshot.size() + " users");
+                    
+                    if (!querySnapshot.isEmpty()) {
+                        User user = querySnapshot.getDocuments().get(0).toObject(User.class);
+                        if (user != null) {
+                            user.setId(querySnapshot.getDocuments().get(0).getId());
+                            Log.d(TAG, "User found by phone: " + user.getName() + " (" + user.getPhoneNumber() + ")");
+                            callback.onUserFound(user);
+                        } else {
+                            Log.w(TAG, "User document exists but failed to parse");
+                            callback.onUserNotFound();
+                        }
+                    } else {
+                        Log.d(TAG, "No user found with phone: " + normalizedPhone);
+                        callback.onUserNotFound();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Phone search failed for: " + normalizedPhone, e);
+                    callback.onError("Search failed: " + e.getMessage());
+                });
     }
 
     // ===== FRIEND MANAGEMENT =====
@@ -368,13 +427,15 @@ public class FirestoreUtil {
 
     // ===== MESSAGING =====
 
-    public static void sendMessageWithDeliveryTracking(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
+    public static com.google.android.gms.tasks.Task<Void> sendMessageWithDeliveryTracking(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
         if (chatId == null || senderId == null || text == null) {
             Log.e(TAG, "Invalid parameters for sending message");
-            return;
+            return com.google.android.gms.tasks.Tasks.forException(new IllegalArgumentException("Invalid parameters"));
         }
         
         Log.d(TAG, "Sending message to chat: " + chatId + " from: " + senderId + " text: " + text);
+        
+        com.google.android.gms.tasks.TaskCompletionSource<Void> taskCompletionSource = new com.google.android.gms.tasks.TaskCompletionSource<>();
         
         // First ensure chat exists, if not create it
         getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
@@ -389,25 +450,29 @@ public class FirestoreUtil {
                         createNewChatInRealtime(chatId, senderId, otherUserId);
                         // Wait a moment then send message
                         new android.os.Handler().postDelayed(() -> {
-                            sendMessageToRealtime(chatId, senderId, text, type, mediaData);
+                            sendMessageToRealtime(chatId, senderId, text, type, mediaData, taskCompletionSource);
                         }, 1000);
                     } else {
                         Log.e(TAG, "Invalid chat ID format: " + chatId);
+                        taskCompletionSource.setException(new IllegalArgumentException("Invalid chat ID format"));
                     }
                 } else {
                     Log.d(TAG, "Chat exists, sending message");
-                    sendMessageToRealtime(chatId, senderId, text, type, mediaData);
+                    sendMessageToRealtime(chatId, senderId, text, type, mediaData, taskCompletionSource);
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 Log.e(TAG, "Failed to check chat existence", databaseError.toException());
+                taskCompletionSource.setException(databaseError.toException());
             }
         });
+        
+        return taskCompletionSource.getTask();
     }
 
-    public static void sendMessageToRealtime(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
+    public static void sendMessageToRealtime(String chatId, String senderId, String text, String type, Map<String, Object> mediaData, com.google.android.gms.tasks.TaskCompletionSource<Void> taskCompletionSource) {
         Log.d(TAG, "=== STARTING MESSAGE SEND ===");
         Log.d(TAG, "Chat ID: " + chatId);
         Log.d(TAG, "Sender ID: " + senderId);
@@ -418,6 +483,7 @@ public class FirestoreUtil {
         
         if (messageId == null) {
             Log.e(TAG, "Failed to generate message ID");
+            taskCompletionSource.setException(new RuntimeException("Failed to generate message ID"));
             return;
         }
         
@@ -462,13 +528,87 @@ public class FirestoreUtil {
                                 Log.d(TAG, "✅ CHAT UPDATED SUCCESSFULLY");
                                 // Trigger delivery notification to other user
                                 triggerDeliveryNotification(chatId, messageId, senderId);
+                                
+                                // Send push notification to recipient
+                                sendPushNotification(chatId, senderId, text, type);
+                                
+                                taskCompletionSource.setResult(null);
                             })
-                            .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO UPDATE CHAT: " + e.getMessage(), e));
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "❌ FAILED TO UPDATE CHAT: " + e.getMessage(), e);
+                                taskCompletionSource.setException(e);
+                            });
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "❌ FAILED TO SEND MESSAGE: " + e.getMessage(), e);
-                    Log.e(TAG, "Error details: " + e.toString());
+                    taskCompletionSource.setException(e);
                 });
+    }
+
+    private static void sendPushNotification(String chatId, String senderId, String messageText, String messageType) {
+        // Get the other user ID from chat ID
+        String[] userIds = chatId.split("_");
+        if (userIds.length != 2) {
+            Log.e(TAG, "Invalid chat ID format for notification: " + chatId);
+            return;
+        }
+        
+        String receiverId = userIds[0].equals(senderId) ? userIds[1] : userIds[0];
+        
+        // Get sender's name for notification
+        getUserRef(senderId).get().addOnSuccessListener(senderSnapshot -> {
+            if (senderSnapshot.exists()) {
+                User sender = senderSnapshot.toObject(User.class);
+                String senderName = sender != null ? sender.getName() : "Unknown";
+                
+                // Get receiver's context for notification
+                getUserRef(receiverId).get().addOnSuccessListener(receiverSnapshot -> {
+                    if (receiverSnapshot.exists()) {
+                        User receiver = receiverSnapshot.toObject(User.class);
+                        
+                        // Check if receiver has notifications enabled
+                        if (receiver != null && receiver.isNotificationsEnabled()) {
+                            // Show notification
+                            android.content.Context context = getApplicationContext();
+                            if (context != null) {
+                                String notificationText = messageType.equals(Message.TYPE_TEXT) ? 
+                                    messageText : getMediaNotificationText(messageType);
+                                
+                                com.pingme.android.utils.NotificationUtil.showMessageNotification(
+                                    context, senderName, notificationText, chatId, receiverId
+                                );
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    private static String getMediaNotificationText(String messageType) {
+        switch (messageType) {
+            case Message.TYPE_IMAGE:
+                return "📷 Image";
+            case Message.TYPE_VIDEO:
+                return "🎥 Video";
+            case Message.TYPE_AUDIO:
+                return "🎤 Audio";
+            case Message.TYPE_DOCUMENT:
+                return "📄 Document";
+            default:
+                return "New message";
+        }
+    }
+
+    private static android.content.Context getApplicationContext() {
+        // This is a workaround to get application context
+        // In a real implementation, you might want to pass context as parameter
+        try {
+            return com.pingme.android.App.getInstance();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to get application context", e);
+            return null;
+        }
     }
 
     // New method to trigger delivery notification
@@ -676,44 +816,60 @@ public class FirestoreUtil {
         return getRealtimeDatabase().child("blocked_users").child(userId);
     }
 
-    public static void createNewChatInRealtime(String chatId, String user1Id, String user2Id) {
-        Log.d(TAG, "Creating new chat: " + chatId + " between " + user1Id + " and " + user2Id);
-
-        Map<String, Object> chatData = new HashMap<>();
-        chatData.put("id", chatId);
-
-        // Participants as a map for easier querying
-        Map<String, Boolean> participants = new HashMap<>();
-        participants.put(user1Id, true);
-        participants.put(user2Id, true);
-        chatData.put("participants", participants);
-
-        chatData.put("lastMessage", "");
-        chatData.put("lastMessageTimestamp", System.currentTimeMillis());
-        chatData.put("lastMessageSenderId", "");
-        chatData.put("lastMessageType", "empty_chat");
-        chatData.put("createdAt", System.currentTimeMillis());
-        chatData.put("type", "direct");
-        chatData.put("isActive", true);
-
-        // Create chat and update user chat references atomically
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("chats/" + chatId, chatData);
+    private static void createNewChatInRealtime(String chatId, String senderId, String otherUserId) {
+        Log.d(TAG, "Creating new chat: " + chatId);
         
-        // Use consistent object structure for user_chats
-        Map<String, Object> chatRef = new HashMap<>();
-        chatRef.put("isActive", true);
-        updates.put("user_chats/" + user1Id + "/" + chatId, chatRef);
-        updates.put("user_chats/" + user2Id + "/" + chatId, chatRef);
+        Map<String, Object> chatData = new HashMap<>();
+        chatData.put("participants", new HashMap<String, Boolean>() {{
+            put(senderId, true);
+            put(otherUserId, true);
+        }});
+        chatData.put("createdAt", System.currentTimeMillis());
+        chatData.put("lastMessage", "");
+        chatData.put("lastMessageTimestamp", 0L);
+        chatData.put("lastMessageSenderId", "");
+        chatData.put("lastMessageType", "text");
+        chatData.put("lastMessageId", "");
+        
+        // Add chat to both users' chat lists
+        getChatRef(chatId).setValue(chatData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "✅ Chat created successfully: " + chatId);
+                    
+                    // Add to sender's chat list
+                    getUserChatsRef(senderId).child(chatId).setValue(true);
+                    
+                    // Add to other user's chat list
+                    getUserChatsRef(otherUserId).child(chatId).setValue(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Failed to create chat: " + e.getMessage(), e);
+                });
+    }
 
-        getRealtimeDatabase().updateChildren(updates)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "Chat created successfully: " + chatId))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to create chat: " + chatId, e));
+    public static void ensureChatExists(String chatId, String senderId, String otherUserId) {
+        // Only create chat if it doesn't exist and we're about to send a message
+        getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (!dataSnapshot.exists()) {
+                    Log.d(TAG, "Chat doesn't exist, will be created when first message is sent: " + chatId);
+                    // Don't create empty chat - it will be created when first message is sent
+                } else {
+                    Log.d(TAG, "Chat already exists: " + chatId);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Failed to check chat existence", databaseError.toException());
+            }
+        });
     }
 
     public static void createEmptyFriendChat(String userId1, String userId2) {
-        String chatId = generateChatId(userId1, userId2);
-        createNewChatInRealtime(chatId, userId1, userId2);
+        // This method is deprecated - chats should only be created when messages are sent
+        Log.d(TAG, "createEmptyFriendChat is deprecated - chats are now created when messages are sent");
     }
 
     // ===== SEARCH FUNCTIONALITY =====
@@ -862,5 +1018,440 @@ public class FirestoreUtil {
     public interface SearchCallback {
         void onSearchComplete(List<SearchResult> results);
         void onError(String error);
+    }
+
+    public static void addStatus(String userId, String statusText, String mediaUrl, String mediaType) {
+        Status status = new Status();
+        status.setUserId(userId);
+        status.setText(statusText);
+        status.setMediaUrl(mediaUrl);
+        status.setMediaType(mediaType);
+        status.setTimestamp(System.currentTimeMillis());
+        status.setExpiryTime(System.currentTimeMillis() + (24 * 60 * 60 * 1000)); // 24 hours
+        status.setViewers(new HashMap<>());
+
+        getStatusCollectionRef().add(status)
+                .addOnSuccessListener(documentReference -> {
+                    Log.d(TAG, "Status added successfully: " + documentReference.getId());
+                    
+                    // Send notifications to friends
+                    sendStatusNotifications(userId, statusText);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to add status", e);
+                });
+    }
+
+    private static void sendStatusNotifications(String userId, String statusText) {
+        // Get user's friends
+        getFriendsRef(userId).get().addOnSuccessListener(querySnapshot -> {
+            for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                String friendId = doc.getId();
+                
+                // Get friend's user info
+                getUserRef(friendId).get().addOnSuccessListener(userSnapshot -> {
+                    if (userSnapshot.exists()) {
+                        User friend = userSnapshot.toObject(User.class);
+                        
+                        // Check if friend has notifications enabled
+                        if (friend != null && friend.isNotificationsEnabled()) {
+                            // Get current user's name
+                            getUserRef(userId).get().addOnSuccessListener(currentUserSnapshot -> {
+                                if (currentUserSnapshot.exists()) {
+                                    User currentUser = currentUserSnapshot.toObject(User.class);
+                                    String userName = currentUser != null ? currentUser.getName() : "Unknown";
+                                    
+                                    // Show status notification
+                                    android.content.Context context = getApplicationContext();
+                                    if (context != null) {
+                                        com.pingme.android.utils.NotificationUtil.showStatusNotification(context, userName);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    public static void sendFriendRequest(String senderId, String receiverEmail) {
+        // Find user by email
+        getUsersCollectionRef()
+                .whereEqualTo("email", receiverEmail)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!querySnapshot.isEmpty()) {
+                        DocumentSnapshot userDoc = querySnapshot.getDocuments().get(0);
+                        String receiverId = userDoc.getId();
+                        
+                        // Check if already friends
+                        checkIfFriends(senderId, receiverId, areFriends -> {
+                            if (!areFriends) {
+                                // Check if request already exists
+                                getFriendRequestsRef(receiverId)
+                                        .document(senderId)
+                                        .get()
+                                        .addOnSuccessListener(requestDoc -> {
+                                            if (!requestDoc.exists()) {
+                                                // Send friend request
+                                                Map<String, Object> request = new HashMap<>();
+                                                request.put("senderId", senderId);
+                                                request.put("timestamp", System.currentTimeMillis());
+                                                request.put("status", "pending");
+                                                
+                                                getFriendRequestsRef(receiverId)
+                                                        .document(senderId)
+                                                        .set(request)
+                                                        .addOnSuccessListener(aVoid -> {
+                                                            Log.d(TAG, "Friend request sent successfully");
+                                                            
+                                                            // Send notification to receiver
+                                                            sendFriendRequestNotification(senderId, receiverId);
+                                                        })
+                                                        .addOnFailureListener(e -> {
+                                                            Log.e(TAG, "Failed to send friend request", e);
+                                                        });
+                                            } else {
+                                                Log.d(TAG, "Friend request already exists");
+                                            }
+                                        });
+                            } else {
+                                Log.d(TAG, "Users are already friends");
+                            }
+                        });
+                    } else {
+                        Log.d(TAG, "User not found with email: " + receiverEmail);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to find user by email", e);
+                });
+    }
+
+    private static void sendFriendRequestNotification(String senderId, String receiverId) {
+        // Get sender's name
+        getUserRef(senderId).get().addOnSuccessListener(senderSnapshot -> {
+            if (senderSnapshot.exists()) {
+                User sender = senderSnapshot.toObject(User.class);
+                String senderName = sender != null ? sender.getName() : "Unknown";
+                
+                // Get receiver's info
+                getUserRef(receiverId).get().addOnSuccessListener(receiverSnapshot -> {
+                    if (receiverSnapshot.exists()) {
+                        User receiver = receiverSnapshot.toObject(User.class);
+                        
+                        // Check if receiver has notifications enabled
+                        if (receiver != null && receiver.isNotificationsEnabled()) {
+                            // Show friend request notification
+                            android.content.Context context = getApplicationContext();
+                            if (context != null) {
+                                com.pingme.android.utils.NotificationUtil.showFriendRequestNotification(context, senderName);
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    public static CollectionReference getFriendRequestsRef(String userId) {
+        return getUserRef(userId).collection("friend_requests");
+    }
+
+    // ===== CHAT MANAGEMENT =====
+
+    public static CollectionReference getChatManagementCollectionRef() {
+        return FirebaseFirestore.getInstance().collection("chat_management");
+    }
+
+    public static DocumentReference getChatManagementRef(String chatId) {
+        return getChatManagementCollectionRef().document(chatId);
+    }
+
+    public static CollectionReference getChatHistoryCollectionRef() {
+        return FirebaseFirestore.getInstance().collection("chat_history");
+    }
+
+    public static DocumentReference getChatHistoryRef(String chatId) {
+        return getChatHistoryCollectionRef().document(chatId);
+    }
+
+    public static void clearChat(String chatId, String userId) {
+        Log.d(TAG, "Clearing chat: " + chatId + " for user: " + userId);
+        
+        // Get all messages in the chat
+        getMessagesRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    // Mark all messages as cleared for this user
+                    for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
+                        Message message = messageSnapshot.getValue(Message.class);
+                        if (message != null) {
+                            message.markAsClearedForUser(userId);
+                            
+                            // Update message in database
+                            getMessagesRef(chatId).child(messageSnapshot.getKey())
+                                    .child("clearedFor")
+                                    .child(userId)
+                                    .setValue(System.currentTimeMillis());
+                        }
+                    }
+                    
+                    // Update chat management
+                    updateChatClearedStatus(chatId, userId);
+                    
+                    // Store in chat history
+                    storeClearedChatHistory(chatId, userId, dataSnapshot);
+                    
+                    Log.d(TAG, "Chat cleared successfully for user: " + userId);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Failed to clear chat", databaseError.toException());
+            }
+        });
+    }
+
+    public static void deleteChat(String chatId, String userId) {
+        Log.d(TAG, "Deleting chat: " + chatId + " for user: " + userId);
+        
+        // Get chat info before deletion
+        getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot chatSnapshot) {
+                if (chatSnapshot.exists()) {
+                    // Store chat info in history
+                    storeDeletedChatHistory(chatId, userId, chatSnapshot);
+                    
+                    // Mark chat as deleted for this user in chat management
+                    updateChatDeletedStatus(chatId, userId);
+                    
+                    // Remove from user's chat list
+                    getUserChatsRef(userId).child(chatId).removeValue();
+                    
+                    Log.d(TAG, "Chat deleted successfully for user: " + userId);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Failed to delete chat", databaseError.toException());
+            }
+        });
+    }
+
+    public static void deleteMessage(String chatId, String messageId, String userId) {
+        Log.d(TAG, "Deleting message: " + messageId + " for user: " + userId);
+        
+        // Get message before deletion
+        getMessagesRef(chatId).child(messageId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot messageSnapshot) {
+                if (messageSnapshot.exists()) {
+                    Message message = messageSnapshot.getValue(Message.class);
+                    if (message != null) {
+                        // Store in chat history
+                        storeDeletedMessageHistory(chatId, messageId, message, userId, "delete_message");
+                        
+                        // Mark message as deleted for this user
+                        message.markAsDeletedForUser(userId);
+                        
+                        // Update message in database
+                        getMessagesRef(chatId).child(messageId)
+                                .child("deletedFor")
+                                .child(userId)
+                                .setValue(System.currentTimeMillis());
+                        
+                        Log.d(TAG, "Message deleted successfully for user: " + userId);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Failed to delete message", databaseError.toException());
+            }
+        });
+    }
+
+    private static void updateChatClearedStatus(String chatId, String userId) {
+        getChatManagementRef(chatId).get().addOnSuccessListener(documentSnapshot -> {
+            ChatManagement chatManagement;
+            if (documentSnapshot.exists()) {
+                chatManagement = documentSnapshot.toObject(ChatManagement.class);
+                if (chatManagement == null) {
+                    chatManagement = new ChatManagement(chatId);
+                }
+            } else {
+                chatManagement = new ChatManagement(chatId);
+            }
+            
+            chatManagement.addParticipant(userId);
+            chatManagement.markChatAsClearedForUser(userId);
+            
+            getChatManagementRef(chatId).set(chatManagement);
+        });
+    }
+
+    private static void updateChatDeletedStatus(String chatId, String userId) {
+        getChatManagementRef(chatId).get().addOnSuccessListener(documentSnapshot -> {
+            ChatManagement chatManagement;
+            if (documentSnapshot.exists()) {
+                chatManagement = documentSnapshot.toObject(ChatManagement.class);
+                if (chatManagement == null) {
+                    chatManagement = new ChatManagement(chatId);
+                }
+            } else {
+                chatManagement = new ChatManagement(chatId);
+            }
+            
+            chatManagement.addParticipant(userId);
+            chatManagement.markChatAsDeletedForUser(userId);
+            
+            getChatManagementRef(chatId).set(chatManagement);
+        });
+    }
+
+    private static void storeClearedChatHistory(String chatId, String userId, DataSnapshot messagesSnapshot) {
+        getChatHistoryRef(chatId).get().addOnSuccessListener(documentSnapshot -> {
+            ChatHistory chatHistory;
+            if (documentSnapshot.exists()) {
+                chatHistory = documentSnapshot.toObject(ChatHistory.class);
+                if (chatHistory == null) {
+                    chatHistory = new ChatHistory(chatId);
+                }
+            } else {
+                chatHistory = new ChatHistory(chatId);
+            }
+            
+            // Store all cleared messages
+            for (DataSnapshot messageSnapshot : messagesSnapshot.getChildren()) {
+                Message message = messageSnapshot.getValue(Message.class);
+                if (message != null) {
+                    ChatHistory.DeletedMessage deletedMessage = 
+                        new ChatHistory.DeletedMessage(message, userId, "clear_chat");
+                    chatHistory.addDeletedMessage(messageSnapshot.getKey(), deletedMessage);
+                }
+            }
+            
+            getChatHistoryRef(chatId).set(chatHistory);
+        });
+    }
+
+    private static void storeDeletedChatHistory(String chatId, String userId, DataSnapshot chatSnapshot) {
+        getChatHistoryRef(chatId).get().addOnSuccessListener(documentSnapshot -> {
+            ChatHistory chatHistory;
+            if (documentSnapshot.exists()) {
+                chatHistory = documentSnapshot.toObject(ChatHistory.class);
+                if (chatHistory == null) {
+                    chatHistory = new ChatHistory(chatId);
+                }
+            } else {
+                chatHistory = new ChatHistory(chatId);
+            }
+            
+            // Extract chat info
+            Map<String, Object> chatData = (Map<String, Object>) chatSnapshot.getValue();
+            if (chatData != null) {
+                String[] participants = new String[0];
+                Long createdAt = System.currentTimeMillis();
+                
+                if (chatData.containsKey("participants")) {
+                    Map<String, Object> participantsMap = (Map<String, Object>) chatData.get("participants");
+                    if (participantsMap != null) {
+                        participants = participantsMap.keySet().toArray(new String[0]);
+                    }
+                }
+                
+                if (chatData.containsKey("createdAt")) {
+                    createdAt = (Long) chatData.get("createdAt");
+                }
+                
+                ChatHistory.ChatInfo chatInfo = new ChatHistory.ChatInfo(participants, createdAt);
+                ChatHistory.DeletedChat deletedChat = 
+                    new ChatHistory.DeletedChat(chatInfo, userId, "delete_chat");
+                chatHistory.addDeletedChat(userId, deletedChat);
+                
+                getChatHistoryRef(chatId).set(chatHistory);
+            }
+        });
+    }
+
+    private static void storeDeletedMessageHistory(String chatId, String messageId, Message message, 
+                                                  String userId, String deletionType) {
+        getChatHistoryRef(chatId).get().addOnSuccessListener(documentSnapshot -> {
+            ChatHistory chatHistory;
+            if (documentSnapshot.exists()) {
+                chatHistory = documentSnapshot.toObject(ChatHistory.class);
+                if (chatHistory == null) {
+                    chatHistory = new ChatHistory(chatId);
+                }
+            } else {
+                chatHistory = new ChatHistory(chatId);
+            }
+            
+            ChatHistory.DeletedMessage deletedMessage = 
+                new ChatHistory.DeletedMessage(message, userId, deletionType);
+            chatHistory.addDeletedMessage(messageId, deletedMessage);
+            
+            getChatHistoryRef(chatId).set(chatHistory);
+        });
+    }
+
+    public static void getVisibleMessages(String chatId, String userId, ValueEventListener listener) {
+        getMessagesRef(chatId).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                // Filter messages based on user's deletion/clear status
+                for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
+                    Message message = messageSnapshot.getValue(Message.class);
+                    if (message != null && message.isVisibleForUser(userId)) {
+                        // This message is visible for the user
+                        listener.onDataChange(messageSnapshot);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                listener.onCancelled(databaseError);
+            }
+        });
+    }
+
+    public static void getActiveChatsForUser(String userId, ValueEventListener listener) {
+        getUserChatsRef(userId).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                // Filter chats based on user's deletion status
+                for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
+                    String chatId = chatSnapshot.getKey();
+                    if (chatId != null) {
+                        // Check if chat is active for this user
+                        getChatManagementRef(chatId).get().addOnSuccessListener(documentSnapshot -> {
+                            if (documentSnapshot.exists()) {
+                                ChatManagement chatManagement = documentSnapshot.toObject(ChatManagement.class);
+                                if (chatManagement != null && chatManagement.isChatActiveForUser(userId)) {
+                                    // This chat is active for the user
+                                    listener.onDataChange(chatSnapshot);
+                                }
+                            } else {
+                                // No chat management record, assume active
+                                listener.onDataChange(chatSnapshot);
+                            }
+                        });
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                listener.onCancelled(databaseError);
+            }
+        });
     }
 }

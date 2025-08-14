@@ -26,6 +26,7 @@ import com.pingme.android.utils.FirestoreUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 public class StatusFragment extends Fragment implements StatusAdapter.OnStatusClickListener {
     private static final String TAG = "StatusFragment";
@@ -95,66 +96,98 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
     private void loadStatuses() {
         showLoading(true);
         
-        // Load statuses from friends only
-        FirestoreUtil.getFriendsRef(currentUserId)
-                .get()
+        // Check if user is authenticated
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            Log.e(TAG, "User not authenticated");
+            showLoading(false);
+            updateUI();
+            return;
+        }
+
+        Log.d(TAG, "Loading statuses for user: " + currentUserId);
+        
+        // First load friends to get their IDs
+        FirestoreUtil.getFriendsRef(currentUserId).get()
                 .addOnSuccessListener(querySnapshot -> {
+                    Log.d(TAG, "Found " + querySnapshot.size() + " friends");
+                    
                     List<String> friendIds = new ArrayList<>();
-                    for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        friendIds.add(doc.getId());
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        String friendId = document.getId();
+                        friendIds.add(friendId);
                     }
                     
-                    if (friendIds.isEmpty()) {
-                        showLoading(false);
-                        updateUI();
-                        return;
-                    }
+                    // Add current user to the list to load their own status
+                    friendIds.add(currentUserId);
                     
-                    // Load statuses from these friends
-                    loadStatusesFromFriends(friendIds);
+                    // Load statuses from all users (friends + current user)
+                    loadStatusesFromUsers(friendIds);
                 })
                 .addOnFailureListener(e -> {
-                    showLoading(false);
                     Log.e(TAG, "Failed to load friends", e);
-                    Toast.makeText(getContext(), "Failed to load statuses", Toast.LENGTH_SHORT).show();
+                    showLoading(false);
+                    updateUI();
                 });
     }
 
-    private void loadStatusesFromFriends(List<String> friendIds) {
-        Log.d(TAG, "Loading statuses from " + friendIds.size() + " friends");
+    private void loadStatusesFromUsers(List<String> userIds) {
+        Log.d(TAG, "Loading statuses from " + userIds.size() + " users");
         
-        FirestoreUtil.getStatusCollectionRef()
-                .whereIn("userId", friendIds)
-                .whereGreaterThan("expiryTime", System.currentTimeMillis()) // Only non-expired
-                .orderBy("expiryTime")
-                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    statusList.clear();
-                    Log.d(TAG, "Found " + querySnapshot.size() + " statuses");
-                    
-                    for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        Status status = doc.toObject(Status.class);
-                        if (status != null) {
-                            status.setId(doc.getId());
-                            
-                            // Set viewed status
-                            if (status.getViewers() != null && status.getViewers().containsKey(currentUserId)) {
-                                status.setViewed(true);
+        if (userIds.isEmpty()) {
+            showLoading(false);
+            updateUI();
+            return;
+        }
+
+        // Clear existing statuses
+        statusList.clear();
+        
+        // Load statuses for each user
+        for (String userId : userIds) {
+            FirestoreUtil.getStatusesRef(userId).get()
+                    .addOnSuccessListener(querySnapshot -> {
+                        Log.d(TAG, "Loaded " + querySnapshot.size() + " statuses for user: " + userId);
+                        
+                        for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                            Status status = document.toObject(Status.class);
+                            if (status != null) {
+                                status.setId(document.getId());
+                                status.setUserId(userId);
+                                
+                                // Only add status if it's not expired (24 hours)
+                                long statusAge = System.currentTimeMillis() - status.getTimestamp();
+                                if (statusAge < 24 * 60 * 60 * 1000) { // 24 hours in milliseconds
+                                    statusList.add(status);
+                                }
                             }
-                            
-                            statusList.add(status);
                         }
-                    }
-                    
-                    showLoading(false);
-                    updateUI();
-                })
-                .addOnFailureListener(e -> {
-                    showLoading(false);
-                    Log.e(TAG, "Failed to load statuses", e);
-                    Toast.makeText(getContext(), "Failed to load statuses", Toast.LENGTH_SHORT).show();
-                });
+                        
+                        // Sort statuses: current user first, then others by timestamp
+                        Collections.sort(statusList, (s1, s2) -> {
+                            // Current user's statuses first
+                            if (s1.getUserId().equals(currentUserId) && !s2.getUserId().equals(currentUserId)) {
+                                return -1;
+                            }
+                            if (!s1.getUserId().equals(currentUserId) && s2.getUserId().equals(currentUserId)) {
+                                return 1;
+                            }
+                            // Then by timestamp (newest first)
+                            return Long.compare(s2.getTimestamp(), s1.getTimestamp());
+                        });
+                        
+                        // Update UI
+                        showLoading(false);
+                        updateUI();
+                        updateMyStatusUI();
+                        
+                        Log.d(TAG, "Total statuses loaded: " + statusList.size());
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to load statuses for user: " + userId, e);
+                        showLoading(false);
+                        updateUI();
+                    });
+        }
     }
 
     private void updateUI() {
@@ -192,6 +225,12 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                             binding.textMyStatusTime.setText(myStatus.getFormattedTimeAgo());
                             binding.textMyStatusTitle.setText("My Status");
                             binding.textMyStatusSubtitle.setText("Tap to view");
+                            
+                            // Update status count
+                            long activeStatusCount = querySnapshot.size();
+                            if (activeStatusCount > 1) {
+                                binding.textMyStatusSubtitle.setText(activeStatusCount + " statuses");
+                            }
                         }
                     } else {
                         // No active status
@@ -202,7 +241,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to check my status", e);
-                    // Set default state on error
+                    // Set default state
                     binding.textMyStatusTime.setVisibility(View.GONE);
                     binding.textMyStatusTitle.setText("My Status");
                     binding.textMyStatusSubtitle.setText("Tap to add status update");

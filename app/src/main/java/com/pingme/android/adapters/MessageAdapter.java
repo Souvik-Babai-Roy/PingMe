@@ -110,9 +110,23 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         if (holder instanceof DateHeaderViewHolder && item instanceof String) {
             ((DateHeaderViewHolder) holder).bind((String) item);
         } else if (holder instanceof SentMessageViewHolder && item instanceof Message) {
-            ((SentMessageViewHolder) holder).bind((Message) item);
+            Message message = (Message) item;
+            // Check if message is visible for current user
+            if (message.isVisibleForUser(currentUserId)) {
+                ((SentMessageViewHolder) holder).bind(message);
+            } else {
+                // Hide deleted/cleared messages
+                holder.itemView.setVisibility(View.GONE);
+            }
         } else if (holder instanceof ReceivedMessageViewHolder && item instanceof Message) {
-            ((ReceivedMessageViewHolder) holder).bind((Message) item);
+            Message message = (Message) item;
+            // Check if message is visible for current user
+            if (message.isVisibleForUser(currentUserId)) {
+                ((ReceivedMessageViewHolder) holder).bind(message);
+            } else {
+                // Hide deleted/cleared messages
+                holder.itemView.setVisibility(View.GONE);
+            }
         }
     }
 
@@ -332,23 +346,42 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
 
         private void setMessageStatus(ImageView statusIcon, int status) {
-            switch (status) {
-                case Message.STATUS_SENT:
-                    statusIcon.setImageResource(R.drawable.ic_sent);
-                    statusIcon.setColorFilter(context.getResources().getColor(R.color.status_sent));
-                    break;
-                case Message.STATUS_DELIVERED:
-                    statusIcon.setImageResource(R.drawable.ic_delivered);
-                    statusIcon.setColorFilter(context.getResources().getColor(R.color.status_delivered));
-                    break;
-                case Message.STATUS_READ:
-                    statusIcon.setImageResource(R.drawable.ic_read);
-                    statusIcon.setColorFilter(context.getResources().getColor(R.color.status_read));
-                    break;
+            // Use the enhanced delivery status for better accuracy
+            if (statusIcon == null) return;
+            
+            // Get the current message from the holder's position
+            int position = getAdapterPosition();
+            if (position >= 0 && position < items.size()) {
+                Object item = items.get(position);
+                if (item instanceof Message) {
+                    Message message = (Message) item;
+                    int deliveryStatus = message.getDeliveryStatus(currentUserId);
+                    
+                    switch (deliveryStatus) {
+                        case Message.STATUS_SENT:
+                            statusIcon.setImageResource(R.drawable.ic_sent);
+                            statusIcon.setColorFilter(context.getResources().getColor(R.color.status_sent));
+                            break;
+                        case Message.STATUS_DELIVERED:
+                            statusIcon.setImageResource(R.drawable.ic_delivered);
+                            statusIcon.setColorFilter(context.getResources().getColor(R.color.status_delivered));
+                            break;
+                        case Message.STATUS_READ:
+                            statusIcon.setImageResource(R.drawable.ic_read);
+                            statusIcon.setColorFilter(context.getResources().getColor(R.color.status_read));
+                            break;
+                        default:
+                            statusIcon.setImageResource(R.drawable.ic_sent);
+                            statusIcon.setColorFilter(context.getResources().getColor(R.color.status_sent));
+                            break;
+                    }
+                }
             }
         }
 
         private void setMessageStatus(TextView statusText, Message message) {
+            if (statusText == null) return;
+            
             if (message.isSentByCurrentUser(currentUserId)) {
                 String status = message.getStatusText(currentUserId);
                 statusText.setText(status);
@@ -363,6 +396,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                         break;
                     case Message.STATUS_READ:
                         statusText.setTextColor(context.getResources().getColor(R.color.status_read));
+                        break;
+                    default:
+                        statusText.setTextColor(context.getResources().getColor(R.color.status_sent));
                         break;
                 }
             } else {

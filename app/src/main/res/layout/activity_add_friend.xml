@@ -200,6 +200,50 @@
 
                     </LinearLayout>
 
+                    <!-- Additional User Information -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="16dp">
+
+                        <!-- Phone Number -->
+                        <TextView
+                            android:id="@+id/tvUserPhone"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="📱 Phone number"
+                            android:textSize="14sp"
+                            android:textColor="@color/textColorSecondary"
+                            android:layout_marginBottom="4dp"
+                            android:visibility="gone" />
+
+                        <!-- Join Date -->
+                        <TextView
+                            android:id="@+id/tvUserJoined"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="📅 Joined date"
+                            android:textSize="14sp"
+                            android:textColor="@color/textColorSecondary"
+                            android:layout_marginBottom="8dp"
+                            android:visibility="gone" />
+
+                        <!-- Privacy Information -->
+                        <TextView
+                            android:id="@+id/tvPrivacyInfo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="🔒 Privacy info"
+                            android:textSize="12sp"
+                            android:textColor="@color/textColorTertiary"
+                            android:background="@drawable/privacy_info_background"
+                            android:padding="8dp"
+                            android:layout_marginBottom="8dp"
+                            android:visibility="gone" />
+
+                    </LinearLayout>
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnAddFriend"
                         android:layout_width="match_parent"
