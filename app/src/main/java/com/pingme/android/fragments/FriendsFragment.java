@@ -198,12 +198,48 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
 
     @Override
     public void onFriendClick(User friend) {
+        // Debug: Show a toast first to confirm click is working
+        Toast.makeText(getContext(), "Clicked on " + friend.getDisplayName(), Toast.LENGTH_SHORT).show();
+        
         // Start chat with friend
         startChatWithFriend(friend);
     }
 
     private void startChatWithFriend(User friend) {
         Log.d(TAG, "Starting chat with friend: " + friend.getDisplayName());
+        Log.d(TAG, "Current user ID: " + currentUserId);
+        Log.d(TAG, "Friend ID: " + friend.getId());
+        
+        // Validate required data
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            Toast.makeText(getContext(), "User authentication error. Please restart app.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        
+        if (friend.getId() == null || friend.getId().isEmpty()) {
+            // Try to get friend ID from email as fallback
+            String friendEmail = friend.getEmail();
+            if (friendEmail != null && !friendEmail.isEmpty()) {
+                // Search for friend by email to get proper ID
+                FirestoreUtil.getUserByEmail(friendEmail, new FirestoreUtil.UserSearchCallback() {
+                    @Override
+                    public void onUserFound(User foundUser) {
+                        foundUser.setPersonalName(friend.getPersonalName()); // Keep personal name
+                        startChatWithFriend(foundUser); // Retry with proper ID
+                    }
+                    
+                    @Override
+                    public void onUserNotFound() {
+                        Toast.makeText(getContext(), "Could not find friend data. Please remove and re-add this friend.", Toast.LENGTH_LONG).show();
+                    }
+                });
+                return;
+            } else {
+                Toast.makeText(getContext(), "Friend data error. Friend ID is missing.", Toast.LENGTH_LONG).show();
+                Log.e(TAG, "Friend object: " + friend.toString());
+                return;
+            }
+        }
         
         // Generate chat ID
         String chatId = currentUserId + "_" + friend.getId();
@@ -211,10 +247,14 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
             chatId = friend.getId() + "_" + currentUserId;
         }
         
+        Log.d(TAG, "Generated chat ID: " + chatId);
+        
         // Open chat activity
         Intent intent = new Intent(getContext(), ChatActivity.class);
         intent.putExtra("chatId", chatId);
         intent.putExtra("receiverId", friend.getId());
+        
+        Log.d(TAG, "Starting ChatActivity with chatId: " + chatId + " and receiverId: " + friend.getId());
         startActivity(intent);
     }
     
