@@ -1399,7 +1399,6 @@ public class FirestoreUtil {
             chatHistory.addDeletedChat(userId, deletedChat);
                 
                 getChatHistoryRef(chatId).set(chatHistory);
-            }
         });
     }
 
