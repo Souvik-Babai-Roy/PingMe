@@ -357,7 +357,7 @@ public class FirestoreUtil {
                 });
     }
 
-    public static void checkFriendship(String currentUserId, String friendId, FriendCheckCallback callback) {
+    public static void checkFriendship(String currentUserId, String friendId, FriendshipStatusCallback callback) {
         getFriendsRef(currentUserId).document(friendId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     boolean areFriends = documentSnapshot.exists();
@@ -369,7 +369,7 @@ public class FirestoreUtil {
                 });
     }
 
-    public static void checkIfFriends(String currentUserId, String friendId, FriendCheckCallback callback) {
+    public static void checkIfFriends(String currentUserId, String friendId, FriendshipStatusCallback callback) {
         checkFriendship(currentUserId, friendId, callback);
     }
 
@@ -1027,12 +1027,12 @@ public class FirestoreUtil {
     }
 
     public interface BroadcastCallback {
-        void onBroadcastCreated(Broadcast broadcast);
+        void onBroadcastCreated(com.pingme.android.models.Broadcast broadcast);
         void onError(String error);
     }
 
     public interface BroadcastListCallback {
-        void onBroadcastsLoaded(List<Broadcast> broadcasts);
+        void onBroadcastsLoaded(List<com.pingme.android.models.Broadcast> broadcasts);
         void onError(String error);
     }
 

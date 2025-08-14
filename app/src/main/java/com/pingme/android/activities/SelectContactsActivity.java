@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TaskCompletionSource;
+import com.google.android.gms.tasks.TaskCompletionSource;
 
 public class SelectContactsActivity extends AppCompatActivity {
     private static final String TAG = "SelectContactsActivity";
