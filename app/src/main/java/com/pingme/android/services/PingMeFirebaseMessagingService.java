@@ -40,9 +40,10 @@ public class PingMeFirebaseMessagingService extends FirebaseMessagingService {
         String title = remoteMessage.getData().get("title");
         String body = remoteMessage.getData().get("body");
         String chatId = remoteMessage.getData().get("chatId");
+        String receiverId = remoteMessage.getData().get("receiverId");
 
         if ("message".equals(type)) {
-            NotificationUtil.showMessageNotification(this, title, body, chatId);
+            NotificationUtil.showMessageNotification(this, title, body, chatId, receiverId);
         }
     }
 
@@ -50,8 +51,9 @@ public class PingMeFirebaseMessagingService extends FirebaseMessagingService {
         String title = Objects.requireNonNull(remoteMessage.getNotification()).getTitle();
         String body = remoteMessage.getNotification().getBody();
         String chatId = remoteMessage.getData().get("chatId");
+        String receiverId = remoteMessage.getData().get("receiverId");
 
-        NotificationUtil.showMessageNotification(this, title, body, chatId);
+        NotificationUtil.showMessageNotification(this, title, body, chatId, receiverId);
     }
 
     @Override

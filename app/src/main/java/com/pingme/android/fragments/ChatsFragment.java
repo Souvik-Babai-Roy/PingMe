@@ -483,61 +483,52 @@ public class ChatsFragment extends Fragment {
     }
 
     private void updateChatInList(Chat updatedChat) {
-        // Find existing chat and update or add new one
-        int existingIndex = -1;
+        // Find existing chat and update it
         for (int i = 0; i < chatList.size(); i++) {
-            if (chatList.get(i).getId().equals(updatedChat.getId())) {
-                existingIndex = i;
-                break;
+            Chat existingChat = chatList.get(i);
+            if (existingChat.getId().equals(updatedChat.getId())) {
+                existingChat.setLastMessage(updatedChat.getLastMessage());
+                existingChat.setLastMessageTimestamp(updatedChat.getLastMessageTimestamp());
+                existingChat.setLastMessageSenderId(updatedChat.getLastMessageSenderId());
+                existingChat.setLastMessageType(updatedChat.getLastMessageType());
+                // Remove the getLastMessageId() call since it doesn't exist
+                adapter.notifyItemChanged(i);
+                return;
             }
         }
         
-        if (existingIndex >= 0) {
-            // Update existing chat
-            Chat existingChat = chatList.get(existingIndex);
-            existingChat.setLastMessage(updatedChat.getLastMessage());
-            existingChat.setLastMessageTimestamp(updatedChat.getLastMessageTimestamp());
-            existingChat.setLastMessageSenderId(updatedChat.getLastMessageSenderId());
-            existingChat.setLastMessageType(updatedChat.getLastMessageType());
-            existingChat.setLastMessageId(updatedChat.getLastMessageId());
-            
-            // Move to top if it's a new message
-            if (updatedChat.getLastMessageTimestamp() > 0) {
-                chatList.remove(existingIndex);
-                chatList.add(0, existingChat);
-            }
-        } else {
-            // Add new chat at the top
-            chatList.add(0, updatedChat);
-        }
-        
-        // Sort by last message timestamp (most recent first)
-        Collections.sort(chatList, (c1, c2) -> Long.compare(c2.getLastMessageTimestamp(), c1.getLastMessageTimestamp()));
-        
+        // If not found, add new chat
+        chatList.add(updatedChat);
+        sortChats();
         adapter.notifyDataSetChanged();
-        updateEmptyState(chatList.isEmpty());
     }
 
     private void setupChatListener(String chatId) {
-        // Listen to individual chat updates
+        // Remove existing listener if any
+        if (chatListeners.containsKey(chatId)) {
+            FirestoreUtil.getChatRef(chatId).removeEventListener(chatListeners.get(chatId));
+        }
+
         ValueEventListener chatListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                Chat chatData = dataSnapshot.getValue(Chat.class);
-                if (chatData != null) {
-                    chatData.setId(chatId);
-                    updateChatInList(chatData);
+                if (dataSnapshot.exists()) {
+                    Chat updatedChat = dataSnapshot.getValue(Chat.class);
+                    if (updatedChat != null) {
+                        updatedChat.setId(chatId);
+                        updateChatInList(updatedChat);
+                    }
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-                Log.e(TAG, "Chat listener cancelled for: " + chatId, databaseError.toException());
+                Log.e(TAG, "Failed to listen to chat updates", databaseError.toException());
             }
         };
-        
-        chatListeners.put(chatId, chatListener);
+
         FirestoreUtil.getChatRef(chatId).addValueEventListener(chatListener);
+        chatListeners.put(chatId, chatListener);
     }
 
     private Chat findChatById(String chatId) {
@@ -551,11 +542,11 @@ public class ChatsFragment extends Fragment {
 
     private void updateEmptyState(boolean isEmpty) {
         if (isEmpty) {
-            binding.textNoChats.setVisibility(View.VISIBLE);
-            binding.recyclerView.setVisibility(View.GONE);
+            binding.layoutEmptyState.setVisibility(View.VISIBLE);
+            binding.recyclerViewChats.setVisibility(View.GONE);
         } else {
-            binding.textNoChats.setVisibility(View.GONE);
-            binding.recyclerView.setVisibility(View.VISIBLE);
+            binding.layoutEmptyState.setVisibility(View.GONE);
+            binding.recyclerViewChats.setVisibility(View.VISIBLE);
         }
     }
 

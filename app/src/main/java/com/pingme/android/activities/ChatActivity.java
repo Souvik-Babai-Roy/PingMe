@@ -935,10 +935,10 @@ public class ChatActivity extends AppCompatActivity {
                 .addOnSuccessListener(aVoid -> {
                     showSendingIndicator(false);
                     Log.d(TAG, "Message sent successfully");
-                    // Scroll to bottom to show new message
-                    binding.recyclerViewMessages.post(() -> {
+                    // Auto-scroll to new message
+                    binding.recyclerView.post(() -> {
                         if (messages.size() > 0) {
-                            binding.recyclerViewMessages.smoothScrollToPosition(messages.size() - 1);
+                            binding.recyclerView.smoothScrollToPosition(messages.size() - 1);
                         }
                     });
                 })
@@ -1193,15 +1193,10 @@ public class ChatActivity extends AppCompatActivity {
 
     private void showLoading(boolean show) {
         if (show) {
-            binding.progressBar.setVisibility(View.VISIBLE);
-            binding.etMessage.setEnabled(false);
-            binding.btnSend.setEnabled(false);
-            binding.btnAttach.setEnabled(false);
+            // Show loading indicator in toolbar or use a different approach
+            binding.toolbar.setEnabled(false);
         } else {
-            binding.progressBar.setVisibility(View.GONE);
-            binding.etMessage.setEnabled(!isBlocked);
-            binding.btnSend.setEnabled(!isBlocked);
-            binding.btnAttach.setEnabled(!isBlocked);
+            binding.toolbar.setEnabled(true);
         }
     }
 
