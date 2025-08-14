@@ -331,6 +331,13 @@
         // User statuses (stories)
         "statuses": {
           "$statusId": {
+            // Users can read statuses from friends and their own statuses
+            ".read": "auth != null && (data.child('userId').val() == auth.uid || root.child('users').child(auth.uid).child('friends').child(data.child('userId').val()).exists())",
+            // Users can create their own statuses
+            ".write": "auth != null && data.child('userId').val() == auth.uid",
+            // Users can update viewers field for any status they can read
+            ".update": "auth != null && (data.child('userId').val() == auth.uid || root.child('users').child(auth.uid).child('friends').child(data.child('userId').val()).exists())",
+            
             ".validate": "newData.hasChildren(['id','timestamp','expiryTime']) && (newData.hasChild('text') || newData.hasChild('mediaUrl'))",
             "id": {
               ".validate": "newData.isString() && newData.val() == $statusId"
@@ -360,6 +367,49 @@
                 ".validate": "newData.isNumber() && newData.val() <= now"
               }
             }
+          }
+        }
+      }
+    },
+
+    // Global statuses collection (stories)
+    "global_statuses": {
+      "$statusId": {
+        // Users can read statuses from friends and their own statuses
+        ".read": "auth != null && (data.child('userId').val() == auth.uid || root.child('users').child(auth.uid).child('friends').child(data.child('userId').val()).exists())",
+        // Users can create their own statuses
+        ".write": "auth != null && data.child('userId').val() == auth.uid",
+        // Users can update viewers field for any status they can read
+        ".update": "auth != null && (data.child('userId').val() == auth.uid || root.child('users').child(auth.uid).child('friends').child(data.child('userId').val()).exists())",
+        
+        ".validate": "newData.hasChildren(['id','timestamp','expiryTime']) && (newData.hasChild('text') || newData.hasChild('mediaUrl'))",
+        "id": {
+          ".validate": "newData.isString() && newData.val() == $statusId"
+        },
+        "userId": {
+          ".validate": "newData.isString() && newData.val() == auth.uid"
+        },
+        "text": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 500)"
+        },
+        "mediaUrl": {
+          ".validate": "!newData.exists() || newData.isString()"
+        },
+        "mediaType": {
+          ".validate": "!newData.exists() || newData.val() == 'image' || newData.val() == 'video' || newData.val() == 'text'"
+        },
+        "timestamp": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "expiryTime": {
+          ".validate": "newData.isNumber() && newData.val() > newData.parent().child('timestamp').val()"
+        },
+        "backgroundColor": {
+          ".validate": "!newData.exists() || newData.isString()"
+        },
+        "viewers": {
+          "$viewerId": {
+            ".validate": "newData.isNumber() && newData.val() <= now"
           }
         }
       }

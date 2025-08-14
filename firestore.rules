@@ -55,7 +55,7 @@ service cloud.firestore {
       }
     }
 
-    // Global statuses collection
+    // Global statuses collection (stories)
     match /statuses/{statusId} {
       allow read: if isSignedIn() && (
         isOwner(resource.data.userId) || 
@@ -69,6 +69,22 @@ service cloud.firestore {
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']))
       );
       allow delete: if isOwner(resource.data.userId);
+    }
+    
+    // User-specific statuses subcollection
+    match /users/{userId}/statuses/{statusId} {
+      allow read: if isSignedIn() && (
+        isOwner(userId) || 
+        (isFriend(userId) && isNotBlocked(userId))
+      );
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && (
+        isOwner(userId) || 
+        // Allow friends to update viewers field
+        (isFriend(userId) && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']))
+      );
+      allow delete: if isSignedIn() && isOwner(userId);
     }
 
     // Chat management - metadata about chats

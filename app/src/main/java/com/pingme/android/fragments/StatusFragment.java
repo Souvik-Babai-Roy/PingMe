@@ -169,6 +169,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                                 String statusUserId = status.getUserId();
                                 if (statusUserId.equals(currentUserId)) {
                                     // Always show current user's status
+                                    Log.d(TAG, "Adding current user status: " + status.getContent());
                                     statusList.add(status);
                                     processedCount[0]++;
                                     
@@ -185,7 +186,10 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                                                     User user = userDoc.toObject(User.class);
                                                     if (user != null && user.isAboutEnabled()) {
                                                         // User allows status visibility, add to list
+                                                        Log.d(TAG, "Adding friend status: " + status.getContent() + " from " + status.getUserName());
                                                         statusList.add(status);
+                                                    } else {
+                                                        Log.d(TAG, "Friend " + status.getUserName() + " has disabled status visibility");
                                                     }
                                                     // If user doesn't allow status visibility, skip this status
                                                 }
@@ -204,6 +208,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                                             });
                                 }
                             } else {
+                                Log.d(TAG, "Status expired: " + status.getContent() + " (age: " + statusAge + "ms)");
                                 processedCount[0]++;
                                 if (processedCount[0] == totalStatusesToProcess) {
                                     finishStatusLoading();
@@ -219,6 +224,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                     
                     // Handle case where no statuses to process
                     if (totalStatusesToProcess == 0) {
+                        Log.d(TAG, "No statuses found in collection");
                         finishStatusLoading();
                     }
                 })
