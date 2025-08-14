@@ -1375,27 +1375,27 @@ public class FirestoreUtil {
                 chatHistory = new ChatHistory(chatId);
             }
             
-            // Extract chat info
-            Map<String, Object> chatData = (Map<String, Object>) chatSnapshot.getValue();
-            if (chatData != null) {
-                String[] participants = new String[0];
-                Long createdAt = System.currentTimeMillis();
-                
-                if (chatData.containsKey("participants")) {
-                    Map<String, Object> participantsMap = (Map<String, Object>) chatData.get("participants");
-                    if (participantsMap != null) {
-                        participants = participantsMap.keySet().toArray(new String[0]);
-                    }
+            // Extract chat info without unchecked casts
+            String[] participants = new String[0];
+            Long createdAt = chatSnapshot.child("createdAt").getValue(Long.class);
+            if (createdAt == null) {
+                createdAt = System.currentTimeMillis();
+            }
+
+            DataSnapshot participantsSnapshot = chatSnapshot.child("participants");
+            if (participantsSnapshot.exists()) {
+                List<String> ids = new ArrayList<>();
+                for (DataSnapshot child : participantsSnapshot.getChildren()) {
+                    String id = child.getKey();
+                    if (id != null) ids.add(id);
                 }
-                
-                if (chatData.containsKey("createdAt")) {
-                    createdAt = (Long) chatData.get("createdAt");
-                }
-                
-                ChatHistory.ChatInfo chatInfo = new ChatHistory.ChatInfo(participants, createdAt);
-                ChatHistory.DeletedChat deletedChat = 
-                    new ChatHistory.DeletedChat(chatInfo, userId, "delete_chat");
-                chatHistory.addDeletedChat(userId, deletedChat);
+                participants = ids.toArray(new String[0]);
+            }
+
+            ChatHistory.ChatInfo chatInfo = new ChatHistory.ChatInfo(participants, createdAt);
+            ChatHistory.DeletedChat deletedChat = 
+                new ChatHistory.DeletedChat(chatInfo, userId, "delete_chat");
+            chatHistory.addDeletedChat(userId, deletedChat);
                 
                 getChatHistoryRef(chatId).set(chatHistory);
             }
