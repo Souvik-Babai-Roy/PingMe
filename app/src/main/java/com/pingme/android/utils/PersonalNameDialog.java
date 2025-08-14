@@ -62,7 +62,7 @@ public class PersonalNameDialog extends Dialog {
         }
         
         // Set friend's current name as hint
-        binding.tvCurrentName.setText(friend.getName());
+        binding.tvCurrentName.setText(friend.getDisplayName());
         
         // Set friend's profile photo if available
         if (friend.getImageUrl() != null && !friend.getImageUrl().trim().isEmpty()) {

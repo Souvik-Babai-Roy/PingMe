@@ -34,17 +34,22 @@ public class PreferenceUtils {
 
     // FIXED: Apply selected theme with immediate activity recreation
     public static void applyTheme(String themeValue) {
-        switch (themeValue) {
-            case "light":
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-                break;
-            case "dark":
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-                break;
-            case "auto":
-            default:
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
-                break;
+        try {
+            switch (themeValue) {
+                case "light":
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                    break;
+                case "dark":
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                    break;
+                case "auto":
+                default:
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+                    break;
+            }
+        } catch (Exception e) {
+            // Fallback to system theme if there's an error
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
         }
     }
 
@@ -74,9 +79,14 @@ public class PreferenceUtils {
         // Apply theme immediately
         applyTheme(themeValue);
 
-        // FIXED: Recreate current activity to apply theme
+        // FIXED: Recreate current activity to apply theme safely
         if (context instanceof Activity) {
-            ((Activity) context).recreate();
+            try {
+                ((Activity) context).recreate();
+            } catch (Exception e) {
+                // If recreation fails, just apply the theme for next launch
+                Log.w("PreferenceUtils", "Failed to recreate activity, theme will apply on next launch");
+            }
         }
     }
 

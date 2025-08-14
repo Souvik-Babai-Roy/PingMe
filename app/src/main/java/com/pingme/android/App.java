@@ -55,7 +55,13 @@ public class App extends Application {
             Log.d(TAG, "Applied theme: " + savedTheme);
         } catch (Exception e) {
             Log.e(TAG, "Failed to apply saved theme", e);
-            PreferenceUtils.applyTheme("auto");
+            // Fallback to system theme to prevent crashes
+            try {
+                PreferenceUtils.applyTheme("auto");
+            } catch (Exception fallbackError) {
+                Log.e(TAG, "Failed to apply fallback theme", fallbackError);
+                // Last resort: don't change theme at all
+            }
         }
     }
 }

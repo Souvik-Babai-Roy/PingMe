@@ -280,7 +280,7 @@ public class ChatActivity extends AppCompatActivity {
                         adapter.updateOtherUser(receiver);
                     }
 
-                    Log.d(TAG, "Receiver loaded successfully: " + receiver.getName());
+                    Log.d(TAG, "Receiver loaded successfully: " + receiver.getDisplayName());
                 }
             } else {
                 Log.e(TAG, "Receiver not found: " + receiverId);
@@ -339,7 +339,7 @@ public class ChatActivity extends AppCompatActivity {
     private void updateToolbarWithReceiver() {
         if (receiver == null) return;
 
-        binding.tvUserName.setText(receiver.getName());
+        binding.tvUserName.setText(receiver.getDisplayName());
 
         // Only show profile if not blocked and privacy allows
         if (!isBlocked && receiver.isProfilePhotoEnabled() &&
@@ -1070,7 +1070,7 @@ public class ChatActivity extends AppCompatActivity {
     private void blockUser() {
         new AlertDialog.Builder(this)
                 .setTitle("Block User")
-                .setMessage("Are you sure you want to block " + receiver.getName() + "? You won't receive messages from them.")
+                .setMessage("Are you sure you want to block " + receiver.getDisplayName() + "? You won't receive messages from them.")
                 .setPositiveButton("Block", (dialog, which) -> {
                     FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
                     if (currentUser != null) {
@@ -1078,7 +1078,7 @@ public class ChatActivity extends AppCompatActivity {
                         FirestoreUtil.blockUser(currentUserId, receiverId);
                         isBlocked = true;
                         updateInputState();
-                        Toast.makeText(this, receiver.getName() + " has been blocked", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, receiver.getDisplayName() + " has been blocked", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .setNegativeButton("Cancel", null)
@@ -1088,7 +1088,7 @@ public class ChatActivity extends AppCompatActivity {
     private void unblockUser() {
         new AlertDialog.Builder(this)
                 .setTitle("Unblock User")
-                .setMessage("Are you sure you want to unblock " + receiver.getName() + "?")
+                .setMessage("Are you sure you want to unblock " + receiver.getDisplayName() + "?")
                 .setPositiveButton("Unblock", (dialog, which) -> {
                     FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
                     if (currentUser != null) {
@@ -1096,7 +1096,7 @@ public class ChatActivity extends AppCompatActivity {
                         FirestoreUtil.unblockUser(currentUserId, receiverId);
                         isBlocked = false;
                         updateInputState();
-                        Toast.makeText(this, receiver.getName() + " has been unblocked", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, receiver.getDisplayName() + " has been unblocked", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .setNegativeButton("Cancel", null)
@@ -1106,13 +1106,13 @@ public class ChatActivity extends AppCompatActivity {
     private void removeFriend() {
         new AlertDialog.Builder(this)
                 .setTitle("Remove Friend")
-                .setMessage("Are you sure you want to remove " + receiver.getName() + " from your friends?")
+                .setMessage("Are you sure you want to remove " + receiver.getDisplayName() + " from your friends?")
                 .setPositiveButton("Remove", (dialog, which) -> {
                     FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
                     if (currentUser != null) {
                         String currentUserId = currentUser.getUid();
                         FirestoreUtil.removeFriend(currentUserId, receiverId);
-                        Toast.makeText(this, receiver.getName() + " has been removed from friends", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, receiver.getDisplayName() + " has been removed from friends", Toast.LENGTH_SHORT).show();
                         finish();
                     }
                 })

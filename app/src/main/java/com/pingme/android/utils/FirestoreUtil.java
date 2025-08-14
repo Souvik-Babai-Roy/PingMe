@@ -160,7 +160,7 @@ public class FirestoreUtil {
                         User user = querySnapshot.getDocuments().get(0).toObject(User.class);
                         if (user != null) {
                             user.setId(querySnapshot.getDocuments().get(0).getId());
-                            Log.d(TAG, "User found: " + user.getName() + " (" + user.getEmail() + ")");
+                            Log.d(TAG, "User found: " + user.getDisplayName() + " (" + user.getEmail() + ")");
                             callback.onUserFound(user);
                         } else {
                             Log.w(TAG, "User document exists but failed to parse");
@@ -199,7 +199,7 @@ public class FirestoreUtil {
                         User user = querySnapshot.getDocuments().get(0).toObject(User.class);
                         if (user != null) {
                             user.setId(querySnapshot.getDocuments().get(0).getId());
-                            Log.d(TAG, "User found by phone: " + user.getName() + " (" + user.getPhoneNumber() + ")");
+                            Log.d(TAG, "User found by phone: " + user.getDisplayName() + " (" + user.getPhoneNumber() + ")");
                             callback.onUserFound(user);
                         } else {
                             Log.w(TAG, "User document exists but failed to parse");
@@ -581,7 +581,7 @@ public class FirestoreUtil {
         getUserRef(senderId).get().addOnSuccessListener(senderSnapshot -> {
             if (senderSnapshot.exists()) {
                 User sender = senderSnapshot.toObject(User.class);
-                String senderName = sender != null ? sender.getName() : "Unknown";
+                String senderName = sender != null ? sender.getDisplayName() : "Unknown";
                 
                 // Get receiver's context for notification
                 getUserRef(receiverId).get().addOnSuccessListener(receiverSnapshot -> {
@@ -1190,7 +1190,7 @@ public class FirestoreUtil {
                             getUserRef(userId).get().addOnSuccessListener(currentUserSnapshot -> {
                                 if (currentUserSnapshot.exists()) {
                                     User currentUser = currentUserSnapshot.toObject(User.class);
-                                    String userName = currentUser != null ? currentUser.getName() : "Unknown";
+                                    String userName = currentUser != null ? currentUser.getDisplayName() : "Unknown";
                                     
                                     // Show status notification
                                     android.content.Context context = getApplicationContext();
@@ -1265,7 +1265,7 @@ public class FirestoreUtil {
         getUserRef(senderId).get().addOnSuccessListener(senderSnapshot -> {
             if (senderSnapshot.exists()) {
                 User sender = senderSnapshot.toObject(User.class);
-                String senderName = sender != null ? sender.getName() : "Unknown";
+                String senderName = sender != null ? sender.getDisplayName() : "Unknown";
                 
                 // Get receiver's info
                 getUserRef(receiverId).get().addOnSuccessListener(receiverSnapshot -> {

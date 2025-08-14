@@ -113,7 +113,7 @@ public class UserProfileActivity extends AppCompatActivity {
         // About section (based on privacy setting)
         if (targetUser.isAboutEnabled()) {
             binding.tvAbout.setVisibility(View.VISIBLE);
-            binding.tvAbout.setText(targetUser.getAbout());
+            binding.tvAbout.setText(targetUser.getDisplayAbout());
         } else {
             binding.tvAbout.setVisibility(View.GONE);
         }

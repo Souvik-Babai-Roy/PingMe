@@ -288,7 +288,7 @@ public class ChatRepository {
 
             if (c1IsEmpty && c2IsEmpty) {
                 // Both empty - sort by name
-                return c1.getOtherUser().getName().compareToIgnoreCase(c2.getOtherUser().getName());
+                return c1.getOtherUser().getDisplayName().compareToIgnoreCase(c2.getOtherUser().getDisplayName());
             }
             if (c1IsEmpty) return 1; // c1 to bottom
             if (c2IsEmpty) return -1; // c2 to bottom
@@ -312,8 +312,8 @@ public class ChatRepository {
 
         for (Chat chat : currentChats) {
             if (chat.getOtherUser() != null &&
-                    chat.getOtherUser().getName() != null &&
-                    chat.getOtherUser().getName().toLowerCase().contains(lowerQuery)) {
+                    chat.getOtherUser().getDisplayName() != null &&
+                    chat.getOtherUser().getDisplayName().toLowerCase().contains(lowerQuery)) {
                 filteredChats.add(chat);
             }
         }

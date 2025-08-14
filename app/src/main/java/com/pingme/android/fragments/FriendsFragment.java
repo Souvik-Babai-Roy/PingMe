@@ -161,8 +161,8 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
         } else {
             String lowerCaseQuery = query.toLowerCase();
             for (User friend : friendsList) {
-                if (friend.getName().toLowerCase().contains(lowerCaseQuery) ||
-                    (friend.getEmail() != null && friend.getEmail().toLowerCase().contains(lowerCaseQuery))) {
+                        if (friend.getDisplayName().toLowerCase().contains(lowerCaseQuery) ||
+            (friend.getEmail() != null && friend.getEmail().toLowerCase().contains(lowerCaseQuery))) {
                     filteredFriendsList.add(friend);
                 }
             }
@@ -197,7 +197,7 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
     }
 
     private void startChatWithFriend(User friend) {
-        Log.d(TAG, "Starting chat with friend: " + friend.getName());
+        Log.d(TAG, "Starting chat with friend: " + friend.getDisplayName());
         
         // Generate chat ID
         String chatId = currentUserId + "_" + friend.getId();
