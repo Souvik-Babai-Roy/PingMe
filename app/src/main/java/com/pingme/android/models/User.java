@@ -35,6 +35,9 @@ public class User {
     
     // Friend relationship status (not stored in Firestore, used for UI state)
     private String friendshipStatus = "none"; // none, friend, blocked, pending
+    
+    // Personal name for friends (custom nickname)
+    private String personalName;
 
     // Default constructor
     public User() {
@@ -84,6 +87,7 @@ public class User {
     public long getJoinedAt() { return joinedAt; }
     public boolean isBlocked() { return isBlocked; }
     public String getFriendshipStatus() { return friendshipStatus; }
+    public String getPersonalName() { return personalName; }
 
     // Privacy settings getters
     public boolean isProfilePhotoEnabled() { return profilePhotoEnabled; }
@@ -105,6 +109,7 @@ public class User {
     public void setJoinedAt(long joinedAt) { this.joinedAt = joinedAt; }
     public void setBlocked(boolean blocked) { isBlocked = blocked; }
     public void setFriendshipStatus(String friendshipStatus) { this.friendshipStatus = friendshipStatus; }
+    public void setPersonalName(String personalName) { this.personalName = personalName; }
 
     // Privacy settings setters
     public void setProfilePhotoEnabled(boolean profilePhotoEnabled) {
@@ -126,7 +131,10 @@ public class User {
     }
 
     public String getDisplayName() {
-        if (name != null && !name.trim().isEmpty()) {
+        // Priority: personal name > name > phone number > email username
+        if (personalName != null && !personalName.trim().isEmpty()) {
+            return personalName;
+        } else if (name != null && !name.trim().isEmpty()) {
             return name;
         } else if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
             return phoneNumber;
@@ -220,6 +228,7 @@ public class User {
         copy.joinedAt = this.joinedAt;
         copy.isBlocked = this.isBlocked;
         copy.friendshipStatus = this.friendshipStatus;
+        copy.personalName = this.personalName;
         return copy;
     }
 
@@ -244,14 +253,15 @@ public class User {
                 Objects.equals(imageUrl, user.imageUrl) &&
                 Objects.equals(about, user.about) &&
                 Objects.equals(fcmToken, user.fcmToken) &&
-                Objects.equals(friendshipStatus, user.friendshipStatus);
+                Objects.equals(friendshipStatus, user.friendshipStatus) &&
+                Objects.equals(personalName, user.personalName);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(id, name, email, phoneNumber, imageUrl, about, isOnline,
                 lastSeen, fcmToken, profilePhotoEnabled, lastSeenEnabled, aboutEnabled,
-                readReceiptsEnabled, joinedAt, isBlocked, friendshipStatus);
+                readReceiptsEnabled, joinedAt, isBlocked, friendshipStatus, personalName);
     }
 
     @NonNull
@@ -269,6 +279,7 @@ public class User {
                 ", readReceiptsEnabled=" + readReceiptsEnabled +
                 ", isBlocked=" + isBlocked +
                 ", friendshipStatus='" + friendshipStatus + '\'' +
+                ", personalName='" + personalName + '\'' +
                 '}';
     }
 }

@@ -68,8 +68,8 @@ public class ContactSelectionAdapter extends RecyclerView.Adapter<ContactSelecti
         }
 
         public void bind(User contact) {
-            tvName.setText(contact.getName());
-            tvAbout.setText(contact.getAbout());
+                    tvName.setText(contact.getDisplayName());
+        tvAbout.setText(contact.getDisplayAbout());
 
             // Load profile image
             if (contact.getImageUrl() != null && !contact.getImageUrl().isEmpty()) {

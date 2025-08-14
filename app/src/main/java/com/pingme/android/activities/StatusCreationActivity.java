@@ -217,7 +217,7 @@ public class StatusCreationActivity extends AppCompatActivity {
     private void createTextStatus(String content) {
         Status status = new Status();
         status.setUserId(currentUserId);
-        status.setUserName(currentUser.getName());
+        status.setUserName(currentUser.getDisplayName());
         status.setUserImageUrl(currentUser.getImageUrl());
         status.setContent(content);
         status.setType("text");
@@ -231,7 +231,7 @@ public class StatusCreationActivity extends AppCompatActivity {
     private void createImageStatus(String content, String imageUrl) {
         Status status = new Status();
         status.setUserId(currentUserId);
-        status.setUserName(currentUser.getName());
+        status.setUserName(currentUser.getDisplayName());
         status.setUserImageUrl(currentUser.getImageUrl());
         status.setContent(content);
         status.setImageUrl(imageUrl);

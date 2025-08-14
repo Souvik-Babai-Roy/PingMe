@@ -116,7 +116,7 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
     @Override
     public void onFriendClick(User friend) {
         // Show friend profile instead of opening chat
-        Toast.makeText(this, "Friend: " + friend.getName(), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Friend: " + friend.getDisplayName(), Toast.LENGTH_SHORT).show();
         // TODO: Implement friend profile view if needed
     }
 
@@ -210,9 +210,9 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
         binding.tvUserEmail.setText(user.getEmail());
 
         // Show about if available and user allows it
-        if (user.isAboutEnabled() && user.getAbout() != null && !user.getAbout().isEmpty()) {
+        if (user.isAboutEnabled() && user.getDisplayAbout() != null && !user.getDisplayAbout().isEmpty()) {
             binding.tvUserAbout.setVisibility(View.VISIBLE);
-            binding.tvUserAbout.setText(user.getAbout());
+            binding.tvUserAbout.setText(user.getDisplayAbout());
         } else {
             binding.tvUserAbout.setVisibility(View.GONE);
         }
@@ -380,7 +380,7 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
         
         showLoading(false);
         Toast.makeText(AddFriendActivity.this, 
-            "Friend request sent to " + foundUser.getName(), 
+            "Friend request sent to " + foundUser.getDisplayName(), 
             Toast.LENGTH_SHORT).show();
         binding.btnAddFriend.setText("Request Sent");
         binding.btnAddFriend.setEnabled(false);

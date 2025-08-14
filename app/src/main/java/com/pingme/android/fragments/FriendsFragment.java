@@ -25,6 +25,7 @@ import com.pingme.android.adapters.FriendsAdapter;
 import com.pingme.android.databinding.FragmentFriendsBinding;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.PersonalNameDialog;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,6 +65,9 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
         friendsAdapter = new FriendsAdapter(getContext(), filteredFriendsList, this);
         binding.recyclerViewFriends.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.recyclerViewFriends.setAdapter(friendsAdapter);
+        
+        // Add long press listener for personal name options
+        friendsAdapter.setOnFriendLongClickListener(this::showPersonalNameOptions);
     }
 
     private void setupSearchFunctionality() {
@@ -93,28 +97,59 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
                     Log.d(TAG, "Found " + querySnapshot.size() + " friends");
                     
                     for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        User friend = doc.toObject(User.class);
-                        if (friend != null) {
-                            friend.setId(doc.getId());
-                            friendsList.add(friend);
-                        }
+                        String friendId = doc.getId();
+                        
+                        // Load friend's user info and personal name
+                        loadFriendWithPersonalName(friendId, doc);
                     }
-                    
-                    // Sort friends by name
-                    friendsList.sort((f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName()));
-                    
-                    // Initially show all friends
-                    filteredFriendsList.clear();
-                    filteredFriendsList.addAll(friendsList);
-                    
-                    showLoading(false);
-                    updateUI();
                 })
                 .addOnFailureListener(e -> {
                     showLoading(false);
                     Log.e(TAG, "Failed to load friends", e);
                     Toast.makeText(getContext(), "Failed to load friends", Toast.LENGTH_SHORT).show();
                     updateUI();
+                });
+    }
+    
+    private void loadFriendWithPersonalName(String friendId, DocumentSnapshot friendDoc) {
+        // First, get the friend's user info
+        FirestoreUtil.getUserRef(friendId).get()
+                .addOnSuccessListener(userSnapshot -> {
+                    if (userSnapshot.exists()) {
+                        User friend = userSnapshot.toObject(User.class);
+                        if (friend != null) {
+                            friend.setId(friendId);
+                            
+                            // Check if there's a personal name set for this friend
+                            if (friendDoc.contains("personalName") && friendDoc.get("personalName") != null) {
+                                String personalName = friendDoc.getString("personalName");
+                                friend.setPersonalName(personalName);
+                            }
+                            
+                            friendsList.add(friend);
+                            
+                            // Check if all friends are loaded
+                            if (friendsList.size() == friendDoc.getReference().getParent().get().get().size()) {
+                                // Sort friends by display name (personal name or regular name)
+                                friendsList.sort((f1, f2) -> f1.getDisplayName().compareToIgnoreCase(f2.getDisplayName()));
+                                
+                                // Initially show all friends
+                                filteredFriendsList.clear();
+                                filteredFriendsList.addAll(friendsList);
+                                
+                                showLoading(false);
+                                updateUI();
+                            }
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to load friend info for: " + friendId, e);
+                    // Continue loading other friends
+                    if (friendsList.size() == friendDoc.getReference().getParent().get().get().size()) {
+                        showLoading(false);
+                        updateUI();
+                    }
                 });
     }
 
@@ -126,8 +161,8 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
         } else {
             String lowerCaseQuery = query.toLowerCase();
             for (User friend : friendsList) {
-                if (friend.getName().toLowerCase().contains(lowerCaseQuery) ||
-                    (friend.getEmail() != null && friend.getEmail().toLowerCase().contains(lowerCaseQuery))) {
+                        if (friend.getDisplayName().toLowerCase().contains(lowerCaseQuery) ||
+            (friend.getEmail() != null && friend.getEmail().toLowerCase().contains(lowerCaseQuery))) {
                     filteredFriendsList.add(friend);
                 }
             }
@@ -162,7 +197,7 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
     }
 
     private void startChatWithFriend(User friend) {
-        Log.d(TAG, "Starting chat with friend: " + friend.getName());
+        Log.d(TAG, "Starting chat with friend: " + friend.getDisplayName());
         
         // Generate chat ID
         String chatId = currentUserId + "_" + friend.getId();
@@ -175,6 +210,52 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
         intent.putExtra("chatId", chatId);
         intent.putExtra("receiverId", friend.getId());
         startActivity(intent);
+    }
+    
+    private void showPersonalNameOptions(User friend) {
+        String[] options = {"Set Personal Name", "Remove Personal Name", "Cancel"};
+        
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Friend Options")
+            .setItems(options, (dialog, which) -> {
+                switch (which) {
+                    case 0: // Set Personal Name
+                        showPersonalNameDialog(friend);
+                        break;
+                    case 1: // Remove Personal Name
+                        removePersonalName(friend);
+                        break;
+                    case 2: // Cancel
+                        dialog.dismiss();
+                        break;
+                }
+            })
+            .show();
+    }
+    
+    private void showPersonalNameDialog(User friend) {
+        PersonalNameDialog dialog = new PersonalNameDialog(requireContext(), friend, personalName -> {
+            // Refresh friends list to show updated personal name
+            loadFriends();
+        });
+        dialog.show();
+    }
+    
+    private void removePersonalName(User friend) {
+        // Remove personal name from Firestore
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(currentUserId)
+            .collection("friends")
+            .document(friend.getId())
+            .update("personalName", null)
+            .addOnSuccessListener(aVoid -> {
+                Toast.makeText(requireContext(), "Personal name removed", Toast.LENGTH_SHORT).show();
+                loadFriends(); // Refresh list
+            })
+            .addOnFailureListener(e -> {
+                Toast.makeText(requireContext(), "Failed to remove personal name", Toast.LENGTH_SHORT).show();
+            });
     }
 
     @Override

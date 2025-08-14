@@ -21,6 +21,7 @@ import com.pingme.android.utils.FabQuickActionsDialog;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessaging;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity implements FabQuickActionsDialog.OnActionSelectedListener {
 	private ActivityMainBinding binding;
@@ -183,6 +184,23 @@ public class MainActivity extends AppCompatActivity implements FabQuickActionsDi
 	@Override
 	public void onAddFriendSelected() {
 		startActivity(new Intent(this, AddFriendActivity.class));
+	}
+
+	@Override
+	public void onSearchUsersSelected() {
+		startActivity(new Intent(this, SearchActivity.class));
+	}
+
+	@Override
+	public void onNewGroupSelected() {
+		// TODO: Implement new group functionality
+		// startActivity(new Intent(this, CreateGroupActivity.class));
+		Toast.makeText(this, "New Group feature coming soon!", Toast.LENGTH_SHORT).show();
+	}
+
+	@Override
+	public void onNewBroadcastSelected() {
+		startActivity(new Intent(this, BroadcastListActivity.class));
 	}
 
 	private void updateUserPresence() {

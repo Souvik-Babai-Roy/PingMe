@@ -165,6 +165,24 @@
           // Reply to message
           "replyTo": {
             ".validate": "!newData.exists() || newData.isString()"
+          },
+          // Message deletion tracking
+          "deletedFor": {
+            "$userId": {
+              ".validate": "newData.isNumber() && newData.val() <= now"
+            }
+          },
+          "deletedAt": {
+            ".validate": "!newData.exists() || (newData.isNumber() && newData.val() <= now)"
+          },
+          "deletedBy": {
+            ".validate": "!newData.exists() || newData.isString()"
+          },
+          "isDeletedForMe": {
+            ".validate": "!newData.exists() || newData.isBoolean()"
+          },
+          "isDeletedForEveryone": {
+            ".validate": "!newData.exists() || newData.isBoolean()"
           }
         }
       }
@@ -200,6 +218,16 @@
             ".validate": "!newData.exists() || newData.isNumber()"
           },
           "archived": {
+            ".validate": "!newData.exists() || newData.isBoolean()"
+          },
+          // Chat management per user
+          "clearedAt": {
+            ".validate": "!newData.exists() || (newData.isNumber() && newData.val() <= now)"
+          },
+          "deletedAt": {
+            ".validate": "!newData.exists() || (newData.isNumber() && newData.val() <= now)"
+          },
+          "isDeleted": {
             ".validate": "!newData.exists() || newData.isBoolean()"
           }
         }
@@ -299,6 +327,19 @@
             ".validate": "newData.isBoolean() && newData.val() == true && $contactId != auth.uid"
           }
         },
+        
+        // Friends collection with personal names
+        "friends": {
+          "$friendId": {
+            ".validate": "newData.isBoolean() && newData.val() == true && $friendId != auth.uid",
+            "personalName": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 50)"
+            },
+            "addedAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now"
+            }
+          }
+        },
 
         // Settings
         "settings": {
@@ -331,6 +372,13 @@
         // User statuses (stories)
         "statuses": {
           "$statusId": {
+            // Users can read statuses from friends and their own statuses
+            ".read": "auth != null && (data.child('userId').val() == auth.uid || root.child('users').child(auth.uid).child('friends').child(data.child('userId').val()).exists())",
+            // Users can create their own statuses
+            ".write": "auth != null && data.child('userId').val() == auth.uid",
+            // Users can update viewers field for any status they can read
+            ".update": "auth != null && (data.child('userId').val() == auth.uid || root.child('users').child(auth.uid).child('friends').child(data.child('userId').val()).exists())",
+            
             ".validate": "newData.hasChildren(['id','timestamp','expiryTime']) && (newData.hasChild('text') || newData.hasChild('mediaUrl'))",
             "id": {
               ".validate": "newData.isString() && newData.val() == $statusId"
@@ -362,6 +410,81 @@
             }
           }
         }
+      }
+    },
+
+    // Global statuses collection (stories)
+    "global_statuses": {
+      "$statusId": {
+        // Users can read statuses from friends and their own statuses
+        ".read": "auth != null && (data.child('userId').val() == auth.uid || root.child('users').child(auth.uid).child('friends').child(data.child('userId').val()).exists())",
+        // Users can create their own statuses
+        ".write": "auth != null && data.child('userId').val() == auth.uid",
+        // Users can update viewers field for any status they can read
+        ".update": "auth != null && (data.child('userId').val() == auth.uid || root.child('users').child(auth.uid).child('friends').child(data.child('userId').val()).exists())",
+        
+        ".validate": "newData.hasChildren(['id','timestamp','expiryTime']) && (newData.hasChild('text') || newData.hasChild('mediaUrl'))",
+        "id": {
+          ".validate": "newData.isString() && newData.val() == $statusId"
+        },
+        "userId": {
+          ".validate": "newData.isString() && newData.val() == auth.uid"
+        },
+        "text": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 500)"
+        },
+        "mediaUrl": {
+          ".validate": "!newData.exists() || newData.isString()"
+        },
+        "mediaType": {
+          ".validate": "!newData.exists() || newData.val() == 'image' || newData.val() == 'video' || newData.val() == 'text'"
+        },
+        "timestamp": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+        "expiryTime": {
+          ".validate": "newData.isNumber() && newData.val() > newData.parent().child('timestamp').val()"
+        },
+        "backgroundColor": {
+          ".validate": "!newData.exists() || newData.isString()"
+        },
+        "viewers": {
+          "$viewerId": {
+            ".validate": "newData.isNumber() && newData.val() <= now"
+          }
+        }
+      }
+    },
+
+    // Admin access control
+    "admin_users": {
+      "$adminId": {
+        ".read": "auth != null && (auth.uid == $adminId || root.child('admin_users').child(auth.uid).child('role').val() == 'admin')",
+        ".write": "auth != null && root.child('system_users').child(auth.uid).child('role').val() == 'system'"
+      }
+    },
+    
+    // System users (super admins)
+    "system_users": {
+      "$systemId": {
+        ".read": "auth != null && auth.uid == $systemId",
+        ".write": false // Only Firebase Admin SDK can modify
+      }
+    },
+    
+    // Chat history access for admins
+    "chat_history": {
+      "$chatId": {
+        ".read": "auth != null && (
+          root.child('chats').child($chatId).child('participants').child(auth.uid).exists() ||
+          root.child('admin_users').child(auth.uid).child('role').val() == 'admin' ||
+          root.child('system_users').child(auth.uid).child('role').val() == 'system'
+        )",
+        ".write": "auth != null && (
+          root.child('chats').child($chatId).child('participants').child(auth.uid).exists() ||
+          root.child('admin_users').child(auth.uid).child('role').val() == 'admin' ||
+          root.child('system_users').child(auth.uid).child('role').val() == 'system'
+        )"
       }
     },
 

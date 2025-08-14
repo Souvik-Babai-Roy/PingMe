@@ -292,7 +292,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
 
             new androidx.appcompat.app.AlertDialog.Builder(context)
                     .setTitle("Remove Friend")
-                    .setMessage("Are you sure you want to remove " + friend.getName() + " from your friends? You can add them back later.")
+                    .setMessage("Are you sure you want to remove " + friend.getDisplayName() + " from your friends? You can add them back later.")
                     .setPositiveButton("Remove", (dialog, which) -> {
                         FirestoreUtil.removeFriend(currentUserId, friend.getId(), new FirestoreUtil.FriendActionCallback() {
                             @Override
@@ -321,7 +321,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
 
             new androidx.appcompat.app.AlertDialog.Builder(context)
                     .setTitle("Block User")
-                    .setMessage("Are you sure you want to block " + friend.getName() + "? They won't be able to send you messages.")
+                    .setMessage("Are you sure you want to block " + friend.getDisplayName() + "? They won't be able to send you messages.")
                     .setPositiveButton("Block", (dialog, which) -> {
                         FirestoreUtil.blockUser(currentUserId, friend.getId(), new FirestoreUtil.FriendActionCallback() {
                             @Override
