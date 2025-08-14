@@ -85,7 +85,7 @@ public class NotificationUtil {
         );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_MESSAGES)
-                .setSmallIcon(R.drawable.ic_chat)
+                .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(senderName)
                 .setContentText(messageText)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -114,7 +114,7 @@ public class NotificationUtil {
         );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_STATUS)
-                .setSmallIcon(R.drawable.ic_status)
+                .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle("New Status Update")
                 .setContentText(friendName + " added a new status")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -142,7 +142,7 @@ public class NotificationUtil {
         );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_FRIENDS)
-                .setSmallIcon(R.drawable.ic_person_add)
+                .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle("New Friend Request")
                 .setContentText(requesterName + " sent you a friend request")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)

@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TaskCompletionSource;
 
 public class SelectContactsActivity extends AppCompatActivity {
     private static final String TAG = "SelectContactsActivity";
@@ -215,7 +216,8 @@ public class SelectContactsActivity extends AppCompatActivity {
                 // This would need to be passed from the original message
             }
             
-            FirestoreUtil.sendMessageToRealtime(chatId, currentUserId, messageText, messageType, mediaData);
+            TaskCompletionSource<Void> taskCompletionSource = new TaskCompletionSource<>();
+            FirestoreUtil.sendMessageToRealtime(chatId, currentUserId, messageText, messageType, mediaData, taskCompletionSource);
             
             forwardedCount[0]++;
             if (forwardedCount[0] == totalContacts) {

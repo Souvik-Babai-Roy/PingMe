@@ -84,6 +84,19 @@ public class Status {
     public void setViewed(boolean viewed) { isViewed = viewed; }
     public void setViewerCount(int viewerCount) { this.viewerCount = viewerCount; }
 
+    // Additional setters for compatibility
+    public void setText(String text) { this.content = text; }
+    public void setMediaUrl(String mediaUrl) { 
+        if (mediaUrl != null && mediaUrl.contains("video")) {
+            this.videoUrl = mediaUrl;
+            this.type = "video";
+        } else {
+            this.imageUrl = mediaUrl;
+            this.type = "image";
+        }
+    }
+    public void setMediaType(String mediaType) { this.type = mediaType; }
+
     // Helper methods
     public boolean isExpired() {
         return System.currentTimeMillis() > expiryTime;

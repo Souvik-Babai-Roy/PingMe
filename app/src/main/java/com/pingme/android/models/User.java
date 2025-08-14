@@ -90,6 +90,7 @@ public class User {
     public boolean isLastSeenEnabled() { return lastSeenEnabled; }
     public boolean isAboutEnabled() { return aboutEnabled; }
     public boolean isReadReceiptsEnabled() { return readReceiptsEnabled; }
+    public boolean isNotificationsEnabled() { return true; } // Default to true for notifications
 
     // Setters
     public void setId(String id) { this.id = id; }

@@ -2,22 +2,30 @@ package com.pingme.android.utils;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.TaskCompletionSource;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import androidx.annotation.NonNull;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
-import com.pingme.android.models.Message;
-import com.pingme.android.models.User;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.pingme.android.models.Chat;
-import com.pingme.android.models.Broadcast;
-import com.google.firebase.auth.FirebaseAuth;
+import com.pingme.android.models.ChatHistory;
+import com.pingme.android.models.ChatManagement;
+import com.pingme.android.models.Message;
 import com.pingme.android.models.Status;
+import com.pingme.android.models.User;
+import com.pingme.android.utils.NotificationUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -63,7 +71,11 @@ public class FirestoreUtil {
     }
 
     public static CollectionReference getStatusCollectionRef() {
-        return FirebaseFirestore.getInstance().collection("status");
+        return FirebaseFirestore.getInstance().collection("statuses");
+    }
+
+    public static CollectionReference getStatusesRef(String userId) {
+        return FirebaseFirestore.getInstance().collection("users").document(userId).collection("statuses");
     }
 
     // ===== REALTIME DATABASE REFERENCES =====
@@ -345,11 +357,20 @@ public class FirestoreUtil {
                 });
     }
 
-    public static void checkFriendship(String currentUserId, String otherUserId, FriendshipStatusCallback callback) {
-        getFriendsRef(currentUserId).document(otherUserId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> callback.onResult(documentSnapshot.exists()))
-                .addOnFailureListener(e -> callback.onResult(false));
+    public static void checkFriendship(String currentUserId, String friendId, FriendCheckCallback callback) {
+        getFriendsRef(currentUserId).document(friendId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    boolean areFriends = documentSnapshot.exists();
+                    callback.onResult(areFriends);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to check friendship", e);
+                    callback.onResult(false);
+                });
+    }
+
+    public static void checkIfFriends(String currentUserId, String friendId, FriendCheckCallback callback) {
+        checkFriendship(currentUserId, friendId, callback);
     }
 
     public static void getBlockedUsers(String userId, BlockedUsersCallback callback) {
@@ -816,7 +837,7 @@ public class FirestoreUtil {
         return getRealtimeDatabase().child("blocked_users").child(userId);
     }
 
-    private static void createNewChatInRealtime(String chatId, String senderId, String otherUserId) {
+    public static void createNewChatInRealtime(String chatId, String senderId, String otherUserId) {
         Log.d(TAG, "Creating new chat: " + chatId);
         
         Map<String, Object> chatData = new HashMap<>();
