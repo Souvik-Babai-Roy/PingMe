@@ -460,7 +460,7 @@
     "admin_users": {
       "$adminId": {
         ".read": "auth != null && (auth.uid == $adminId || root.child('admin_users').child(auth.uid).child('role').val() == 'admin')",
-        ".write": "auth != null && root.child('system_users').child(auth.uid).child('role').val() == 'system"
+        ".write": "auth != null && root.child('system_users').child(auth.uid).child('role').val() == 'system'"
       }
     },
     

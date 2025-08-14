@@ -99,8 +99,8 @@ public class FriendsAdapter extends RecyclerView.Adapter<FriendsAdapter.FriendVi
         }
 
         public void bind(User friend) {
-            // Set name
-            nameText.setText(friend.getName());
+            // Set name (use display name which prefers personal name)
+            nameText.setText(friend.getDisplayName());
             
             // Set email
             if (friend.getEmail() != null && !friend.getEmail().isEmpty()) {

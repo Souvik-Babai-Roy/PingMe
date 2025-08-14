@@ -54,11 +54,6 @@ service cloud.firestore {
       match /friends/{friendId} {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId);
-        
-        // Personal names for friends
-        "personalName": {
-          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 50)"
-        }
       }
       
       // Blocked users subcollection

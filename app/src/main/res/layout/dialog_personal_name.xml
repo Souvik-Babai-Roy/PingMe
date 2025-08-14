@@ -37,7 +37,7 @@
                 android:text="Set Personal Name"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:textColor="@color/black" />
+                android:textColor="@color/textColorPrimary" />
 
             <TextView
                 android:id="@+id/tvCurrentName"
@@ -45,7 +45,7 @@
                 android:layout_height="wrap_content"
                 android:text="Current name"
                 android:textSize="14sp"
-                android:textColor="@color/gray"
+                android:textColor="@color/gray_medium"
                 android:layout_marginTop="2dp" />
 
         </LinearLayout>
@@ -57,8 +57,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Personal name"
-        app:boxStrokeColor="@color/primary"
-        app:hintTextColor="@color/primary"
+        app:boxStrokeColor="@color/colorPrimary"
+        app:hintTextColor="@color/colorPrimary"
         android:layout_marginBottom="24dp">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -83,7 +83,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Remove"
-            android:textColor="@color/red"
+            android:textColor="@color/error_red"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_marginEnd="8dp" />
 
@@ -92,7 +92,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Cancel"
-            android:textColor="@color/gray"
+            android:textColor="@color/gray_medium"
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_marginEnd="8dp" />
 
@@ -102,7 +102,7 @@
             android:layout_height="wrap_content"
             android:text="Save"
             android:textColor="@color/white"
-            android:backgroundTint="@color/primary" />
+            android:backgroundTint="@color/colorPrimary" />
 
     </LinearLayout>
 
