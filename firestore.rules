@@ -41,7 +41,12 @@ service cloud.firestore {
       // Friends subcollection
       match /friends/{friendId} {
         allow read: if isOwner(userId);
-        allow write: if isOwner(userId) && isFriend(friendId);
+        allow write: if isOwner(userId);
+        
+        // Personal names for friends
+        "personalName": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 50)"
+        }
       }
       
       // Blocked users subcollection
@@ -52,6 +57,28 @@ service cloud.firestore {
       // User settings subcollection
       match /settings/{settingId} {
         allow read, write: if isOwner(userId);
+      }
+      
+      // Privacy settings subcollection
+      match /privacy/{settingId} {
+        allow read, write: if isOwner(userId);
+        
+        // Profile photo visibility
+        "profilePhotoEnabled": {
+          ".validate": "newData.isBoolean()"
+        },
+        // Last seen visibility
+        "lastSeenEnabled": {
+          ".validate": "newData.isBoolean()"
+        },
+        // About visibility
+        "aboutEnabled": {
+          ".validate": "newData.isBoolean()"
+        },
+        // Read receipts visibility
+        "readReceiptsEnabled": {
+          ".validate": "newData.isBoolean()"
+        }
       }
     }
 
@@ -93,6 +120,18 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
       allow update: if isSignedIn() && request.auth.uid in resource.data.participants;
       allow delete: if isSignedIn() && request.auth.uid in resource.data.participants;
+    }
+    
+    // Message deletion tracking - for individual message deletion
+    match /message_deletions/{chatId} {
+      allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_management/$(chatId)).data.participants;
+      allow write: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_management/$(chatId)).data.participants;
+    }
+    
+    // Chat clearing tracking - for per-user chat clearing
+    match /chat_clearing/{chatId} {
+      allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_management/$(chatId)).data.participants;
+      allow write: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_management/$(chatId)).data.participants;
     }
 
     // Chat history - for message persistence (if using Firestore for messages)

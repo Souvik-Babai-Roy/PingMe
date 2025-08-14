@@ -165,6 +165,24 @@
           // Reply to message
           "replyTo": {
             ".validate": "!newData.exists() || newData.isString()"
+          },
+          // Message deletion tracking
+          "deletedFor": {
+            "$userId": {
+              ".validate": "newData.isNumber() && newData.val() <= now"
+            }
+          },
+          "deletedAt": {
+            ".validate": "!newData.exists() || (newData.isNumber() && newData.val() <= now)"
+          },
+          "deletedBy": {
+            ".validate": "!newData.exists() || newData.isString()"
+          },
+          "isDeletedForMe": {
+            ".validate": "!newData.exists() || newData.isBoolean()"
+          },
+          "isDeletedForEveryone": {
+            ".validate": "!newData.exists() || newData.isBoolean()"
           }
         }
       }
@@ -200,6 +218,16 @@
             ".validate": "!newData.exists() || newData.isNumber()"
           },
           "archived": {
+            ".validate": "!newData.exists() || newData.isBoolean()"
+          },
+          // Chat management per user
+          "clearedAt": {
+            ".validate": "!newData.exists() || (newData.isNumber() && newData.val() <= now)"
+          },
+          "deletedAt": {
+            ".validate": "!newData.exists() || (newData.isNumber() && newData.val() <= now)"
+          },
+          "isDeleted": {
             ".validate": "!newData.exists() || newData.isBoolean()"
           }
         }
@@ -297,6 +325,19 @@
         "contacts": {
           "$contactId": {
             ".validate": "newData.isBoolean() && newData.val() == true && $contactId != auth.uid"
+          }
+        },
+        
+        // Friends collection with personal names
+        "friends": {
+          "$friendId": {
+            ".validate": "newData.isBoolean() && newData.val() == true && $friendId != auth.uid",
+            "personalName": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 50)"
+            },
+            "addedAt": {
+              ".validate": "newData.isNumber() && newData.val() <= now"
+            }
           }
         },
 
