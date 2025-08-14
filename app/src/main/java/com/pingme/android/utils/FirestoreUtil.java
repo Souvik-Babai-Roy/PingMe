@@ -45,6 +45,10 @@ public class FirestoreUtil {
     private static final String COLLECTION_NOTIFICATIONS = "notifications";
     private static final String COLLECTION_REPORTS = "reports";
 
+    public static com.google.firebase.firestore.FirebaseFirestore getFirestore() {
+        return com.google.firebase.firestore.FirebaseFirestore.getInstance();
+    }
+
     // Realtime Database references for real-time features
     private static final String RT_PRESENCE = "presence";
     private static final String RT_TYPING = "typing";

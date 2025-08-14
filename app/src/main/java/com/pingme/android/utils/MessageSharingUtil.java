@@ -44,11 +44,10 @@ public class MessageSharingUtil {
             Map<String, Object> messageData = createForwardMessageData(originalMessage, senderId);
             
             // Send the forwarded message
-            FirestoreUtil.sendMessageToRealtime(chatId, senderId, 
-                    getForwardedMessageText(originalMessage), 
-                    originalMessage.getType(), 
-                    messageData, 
-                    new com.google.android.gms.tasks.TaskCompletionSource<>())
+            FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId,
+                    getForwardedMessageText(originalMessage),
+                    originalMessage.getType(),
+                    messageData)
                     .addOnCompleteListener(task -> {
                         int completed = completedCount.incrementAndGet();
                         
@@ -98,11 +97,10 @@ public class MessageSharingUtil {
             for (Message message : messages) {
                 Map<String, Object> messageData = createForwardMessageData(message, senderId);
                 
-                FirestoreUtil.sendMessageToRealtime(chatId, senderId, 
-                        getForwardedMessageText(message), 
-                        message.getType(), 
-                        messageData, 
-                        new com.google.android.gms.tasks.TaskCompletionSource<>())
+                FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId,
+                        getForwardedMessageText(message),
+                        message.getType(),
+                        messageData)
                         .addOnCompleteListener(task -> {
                             int completed = completedCount.incrementAndGet();
                             
@@ -131,7 +129,6 @@ public class MessageSharingUtil {
         // Mark as forwarded
         messageData.put("isForwarded", true);
         messageData.put("originalSenderId", originalMessage.getSenderId());
-        messageData.put("forwardCount", originalMessage.getForwardCount() + 1);
         
         // Copy media data if present
         if (originalMessage.getImageUrl() != null) {
@@ -143,8 +140,8 @@ public class MessageSharingUtil {
         if (originalMessage.getAudioUrl() != null) {
             messageData.put("audioUrl", originalMessage.getAudioUrl());
         }
-        if (originalMessage.getDocumentUrl() != null) {
-            messageData.put("documentUrl", originalMessage.getDocumentUrl());
+        if (originalMessage.getFileUrl() != null) {
+            messageData.put("fileUrl", originalMessage.getFileUrl());
         }
         if (originalMessage.getThumbnailUrl() != null) {
             messageData.put("thumbnailUrl", originalMessage.getThumbnailUrl());
@@ -231,7 +228,7 @@ public class MessageSharingUtil {
         shareRecord.put("timestamp", System.currentTimeMillis());
         
         // Store in analytics collection (optional)
-        FirestoreUtil.getFirestore()
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
                 .collection("message_shares")
                 .add(shareRecord)
                 .addOnSuccessListener(doc -> Log.d(TAG, "Share recorded: " + doc.getId()))
