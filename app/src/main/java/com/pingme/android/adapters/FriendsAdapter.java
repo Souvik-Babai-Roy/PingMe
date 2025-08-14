@@ -92,8 +92,9 @@ public class FriendsAdapter extends RecyclerView.Adapter<FriendsAdapter.FriendVi
                 emailText.setVisibility(View.GONE);
             }
             
-            // Set profile image
-            if (friend.getImageUrl() != null && !friend.getImageUrl().isEmpty()) {
+            // Set profile image - respect privacy settings
+            if (friend.isProfilePhotoEnabled() && 
+                friend.getImageUrl() != null && !friend.getImageUrl().isEmpty()) {
                 Glide.with(context)
                         .load(friend.getImageUrl())
                         .transform(new CircleCrop())
@@ -101,36 +102,44 @@ public class FriendsAdapter extends RecyclerView.Adapter<FriendsAdapter.FriendVi
                         .error(R.drawable.defaultprofile)
                         .into(profileImage);
             } else {
+                // Use default profile if photo is disabled or not available
                 profileImage.setImageResource(R.drawable.defaultprofile);
             }
             
-            // Set online status
-            if (friend.isOnline()) {
-                statusText.setText("online");
-                statusText.setTextColor(context.getResources().getColor(R.color.online_green));
-                onlineIndicator.setVisibility(View.VISIBLE);
-            } else {
-                long lastSeen = friend.getLastSeen();
-                if (lastSeen > 0) {
-                    // Format last seen time
-                    long now = System.currentTimeMillis();
-                    long diff = now - lastSeen;
-                    
-                    if (diff < 60000) { // Less than 1 minute
-                        statusText.setText("just now");
-                    } else if (diff < 3600000) { // Less than 1 hour
-                        long minutes = diff / 60000;
-                        statusText.setText(minutes + "m ago");
-                    } else if (diff < 86400000) { // Less than 1 day
-                        long hours = diff / 3600000;
-                        statusText.setText(hours + "h ago");
-                    } else {
-                        long days = diff / 86400000;
-                        statusText.setText(days + "d ago");
-                    }
+            // Set online status - respect last seen privacy settings
+            if (friend.isLastSeenEnabled()) {
+                if (friend.isOnline()) {
+                    statusText.setText("online");
+                    statusText.setTextColor(context.getResources().getColor(R.color.online_green));
+                    onlineIndicator.setVisibility(View.VISIBLE);
                 } else {
-                    statusText.setText("offline");
+                    long lastSeen = friend.getLastSeen();
+                    if (lastSeen > 0) {
+                        // Format last seen time
+                        long now = System.currentTimeMillis();
+                        long diff = now - lastSeen;
+                        
+                        if (diff < 60000) { // Less than 1 minute
+                            statusText.setText("just now");
+                        } else if (diff < 3600000) { // Less than 1 hour
+                            long minutes = diff / 60000;
+                            statusText.setText(minutes + "m ago");
+                        } else if (diff < 86400000) { // Less than 1 day
+                            long hours = diff / 3600000;
+                            statusText.setText(hours + "h ago");
+                        } else {
+                            long days = diff / 86400000;
+                            statusText.setText(days + "d ago");
+                        }
+                    } else {
+                        statusText.setText("offline");
+                    }
+                    statusText.setTextColor(context.getResources().getColor(R.color.gray_medium));
+                    onlineIndicator.setVisibility(View.GONE);
                 }
+            } else {
+                // Last seen is disabled - don't show online status or last seen
+                statusText.setText(""); // Empty status
                 statusText.setTextColor(context.getResources().getColor(R.color.gray_medium));
                 onlineIndicator.setVisibility(View.GONE);
             }

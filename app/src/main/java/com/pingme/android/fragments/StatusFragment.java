@@ -142,52 +142,113 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
         // Clear existing statuses
         statusList.clear();
         
-        // Load statuses for each user
-        for (String userId : userIds) {
-            FirestoreUtil.getStatusesRef(userId).get()
-                    .addOnSuccessListener(querySnapshot -> {
-                        Log.d(TAG, "Loaded " + querySnapshot.size() + " statuses for user: " + userId);
-                        
-                        for (DocumentSnapshot document : querySnapshot.getDocuments()) {
-                            Status status = document.toObject(Status.class);
-                            if (status != null) {
-                                status.setId(document.getId());
-                                status.setUserId(userId);
+        // Load statuses from the global statuses collection for all friend users and current user
+        FirestoreUtil.getStatusCollectionRef()
+                .whereIn("userId", userIds)
+                .whereGreaterThan("expiryTime", System.currentTimeMillis())
+                .orderBy("expiryTime")
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    Log.d(TAG, "Loaded " + querySnapshot.size() + " total statuses");
+                    
+                    // Keep track of how many users we need to check
+                    int totalStatusesToProcess = querySnapshot.size();
+                    int[] processedCount = {0};
+                    
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        Status status = document.toObject(Status.class);
+                        if (status != null) {
+                            status.setId(document.getId());
+                            
+                            // Only add status if it's not expired (24 hours)
+                            long statusAge = System.currentTimeMillis() - status.getTimestamp();
+                            if (statusAge < 24 * 60 * 60 * 1000) { // 24 hours in milliseconds
                                 
-                                // Only add status if it's not expired (24 hours)
-                                long statusAge = System.currentTimeMillis() - status.getTimestamp();
-                                if (statusAge < 24 * 60 * 60 * 1000) { // 24 hours in milliseconds
+                                // Check user privacy settings before adding status
+                                String statusUserId = status.getUserId();
+                                if (statusUserId.equals(currentUserId)) {
+                                    // Always show current user's status
                                     statusList.add(status);
+                                    processedCount[0]++;
+                                    
+                                    if (processedCount[0] == totalStatusesToProcess) {
+                                        finishStatusLoading();
+                                    }
+                                } else {
+                                    // Check if friend allows status visibility (using about visibility as proxy for status visibility)
+                                    FirestoreUtil.getUserRef(statusUserId).get()
+                                            .addOnSuccessListener(userDoc -> {
+                                                processedCount[0]++;
+                                                
+                                                if (userDoc.exists()) {
+                                                    User user = userDoc.toObject(User.class);
+                                                    if (user != null && user.isAboutEnabled()) {
+                                                        // User allows status visibility, add to list
+                                                        statusList.add(status);
+                                                    }
+                                                    // If user doesn't allow status visibility, skip this status
+                                                }
+                                                
+                                                if (processedCount[0] == totalStatusesToProcess) {
+                                                    finishStatusLoading();
+                                                }
+                                            })
+                                            .addOnFailureListener(e -> {
+                                                processedCount[0]++;
+                                                Log.e(TAG, "Failed to load user privacy settings for " + statusUserId, e);
+                                                
+                                                if (processedCount[0] == totalStatusesToProcess) {
+                                                    finishStatusLoading();
+                                                }
+                                            });
+                                }
+                            } else {
+                                processedCount[0]++;
+                                if (processedCount[0] == totalStatusesToProcess) {
+                                    finishStatusLoading();
                                 }
                             }
+                        } else {
+                            processedCount[0]++;
+                            if (processedCount[0] == totalStatusesToProcess) {
+                                finishStatusLoading();
+                            }
                         }
-                        
-                        // Sort statuses: current user first, then others by timestamp
-                        Collections.sort(statusList, (s1, s2) -> {
-                            // Current user's statuses first
-                            if (s1.getUserId().equals(currentUserId) && !s2.getUserId().equals(currentUserId)) {
-                                return -1;
-                            }
-                            if (!s1.getUserId().equals(currentUserId) && s2.getUserId().equals(currentUserId)) {
-                                return 1;
-                            }
-                            // Then by timestamp (newest first)
-                            return Long.compare(s2.getTimestamp(), s1.getTimestamp());
-                        });
-                        
-                        // Update UI
-                        showLoading(false);
-                        updateUI();
-                        updateMyStatusUI();
-                        
-                        Log.d(TAG, "Total statuses loaded: " + statusList.size());
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "Failed to load statuses for user: " + userId, e);
-                        showLoading(false);
-                        updateUI();
-                    });
-        }
+                    }
+                    
+                    // Handle case where no statuses to process
+                    if (totalStatusesToProcess == 0) {
+                        finishStatusLoading();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to load statuses", e);
+                    showLoading(false);
+                    updateUI();
+                });
+    }
+    
+    private void finishStatusLoading() {
+        // Sort statuses: current user first, then others by timestamp
+        Collections.sort(statusList, (s1, s2) -> {
+            // Current user's statuses first
+            if (s1.getUserId().equals(currentUserId) && !s2.getUserId().equals(currentUserId)) {
+                return -1;
+            }
+            if (!s1.getUserId().equals(currentUserId) && s2.getUserId().equals(currentUserId)) {
+                return 1;
+            }
+            // Then by timestamp (newest first)
+            return Long.compare(s2.getTimestamp(), s1.getTimestamp());
+        });
+        
+        // Update UI
+        showLoading(false);
+        updateUI();
+        updateMyStatusUI();
+        
+        Log.d(TAG, "Total visible statuses loaded: " + statusList.size());
     }
 
     private void updateUI() {
@@ -249,8 +310,13 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
     }
 
     private boolean hasMyStatus() {
-        // This will be determined by the async call above
-        // For now, return false to default to creation
+        // Check if current user has any active status in the status list
+        for (Status status : statusList) {
+            if (status.getUserId().equals(currentUserId) && 
+                status.getExpiryTime() > System.currentTimeMillis()) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -288,12 +354,79 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
     }
 
     private void openStatusViewer(List<Status> statuses, int position) {
-        // TODO: Implement status viewer activity
-        // For now, just show a toast
         if (position < statuses.size()) {
             Status status = statuses.get(position);
-            String message = "Viewing status: " + (status.getContent() != null ? status.getContent() : "Media");
-            Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+            
+            // Create a simple dialog to view status content
+            androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(getContext());
+            builder.setTitle(status.getUserName() != null ? status.getUserName() : "Status");
+            
+            // Create content based on status type
+            String content;
+            if ("text".equals(status.getType()) && status.getContent() != null) {
+                content = status.getContent();
+            } else if ("image".equals(status.getType())) {
+                content = "📷 Image status";
+                if (status.getContent() != null && !status.getContent().isEmpty()) {
+                    content += "\n\n" + status.getContent();
+                }
+            } else if ("video".equals(status.getType())) {
+                content = "🎥 Video status";
+                if (status.getContent() != null && !status.getContent().isEmpty()) {
+                    content += "\n\n" + status.getContent();
+                }
+            } else {
+                content = "Media status";
+            }
+            
+            // Add timestamp
+            String timeAgo = getTimeAgo(status.getTimestamp());
+            content += "\n\n⏰ " + timeAgo;
+            
+            // Add viewer count for own status
+            if (status.getUserId().equals(currentUserId) && status.getViewers() != null) {
+                int viewerCount = status.getViewers().size();
+                if (viewerCount > 0) {
+                    content += "\n👁 " + viewerCount + " view" + (viewerCount > 1 ? "s" : "");
+                }
+            }
+            
+            builder.setMessage(content);
+            builder.setPositiveButton("Close", null);
+            
+            // Add navigation buttons if there are multiple statuses
+            if (statuses.size() > 1) {
+                if (position > 0) {
+                    builder.setNegativeButton("Previous", (dialog, which) -> {
+                        openStatusViewer(statuses, position - 1);
+                    });
+                }
+                if (position < statuses.size() - 1) {
+                    builder.setNeutralButton("Next", (dialog, which) -> {
+                        openStatusViewer(statuses, position + 1);
+                    });
+                }
+            }
+            
+            builder.show();
+        }
+    }
+    
+    private String getTimeAgo(long timestamp) {
+        long now = System.currentTimeMillis();
+        long diff = now - timestamp;
+        
+        if (diff < 60000) { // Less than 1 minute
+            return "just now";
+        } else if (diff < 3600000) { // Less than 1 hour
+            long minutes = diff / 60000;
+            return minutes + "m ago";
+        } else if (diff < 86400000) { // Less than 1 day
+            long hours = diff / 3600000;
+            return hours + "h ago";
+        } else {
+            long days = diff / 86400000;
+            return days + "d ago";
         }
     }
 
