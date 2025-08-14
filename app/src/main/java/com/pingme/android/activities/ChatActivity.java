@@ -640,7 +640,9 @@ public class ChatActivity extends AppCompatActivity {
 
     private void viewUserProfile() {
         if (receiver != null) {
-            Toast.makeText(this, "Profile: " + receiver.getName(), Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, UserProfileActivity.class);
+            intent.putExtra("user_id", receiver.getId());
+            startActivity(intent);
         }
     }
 
