@@ -475,16 +475,8 @@
     // Chat history access for admins
     "chat_history": {
       "$chatId": {
-        ".read": "auth != null && (
-          root.child('chats').child($chatId).child('participants').child(auth.uid).exists() ||
-          root.child('admin_users').child(auth.uid).child('role').val() == 'admin' ||
-          root.child('system_users').child(auth.uid).child('role').val() == 'system'
-        )",
-        ".write": "auth != null && (
-          root.child('chats').child($chatId).child('participants').child(auth.uid).exists() ||
-          root.child('admin_users').child(auth.uid).child('role').val() == 'admin' ||
-          root.child('system_users').child(auth.uid).child('role').val() == 'system'
-        )"
+        ".read": "auth != null && (root.child('chats').child($chatId).child('participants').child(auth.uid).exists() || root.child('admin_users').child(auth.uid).child('role').val() == 'admin' || root.child('system_users').child(auth.uid).child('role').val() == 'system')",
+        ".write": "auth != null && (root.child('chats').child($chatId).child('participants').child(auth.uid).exists() || root.child('admin_users').child(auth.uid).child('role').val() == 'admin' || root.child('system_users').child(auth.uid).child('role').val() == 'system')"
       }
     },
 

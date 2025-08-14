@@ -16,13 +16,16 @@ service cloud.firestore {
     }
     
     function isNotBlocked(userId) {
-      return !exists(/databases/$(database)/documents/users/$(userId)/blocked/$(request.auth.uid));
+      return !exists(/databases/$(database)/documents/users/$(userId)/blocked/$(request.auth.uid)) &&
+             !exists(/databases/$(database)/documents/users/$(request.auth.uid)/blocked/$(userId));
     }
     
     function canReadUserBasedOnPrivacy(userId) {
       return isSignedIn() && (
         isOwner(userId) || 
-        (isFriend(userId) && isNotBlocked(userId))
+        (isFriend(userId) && isNotBlocked(userId)) ||
+        // Allow reading basic info for user discovery (email search)
+        (!exists(/databases/$(database)/documents/users/$(userId)/blocked/$(request.auth.uid)))
       );
     }
     
@@ -50,7 +53,7 @@ service cloud.firestore {
         allow update, delete: if isOwner(userId);
       }
       
-      // Friends subcollection
+      // Friends subcollection with personal names
       match /friends/{friendId} {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId);
@@ -69,23 +72,6 @@ service cloud.firestore {
       // Privacy settings subcollection
       match /privacy/{settingId} {
         allow read, write: if isOwner(userId);
-        
-        // Profile photo visibility
-        "profilePhotoEnabled": {
-          ".validate": "newData.isBoolean()"
-        },
-        // Last seen visibility
-        "lastSeenEnabled": {
-          ".validate": "newData.isBoolean()"
-        },
-        // About visibility
-        "aboutEnabled": {
-          ".validate": "newData.isBoolean()"
-        },
-        // Read receipts visibility
-        "readReceiptsEnabled": {
-          ".validate": "newData.isBoolean()"
-        }
       }
     }
 
