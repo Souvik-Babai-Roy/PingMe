@@ -3,6 +3,8 @@ package com.pingme.android.utils;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Log;
+
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.preference.PreferenceManager;
 import com.google.firebase.auth.FirebaseAuth;
