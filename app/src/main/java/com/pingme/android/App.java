@@ -12,19 +12,25 @@ import java.util.Map;
 
 public class App extends Application {
     private static final String TAG = "PingMeApp";
+    private static App instance;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        instance = this;
 
         // Initialize Cloudinary
         initializeCloudinary();
 
-        // Create notification channel
-        NotificationUtil.createNotificationChannel(this);
+        // Create notification channels
+        NotificationUtil.createNotificationChannels(this);
 
         // Apply saved theme
         applySavedTheme();
+    }
+
+    public static App getInstance() {
+        return instance;
     }
 
     private void initializeCloudinary() {

@@ -95,80 +95,8 @@ public class ChatsFragment extends Fragment {
         chatList.clear();
         adapter.notifyDataSetChanged();
 
-        // First load friends as empty chats
-        loadFriendsAsEmptyChats();
-
-        // Then load active chats and merge them
+        // Only load active chats with messages
         loadActiveChats();
-    }
-
-    private void loadFriendsAsEmptyChats() {
-        Log.d(TAG, "Loading friends as empty chats");
-
-        FirestoreUtil.getFriendsRef(currentUserId)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    Log.d(TAG, "Found " + querySnapshot.size() + " friends");
-                    
-                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        String friendId = doc.getId();
-                        User friend = doc.toObject(User.class);
-                        
-                        if (friend != null) {
-                            friend.setId(friendId);
-                            
-                            // Create empty chat for friend
-                            Chat emptyChat = new Chat();
-                            emptyChat.setId(currentUserId + "_" + friendId);
-                            emptyChat.setParticipantIds(new HashMap<String, Boolean>() {{
-                                put(currentUserId, true);
-                                put(friendId, true);
-                            }});
-                            emptyChat.setLastMessage("");
-                            emptyChat.setLastMessageTimestamp(0L);
-                            emptyChat.setLastMessageSenderId("");
-                            emptyChat.setUnreadCount(0);
-                            
-                            // Set friend info
-                            emptyChat.setOtherUser(friend);
-                            
-                            chatList.add(emptyChat);
-                        }
-                    }
-                    
-                    // Sort by last message timestamp (most recent first)
-                    Collections.sort(chatList, (c1, c2) -> Long.compare(c2.getLastMessageTimestamp(), c1.getLastMessageTimestamp()));
-                    
-                    adapter.notifyDataSetChanged();
-                    updateEmptyState(chatList.isEmpty());
-                    
-                    Log.d(TAG, "Added " + chatList.size() + " empty chats from friends");
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to load friends", e);
-                    updateEmptyState(true);
-                });
-    }
-
-    private void ensureChatExistsForFriend(String chatId, String currentUserId, String friendId) {
-        // Check if chat already exists in Realtime Database
-        FirestoreUtil.getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if (!dataSnapshot.exists()) {
-                    Log.d(TAG, "Creating chat in Realtime Database for friend: " + chatId);
-                    // Create chat in Realtime Database
-                    FirestoreUtil.createEmptyFriendChat(currentUserId, friendId);
-                } else {
-                    Log.d(TAG, "Chat already exists in Realtime Database: " + chatId);
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Log.e(TAG, "Failed to check chat existence", databaseError.toException());
-            }
-        });
     }
 
     private void loadActiveChats() {
@@ -184,7 +112,10 @@ public class ChatsFragment extends Fragment {
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 Log.d(TAG, "User chats data changed");
                 
-                // Update existing chats with real data
+                // Clear existing chats
+                chatList.clear();
+                
+                // Load active chats with messages
                 for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
                     String chatId = chatSnapshot.getKey();
                     Chat chatData = chatSnapshot.getValue(Chat.class);
@@ -192,39 +123,16 @@ public class ChatsFragment extends Fragment {
                     if (chatData != null && chatId != null) {
                         chatData.setId(chatId);
                         
-                        // Find existing chat in list
-                        Chat existingChat = null;
-                        for (Chat chat : chatList) {
-                            if (chat.getId().equals(chatId)) {
-                                existingChat = chat;
-                                break;
-                            }
+                        // Only add chats that have messages (lastMessageTimestamp > 0)
+                        if (chatData.getLastMessageTimestamp() > 0) {
+                            // Load the other user's information
+                            loadChatUserInfo(chatData);
                         }
-                        
-                        if (existingChat != null) {
-                            // Update existing chat
-                            existingChat.setLastMessage(chatData.getLastMessage());
-                            existingChat.setLastMessageTimestamp(chatData.getLastMessageTimestamp());
-                            existingChat.setLastMessageSenderId(chatData.getLastMessageSenderId());
-                            existingChat.setLastMessageType(chatData.getLastMessageType());
-                            existingChat.setLastMessageId(chatData.getLastMessageId());
-                        } else {
-                            // Add new chat
-                            chatList.add(chatData);
-                        }
-                        
-                        // Load unread count for this chat
-                        loadUnreadCount(chatId, chatData);
                     }
                 }
                 
-                // Sort by last message timestamp (most recent first)
-                Collections.sort(chatList, (c1, c2) -> Long.compare(c2.getLastMessageTimestamp(), c1.getLastMessageTimestamp()));
-                
-                adapter.notifyDataSetChanged();
                 updateEmptyState(chatList.isEmpty());
-                
-                Log.d(TAG, "Updated chat list with " + chatList.size() + " chats");
+                Log.d(TAG, "Loaded " + chatList.size() + " active chats");
             }
 
             @Override
@@ -235,6 +143,39 @@ public class ChatsFragment extends Fragment {
         };
 
         FirestoreUtil.getUserChatsRef(currentUserId).addValueEventListener(userChatsListener);
+    }
+
+    private void loadChatUserInfo(Chat chat) {
+        // Get the other user ID from chat ID
+        String[] userIds = chat.getId().split("_");
+        if (userIds.length != 2) {
+            Log.e(TAG, "Invalid chat ID format: " + chat.getId());
+            return;
+        }
+        
+        String otherUserId = userIds[0].equals(currentUserId) ? userIds[1] : userIds[0];
+        
+        // Load the other user's information
+        FirestoreUtil.getUserRef(otherUserId).get()
+                .addOnSuccessListener(userSnapshot -> {
+                    if (userSnapshot.exists()) {
+                        User otherUser = userSnapshot.toObject(User.class);
+                        if (otherUser != null) {
+                            otherUser.setId(otherUserId);
+                            chat.setOtherUser(otherUser);
+                            
+                            // Add chat to list and sort
+                            chatList.add(chat);
+                            Collections.sort(chatList, (c1, c2) -> Long.compare(c2.getLastMessageTimestamp(), c1.getLastMessageTimestamp()));
+                            
+                            adapter.notifyDataSetChanged();
+                            updateEmptyState(chatList.isEmpty());
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to load user info for chat: " + chat.getId(), e);
+                });
     }
 
     private void loadChatDetails(String chatId) {

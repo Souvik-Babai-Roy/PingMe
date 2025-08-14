@@ -239,33 +239,23 @@ public class AddFriendActivity extends AppCompatActivity {
 
     private void addFriend() {
         if (foundUser == null || currentUser == null) {
-            Toast.makeText(this, "Unable to add friend. Please try again.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Unable to send friend request. Please try again.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         showLoading(true);
 
-        // Use the simplified add friend method
-        FirestoreUtil.addFriend(currentUserId, foundUser, new FirestoreUtil.FriendActionCallback() {
-            @Override
-            public void onSuccess() {
-                showLoading(false);
-                Toast.makeText(AddFriendActivity.this, 
-                    "Friend added successfully! You can now chat with " + foundUser.getName(), 
-                    Toast.LENGTH_SHORT).show();
-                binding.btnAddFriend.setText("Added");
-                binding.btnAddFriend.setEnabled(false);
-                binding.btnAddFriend.setBackgroundTintList(
-                        getColorStateList(android.R.color.darker_gray));
-            }
-
-            @Override
-            public void onError(String error) {
-                showLoading(false);
-                Toast.makeText(AddFriendActivity.this, "Failed to add friend: " + error, 
-                        Toast.LENGTH_SHORT).show();
-            }
-        });
+        // Send friend request instead of directly adding friend
+        FirestoreUtil.sendFriendRequest(currentUserId, foundUser.getEmail());
+        
+        showLoading(false);
+        Toast.makeText(AddFriendActivity.this, 
+            "Friend request sent to " + foundUser.getName(), 
+            Toast.LENGTH_SHORT).show();
+        binding.btnAddFriend.setText("Request Sent");
+        binding.btnAddFriend.setEnabled(false);
+        binding.btnAddFriend.setBackgroundTintList(
+                getColorStateList(android.R.color.darker_gray));
     }
 
     private void showUserNotFound() {

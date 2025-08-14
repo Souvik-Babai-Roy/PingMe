@@ -99,6 +99,9 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
+        // Cancel any existing notifications for this chat
+        com.pingme.android.utils.NotificationUtil.cancelMessageNotification(this, chatId);
+
         setupAdapter();
         setupToolbar();
         loadCurrentUser();

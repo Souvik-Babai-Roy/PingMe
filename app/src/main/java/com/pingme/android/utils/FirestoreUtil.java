@@ -17,6 +17,7 @@ import com.pingme.android.models.User;
 import com.pingme.android.models.Chat;
 import com.pingme.android.models.Broadcast;
 import com.google.firebase.auth.FirebaseAuth;
+import com.pingme.android.models.Status;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -469,6 +470,10 @@ public class FirestoreUtil {
                                 Log.d(TAG, "✅ CHAT UPDATED SUCCESSFULLY");
                                 // Trigger delivery notification to other user
                                 triggerDeliveryNotification(chatId, messageId, senderId);
+                                
+                                // Send push notification to recipient
+                                sendPushNotification(chatId, senderId, text, type);
+                                
                                 taskCompletionSource.setResult(null);
                             })
                             .addOnFailureListener(e -> {
@@ -480,6 +485,72 @@ public class FirestoreUtil {
                     Log.e(TAG, "❌ FAILED TO SEND MESSAGE: " + e.getMessage(), e);
                     taskCompletionSource.setException(e);
                 });
+    }
+
+    private static void sendPushNotification(String chatId, String senderId, String messageText, String messageType) {
+        // Get the other user ID from chat ID
+        String[] userIds = chatId.split("_");
+        if (userIds.length != 2) {
+            Log.e(TAG, "Invalid chat ID format for notification: " + chatId);
+            return;
+        }
+        
+        String receiverId = userIds[0].equals(senderId) ? userIds[1] : userIds[0];
+        
+        // Get sender's name for notification
+        getUserRef(senderId).get().addOnSuccessListener(senderSnapshot -> {
+            if (senderSnapshot.exists()) {
+                User sender = senderSnapshot.toObject(User.class);
+                String senderName = sender != null ? sender.getName() : "Unknown";
+                
+                // Get receiver's context for notification
+                getUserRef(receiverId).get().addOnSuccessListener(receiverSnapshot -> {
+                    if (receiverSnapshot.exists()) {
+                        User receiver = receiverSnapshot.toObject(User.class);
+                        
+                        // Check if receiver has notifications enabled
+                        if (receiver != null && receiver.isNotificationsEnabled()) {
+                            // Show notification
+                            android.content.Context context = getApplicationContext();
+                            if (context != null) {
+                                String notificationText = messageType.equals(Message.TYPE_TEXT) ? 
+                                    messageText : getMediaNotificationText(messageType);
+                                
+                                com.pingme.android.utils.NotificationUtil.showMessageNotification(
+                                    context, senderName, notificationText, chatId, receiverId
+                                );
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    private static String getMediaNotificationText(String messageType) {
+        switch (messageType) {
+            case Message.TYPE_IMAGE:
+                return "📷 Image";
+            case Message.TYPE_VIDEO:
+                return "🎥 Video";
+            case Message.TYPE_AUDIO:
+                return "🎤 Audio";
+            case Message.TYPE_DOCUMENT:
+                return "📄 Document";
+            default:
+                return "New message";
+        }
+    }
+
+    private static android.content.Context getApplicationContext() {
+        // This is a workaround to get application context
+        // In a real implementation, you might want to pass context as parameter
+        try {
+            return com.pingme.android.App.getInstance();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to get application context", e);
+            return null;
+        }
     }
 
     // New method to trigger delivery notification
@@ -719,12 +790,13 @@ public class FirestoreUtil {
     }
 
     public static void ensureChatExists(String chatId, String senderId, String otherUserId) {
+        // Only create chat if it doesn't exist and we're about to send a message
         getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (!dataSnapshot.exists()) {
-                    Log.d(TAG, "Chat doesn't exist, creating it: " + chatId);
-                    createNewChatInRealtime(chatId, senderId, otherUserId);
+                    Log.d(TAG, "Chat doesn't exist, will be created when first message is sent: " + chatId);
+                    // Don't create empty chat - it will be created when first message is sent
                 } else {
                     Log.d(TAG, "Chat already exists: " + chatId);
                 }
@@ -738,8 +810,8 @@ public class FirestoreUtil {
     }
 
     public static void createEmptyFriendChat(String userId1, String userId2) {
-        String chatId = generateChatId(userId1, userId2);
-        createNewChatInRealtime(chatId, userId1, userId2);
+        // This method is deprecated - chats should only be created when messages are sent
+        Log.d(TAG, "createEmptyFriendChat is deprecated - chats are now created when messages are sent");
     }
 
     // ===== SEARCH FUNCTIONALITY =====
@@ -888,5 +960,144 @@ public class FirestoreUtil {
     public interface SearchCallback {
         void onSearchComplete(List<SearchResult> results);
         void onError(String error);
+    }
+
+    public static void addStatus(String userId, String statusText, String mediaUrl, String mediaType) {
+        Status status = new Status();
+        status.setUserId(userId);
+        status.setText(statusText);
+        status.setMediaUrl(mediaUrl);
+        status.setMediaType(mediaType);
+        status.setTimestamp(System.currentTimeMillis());
+        status.setExpiryTime(System.currentTimeMillis() + (24 * 60 * 60 * 1000)); // 24 hours
+        status.setViewers(new HashMap<>());
+
+        getStatusCollectionRef().add(status)
+                .addOnSuccessListener(documentReference -> {
+                    Log.d(TAG, "Status added successfully: " + documentReference.getId());
+                    
+                    // Send notifications to friends
+                    sendStatusNotifications(userId, statusText);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to add status", e);
+                });
+    }
+
+    private static void sendStatusNotifications(String userId, String statusText) {
+        // Get user's friends
+        getFriendsRef(userId).get().addOnSuccessListener(querySnapshot -> {
+            for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                String friendId = doc.getId();
+                
+                // Get friend's user info
+                getUserRef(friendId).get().addOnSuccessListener(userSnapshot -> {
+                    if (userSnapshot.exists()) {
+                        User friend = userSnapshot.toObject(User.class);
+                        
+                        // Check if friend has notifications enabled
+                        if (friend != null && friend.isNotificationsEnabled()) {
+                            // Get current user's name
+                            getUserRef(userId).get().addOnSuccessListener(currentUserSnapshot -> {
+                                if (currentUserSnapshot.exists()) {
+                                    User currentUser = currentUserSnapshot.toObject(User.class);
+                                    String userName = currentUser != null ? currentUser.getName() : "Unknown";
+                                    
+                                    // Show status notification
+                                    android.content.Context context = getApplicationContext();
+                                    if (context != null) {
+                                        com.pingme.android.utils.NotificationUtil.showStatusNotification(context, userName);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    public static void sendFriendRequest(String senderId, String receiverEmail) {
+        // Find user by email
+        getUsersCollectionRef()
+                .whereEqualTo("email", receiverEmail)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!querySnapshot.isEmpty()) {
+                        DocumentSnapshot userDoc = querySnapshot.getDocuments().get(0);
+                        String receiverId = userDoc.getId();
+                        
+                        // Check if already friends
+                        checkIfFriends(senderId, receiverId, areFriends -> {
+                            if (!areFriends) {
+                                // Check if request already exists
+                                getFriendRequestsRef(receiverId)
+                                        .document(senderId)
+                                        .get()
+                                        .addOnSuccessListener(requestDoc -> {
+                                            if (!requestDoc.exists()) {
+                                                // Send friend request
+                                                Map<String, Object> request = new HashMap<>();
+                                                request.put("senderId", senderId);
+                                                request.put("timestamp", System.currentTimeMillis());
+                                                request.put("status", "pending");
+                                                
+                                                getFriendRequestsRef(receiverId)
+                                                        .document(senderId)
+                                                        .set(request)
+                                                        .addOnSuccessListener(aVoid -> {
+                                                            Log.d(TAG, "Friend request sent successfully");
+                                                            
+                                                            // Send notification to receiver
+                                                            sendFriendRequestNotification(senderId, receiverId);
+                                                        })
+                                                        .addOnFailureListener(e -> {
+                                                            Log.e(TAG, "Failed to send friend request", e);
+                                                        });
+                                            } else {
+                                                Log.d(TAG, "Friend request already exists");
+                                            }
+                                        });
+                            } else {
+                                Log.d(TAG, "Users are already friends");
+                            }
+                        });
+                    } else {
+                        Log.d(TAG, "User not found with email: " + receiverEmail);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to find user by email", e);
+                });
+    }
+
+    private static void sendFriendRequestNotification(String senderId, String receiverId) {
+        // Get sender's name
+        getUserRef(senderId).get().addOnSuccessListener(senderSnapshot -> {
+            if (senderSnapshot.exists()) {
+                User sender = senderSnapshot.toObject(User.class);
+                String senderName = sender != null ? sender.getName() : "Unknown";
+                
+                // Get receiver's info
+                getUserRef(receiverId).get().addOnSuccessListener(receiverSnapshot -> {
+                    if (receiverSnapshot.exists()) {
+                        User receiver = receiverSnapshot.toObject(User.class);
+                        
+                        // Check if receiver has notifications enabled
+                        if (receiver != null && receiver.isNotificationsEnabled()) {
+                            // Show friend request notification
+                            android.content.Context context = getApplicationContext();
+                            if (context != null) {
+                                com.pingme.android.utils.NotificationUtil.showFriendRequestNotification(context, senderName);
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    public static CollectionReference getFriendRequestsRef(String userId) {
+        return getUserRef(userId).collection("friend_requests");
     }
 }
