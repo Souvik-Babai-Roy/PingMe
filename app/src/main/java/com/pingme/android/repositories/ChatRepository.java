@@ -59,10 +59,7 @@ public class ChatRepository {
                     blockedUserIds.add(snapshot.getKey());
                 }
 
-                // Load friends from Firestore and create empty chats
-                loadFriendsAsEmptyChats(blockedUserIds);
-
-                // Then load actual chats from Realtime Database
+                // Load actual chats from Realtime Database (only chats with messages)
                 loadActiveChats(blockedUserIds);
             }
 
@@ -249,32 +246,12 @@ public class ChatRepository {
             activeChatMap.put(chat.getOtherUser().getId(), chat);
         }
 
-        // Merge: replace empty chats with active ones, keep empty ones for friends without messages
+        // Only show chats that have messages (WhatsApp-like behavior)
+        // Empty chats should not appear in the chat list
         List<Chat> mergedChats = new ArrayList<>();
-        for (Chat friendChat : currentChats) {
-            String friendId = friendChat.getOtherUser().getId();
-            if (activeChatMap.containsKey(friendId)) {
-                // Replace with active chat
-                mergedChats.add(activeChatMap.get(friendId));
-            } else {
-                // Keep empty friend chat
-                mergedChats.add(friendChat);
-            }
-        }
-
-        // Add any active chats that don't have corresponding friends (shouldn't happen normally)
-        for (Chat activeChat : activeChats) {
-            boolean found = false;
-            for (Chat friendChat : currentChats) {
-                if (friendChat.getOtherUser().getId().equals(activeChat.getOtherUser().getId())) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                mergedChats.add(activeChat);
-            }
-        }
+        
+        // Add all active chats (chats with messages)
+        mergedChats.addAll(activeChats);
 
         sortChats(mergedChats);
         chatsLiveData.setValue(mergedChats);

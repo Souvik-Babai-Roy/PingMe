@@ -674,44 +674,61 @@ public class FirestoreUtil {
         getMessagesRef(chatId).child(messageId).updateChildren(updates);
     }
 
-    // Enhanced method to mark messages as read
+    // Enhanced method to mark messages as read (respects privacy settings)
     public static void markAllMessagesAsRead(String chatId, String userId) {
         Log.d(TAG, "Marking messages as read for user: " + userId + " in chat: " + chatId);
         
-        getMessagesRef(chatId).orderByChild("senderId")
-                .addListenerForSingleValueEvent(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        Map<String, Object> updates = new HashMap<>();
-                        boolean hasUpdates = false;
-                        
-                        for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
-                            String senderId = messageSnapshot.child("senderId").getValue(String.class);
-                            
-                            // Only mark messages as read if they're from other users
-                            if (senderId != null && !userId.equals(senderId)) {
-                                String messageId = messageSnapshot.getKey();
-                                if (messageId != null) {
-                                    updates.put(messageId + "/readBy/" + userId, System.currentTimeMillis());
-                                    updates.put(messageId + "/status", Message.STATUS_READ);
-                                    hasUpdates = true;
-                                    Log.d(TAG, "Marking message " + messageId + " as read");
+        // First check if user has read receipts enabled
+        getUserRef(userId).get().addOnSuccessListener(userSnapshot -> {
+            if (userSnapshot.exists()) {
+                User user = userSnapshot.toObject(User.class);
+                boolean readReceiptsEnabled = user != null && user.isReadReceiptsEnabled();
+                
+                getMessagesRef(chatId).orderByChild("senderId")
+                        .addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                Map<String, Object> updates = new HashMap<>();
+                                boolean hasUpdates = false;
+                                
+                                for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
+                                    String senderId = messageSnapshot.child("senderId").getValue(String.class);
+                                    
+                                    // Only mark messages if they're from other users
+                                    if (senderId != null && !userId.equals(senderId)) {
+                                        String messageId = messageSnapshot.getKey();
+                                        if (messageId != null) {
+                                            if (readReceiptsEnabled) {
+                                                // Mark as read (blue tick)
+                                                updates.put(messageId + "/readBy/" + userId, System.currentTimeMillis());
+                                                updates.put(messageId + "/status", Message.STATUS_READ);
+                                            } else {
+                                                // Only mark as delivered (double tick)
+                                                updates.put(messageId + "/deliveredTo/" + userId, System.currentTimeMillis());
+                                                updates.put(messageId + "/status", Message.STATUS_DELIVERED);
+                                            }
+                                            hasUpdates = true;
+                                            Log.d(TAG, "Marking message " + messageId + " as " + (readReceiptsEnabled ? "read" : "delivered"));
+                                        }
+                                    }
+                                }
+                                
+                                if (hasUpdates) {
+                                    getMessagesRef(chatId).updateChildren(updates)
+                                            .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ MESSAGES MARKED AS " + (readReceiptsEnabled ? "READ" : "DELIVERED")))
+                                            .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO MARK MESSAGES", e));
                                 }
                             }
-                        }
-                        
-                        if (hasUpdates) {
-                            getMessagesRef(chatId).updateChildren(updates)
-                                    .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ MESSAGES MARKED AS READ"))
-                                    .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO MARK MESSAGES AS READ", e));
-                        }
-                    }
 
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-                        Log.e(TAG, "Failed to mark messages as read", databaseError.toException());
-                    }
-                });
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+                                Log.e(TAG, "Failed to mark messages", databaseError.toException());
+                            }
+                        });
+            }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Failed to check user read receipts setting", e);
+        });
     }
 
     // New method to mark a specific message as read
