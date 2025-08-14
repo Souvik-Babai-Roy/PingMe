@@ -126,23 +126,81 @@ public class FirestoreUtil {
     // ===== SEARCH FUNCTIONALITY =====
 
     public static void searchUserByEmail(String email, UserSearchCallback callback) {
+        Log.d(TAG, "Searching for user with email: " + email);
+        
+        if (email == null || email.trim().isEmpty()) {
+            callback.onError("Email cannot be empty");
+            return;
+        }
+
+        // Normalize email to lowercase
+        String normalizedEmail = email.toLowerCase().trim();
+        
         getUsersCollectionRef()
-                .whereEqualTo("email", email.toLowerCase())
+                .whereEqualTo("email", normalizedEmail)
                 .limit(1)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
+                    Log.d(TAG, "Search completed. Found " + querySnapshot.size() + " users");
+                    
                     if (!querySnapshot.isEmpty()) {
                         User user = querySnapshot.getDocuments().get(0).toObject(User.class);
                         if (user != null) {
+                            user.setId(querySnapshot.getDocuments().get(0).getId());
+                            Log.d(TAG, "User found: " + user.getName() + " (" + user.getEmail() + ")");
                             callback.onUserFound(user);
                         } else {
+                            Log.w(TAG, "User document exists but failed to parse");
                             callback.onUserNotFound();
                         }
                     } else {
+                        Log.d(TAG, "No user found with email: " + normalizedEmail);
                         callback.onUserNotFound();
                     }
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Search failed for email: " + normalizedEmail, e);
+                    callback.onError("Search failed: " + e.getMessage());
+                });
+    }
+
+    public static void searchUserByPhoneNumber(String phoneNumber, UserSearchCallback callback) {
+        Log.d(TAG, "Searching for user with phone: " + phoneNumber);
+        
+        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+            callback.onError("Phone number cannot be empty");
+            return;
+        }
+
+        // Normalize phone number
+        String normalizedPhone = phoneNumber.trim().replaceAll("[^0-9+]", "");
+        
+        getUsersCollectionRef()
+                .whereEqualTo("phoneNumber", normalizedPhone)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    Log.d(TAG, "Phone search completed. Found " + querySnapshot.size() + " users");
+                    
+                    if (!querySnapshot.isEmpty()) {
+                        User user = querySnapshot.getDocuments().get(0).toObject(User.class);
+                        if (user != null) {
+                            user.setId(querySnapshot.getDocuments().get(0).getId());
+                            Log.d(TAG, "User found by phone: " + user.getName() + " (" + user.getPhoneNumber() + ")");
+                            callback.onUserFound(user);
+                        } else {
+                            Log.w(TAG, "User document exists but failed to parse");
+                            callback.onUserNotFound();
+                        }
+                    } else {
+                        Log.d(TAG, "No user found with phone: " + normalizedPhone);
+                        callback.onUserNotFound();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Phone search failed for: " + normalizedPhone, e);
+                    callback.onError("Search failed: " + e.getMessage());
+                });
     }
 
     // ===== FRIEND MANAGEMENT =====

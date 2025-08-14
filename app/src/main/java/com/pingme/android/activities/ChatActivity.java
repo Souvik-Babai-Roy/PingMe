@@ -904,7 +904,15 @@ public class ChatActivity extends AppCompatActivity {
 
     private void sendTextMessage() {
         String messageText = binding.etMessage.getText().toString().trim();
-        if (messageText.isEmpty() || isBlocked) return;
+        if (messageText.isEmpty()) {
+            Toast.makeText(this, "Message cannot be empty", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (isBlocked) {
+            Toast.makeText(this, "Cannot send message to blocked user", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) {
@@ -920,16 +928,24 @@ public class ChatActivity extends AppCompatActivity {
         // Show sending indicator
         showSendingIndicator(true);
         
+        Log.d(TAG, "Sending text message: " + messageText + " to chat: " + chatId);
+        
         // Use the enhanced message delivery system
         FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId, messageText, Message.TYPE_TEXT, null)
                 .addOnSuccessListener(aVoid -> {
                     showSendingIndicator(false);
                     Log.d(TAG, "Message sent successfully");
+                    // Scroll to bottom to show new message
+                    binding.recyclerViewMessages.post(() -> {
+                        if (messages.size() > 0) {
+                            binding.recyclerViewMessages.smoothScrollToPosition(messages.size() - 1);
+                        }
+                    });
                 })
                 .addOnFailureListener(e -> {
                     showSendingIndicator(false);
                     Log.e(TAG, "Failed to send message", e);
-                    Toast.makeText(this, "Failed to send message", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Failed to send message: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     // Restore the message text if sending failed
                     binding.etMessage.setText(messageText);
                 });
