@@ -1,38 +1,124 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() { return request.auth != null; }
-    function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
+    // Helper functions for security
+    function isSignedIn() { 
+      return request.auth != null; 
+    }
+    
+    function isOwner(uid) { 
+      return request.auth != null && request.auth.uid == uid; 
+    }
+    
+    function isFriend(userId) {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/friends/$(userId));
+    }
+    
+    function isNotBlocked(userId) {
+      return !exists(/databases/$(database)/documents/users/$(userId)/blocked/$(request.auth.uid));
+    }
+    
+    function canReadUserBasedOnPrivacy(userId) {
+      return isSignedIn() && (
+        isOwner(userId) || 
+        (isFriend(userId) && isNotBlocked(userId))
+      );
+    }
 
-    // users
+    // Users collection - core user data
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow read: if canReadUserBasedOnPrivacy(userId);
       allow write: if isOwner(userId);
-      // subcollections
-      match /friend_requests/{doc} {
-        allow read, write: if isOwner(userId);
+      
+      // Friend requests subcollection
+      match /friend_requests/{requestId} {
+        allow read: if isOwner(userId) || isOwner(resource.data.fromUserId);
+        allow create: if isSignedIn() && request.auth.uid != userId && isNotBlocked(userId);
+        allow update, delete: if isOwner(userId);
       }
+      
+      // Friends subcollection
       match /friends/{friendId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId) && isFriend(friendId);
+      }
+      
+      // Blocked users subcollection
+      match /blocked/{blockedUserId} {
         allow read, write: if isOwner(userId);
       }
-      match /statuses/{statusId} {
-        allow read: if isSignedIn();
-        allow write: if isOwner(userId);
+      
+      // User settings subcollection
+      match /settings/{settingId} {
+        allow read, write: if isOwner(userId);
       }
     }
 
-    // global statuses collection if used
+    // Global statuses collection
     match /statuses/{statusId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read: if isSignedIn() && (
+        isOwner(resource.data.userId) || 
+        (isFriend(resource.data.userId) && isNotBlocked(resource.data.userId))
+      );
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow update: if isSignedIn() && (
+        isOwner(resource.data.userId) || 
+        // Allow friends to update viewers field
+        (isFriend(resource.data.userId) && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']))
+      );
+      allow delete: if isOwner(resource.data.userId);
     }
 
-    // chat_management and chat_history (server-managed or user-owned metadata)
+    // Chat management - metadata about chats
     match /chat_management/{chatId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
+      allow update: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow delete: if isSignedIn() && request.auth.uid in resource.data.participants;
     }
+
+    // Chat history - for message persistence (if using Firestore for messages)
     match /chat_history/{chatId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_management/$(chatId)).data.participants;
+      allow write: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_management/$(chatId)).data.participants;
+    }
+
+    // Broadcast lists
+    match /broadcasts/{broadcastId} {
+      allow read: if isSignedIn() && (
+        isOwner(resource.data.creatorId) || 
+        request.auth.uid in resource.data.members
+      );
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.creatorId;
+      allow update: if isSignedIn() && isOwner(resource.data.creatorId);
+      allow delete: if isSignedIn() && isOwner(resource.data.creatorId);
+    }
+
+    // Media files metadata (for Cloudinary references)
+    match /media/{mediaId} {
+      allow read: if isSignedIn() && (
+        isOwner(resource.data.uploaderId) || 
+        request.auth.uid in resource.data.sharedWith
+      );
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.uploaderId;
+      allow update: if isSignedIn() && isOwner(resource.data.uploaderId);
+      allow delete: if isSignedIn() && isOwner(resource.data.uploaderId);
+    }
+
+    // Shared messages tracking
+    match /shared_messages/{shareId} {
+      allow read: if isSignedIn() && (
+        isOwner(resource.data.senderId) || 
+        request.auth.uid in resource.data.recipients
+      );
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.senderId;
+      allow update: if isSignedIn() && (
+        isOwner(resource.data.senderId) || 
+        request.auth.uid in resource.data.recipients
+      );
+      allow delete: if isSignedIn() && isOwner(resource.data.senderId);
     }
   }
 }

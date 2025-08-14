@@ -716,13 +716,41 @@ public class FirestoreUtil {
 
     // New method to mark a specific message as read
     public static void markMessageAsRead(String chatId, String messageId, String userId) {
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("readBy/" + userId, System.currentTimeMillis());
-        updates.put("status", Message.STATUS_READ);
-        
-        getMessagesRef(chatId).child(messageId).updateChildren(updates)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ MESSAGE MARKED AS READ: " + messageId))
-                .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO MARK MESSAGE AS READ", e));
+        // First check if user has read receipts enabled
+        getUserRef(userId).get().addOnSuccessListener(userSnapshot -> {
+            if (userSnapshot.exists()) {
+                User user = userSnapshot.toObject(User.class);
+                if (user != null && user.isReadReceiptsEnabled()) {
+                    // User has read receipts enabled, mark as read
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("readBy/" + userId, System.currentTimeMillis());
+                    updates.put("status", Message.STATUS_READ);
+                    
+                    getMessagesRef(chatId).child(messageId).updateChildren(updates)
+                            .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ MESSAGE MARKED AS READ: " + messageId))
+                            .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO MARK MESSAGE AS READ", e));
+                } else {
+                    // User has read receipts disabled, only mark as delivered
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("deliveredTo/" + userId, System.currentTimeMillis());
+                    updates.put("status", Message.STATUS_DELIVERED);
+                    
+                    getMessagesRef(chatId).child(messageId).updateChildren(updates)
+                            .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ MESSAGE MARKED AS DELIVERED (read receipts disabled): " + messageId))
+                            .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO MARK MESSAGE AS DELIVERED", e));
+                }
+            }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Failed to check user read receipts setting", e);
+            // Fallback to just marking as delivered
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("deliveredTo/" + userId, System.currentTimeMillis());
+            updates.put("status", Message.STATUS_DELIVERED);
+            
+            getMessagesRef(chatId).child(messageId).updateChildren(updates)
+                    .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ MESSAGE MARKED AS DELIVERED (fallback): " + messageId))
+                    .addOnFailureListener(e2 -> Log.e(TAG, "❌ FAILED TO MARK MESSAGE AS DELIVERED (fallback)", e2));
+        });
     }
 
     // New method to mark a specific message as delivered
@@ -1058,10 +1086,91 @@ public class FirestoreUtil {
                     
                     // Send notifications to friends
                     sendStatusNotifications(userId, statusText);
+                    
+                    // Cleanup expired statuses for this user
+                    cleanupExpiredStatuses(userId);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to add status", e);
                 });
+    }
+    
+    // Clean up expired statuses (older than 24 hours)
+    public static void cleanupExpiredStatuses(String userId) {
+        long currentTime = System.currentTimeMillis();
+        
+        getStatusCollectionRef()
+                .whereEqualTo("userId", userId)
+                .whereLessThan("expiryTime", currentTime)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    Log.d(TAG, "Found " + querySnapshot.size() + " expired statuses to delete for user: " + userId);
+                    
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        document.getReference().delete()
+                                .addOnSuccessListener(aVoid -> Log.d(TAG, "Deleted expired status: " + document.getId()))
+                                .addOnFailureListener(e -> Log.e(TAG, "Failed to delete expired status: " + document.getId(), e));
+                    }
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to query expired statuses", e));
+    }
+    
+    // Clean up all expired statuses globally (can be called periodically)
+    public static void cleanupAllExpiredStatuses() {
+        long currentTime = System.currentTimeMillis();
+        
+        getStatusCollectionRef()
+                .whereLessThan("expiryTime", currentTime)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    Log.d(TAG, "Found " + querySnapshot.size() + " expired statuses to delete globally");
+                    
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        document.getReference().delete()
+                                .addOnSuccessListener(aVoid -> Log.d(TAG, "Deleted expired status: " + document.getId()))
+                                .addOnFailureListener(e -> Log.e(TAG, "Failed to delete expired status: " + document.getId(), e));
+                    }
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to query all expired statuses", e));
+    }
+    
+    // Delete a specific status manually
+    public static void deleteStatus(String statusId, String userId, StatusCallback callback) {
+        getStatusCollectionRef()
+                .document(statusId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        Status status = documentSnapshot.toObject(Status.class);
+                        if (status != null && status.getUserId().equals(userId)) {
+                            // User can only delete their own status
+                            documentSnapshot.getReference().delete()
+                                    .addOnSuccessListener(aVoid -> {
+                                        Log.d(TAG, "Status deleted successfully: " + statusId);
+                                        if (callback != null) callback.onSuccess();
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        Log.e(TAG, "Failed to delete status: " + statusId, e);
+                                        if (callback != null) callback.onError("Failed to delete status");
+                                    });
+                        } else {
+                            Log.w(TAG, "User " + userId + " cannot delete status " + statusId + " (not owner)");
+                            if (callback != null) callback.onError("You can only delete your own status");
+                        }
+                    } else {
+                        Log.w(TAG, "Status not found: " + statusId);
+                        if (callback != null) callback.onError("Status not found");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to check status ownership", e);
+                    if (callback != null) callback.onError("Failed to delete status");
+                });
+    }
+    
+    public interface StatusCallback {
+        void onSuccess();
+        void onError(String error);
     }
 
     private static void sendStatusNotifications(String userId, String statusText) {
