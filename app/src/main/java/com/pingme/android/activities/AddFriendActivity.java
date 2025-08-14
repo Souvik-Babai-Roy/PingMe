@@ -210,25 +210,25 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
         binding.tvUserEmail.setText(user.getEmail());
 
         // Show about if available and user allows it
-        if (user.getAbout() != null && !user.getAbout().isEmpty() && user.isAboutEnabled()) {
+        if (user.isAboutEnabled() && user.getAbout() != null && !user.getAbout().isEmpty()) {
             binding.tvUserAbout.setVisibility(View.VISIBLE);
             binding.tvUserAbout.setText(user.getAbout());
         } else {
             binding.tvUserAbout.setVisibility(View.GONE);
         }
 
-        // Load profile image if available and user allows it
-        if (user.hasProfilePhoto() && user.getImageUrl() != null && !user.getImageUrl().isEmpty()) {
+        // Load profile image respecting privacy settings
+        if (user.hasProfilePhoto()) {
             binding.ivUserProfile.setVisibility(View.VISIBLE);
             Glide.with(this)
                     .load(user.getImageUrl())
                     .transform(new CircleCrop())
-                    .placeholder(R.drawable.ic_person_outline)
-                    .error(R.drawable.ic_person_outline)
+                    .placeholder(R.drawable.defaultprofile)
+                    .error(R.drawable.defaultprofile)
                     .into(binding.ivUserProfile);
         } else {
             binding.ivUserProfile.setVisibility(View.VISIBLE);
-            binding.ivUserProfile.setImageResource(R.drawable.ic_person_outline);
+            binding.ivUserProfile.setImageResource(R.drawable.defaultprofile);
         }
 
         // Load user presence if user allows it

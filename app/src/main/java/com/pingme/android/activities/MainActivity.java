@@ -17,14 +17,16 @@ import com.pingme.android.fragments.ChatsFragment;
 import com.pingme.android.fragments.StatusFragment;
 import com.pingme.android.utils.FirestoreUtil;
 import com.pingme.android.utils.PreferenceUtils;
+import com.pingme.android.utils.FabQuickActionsDialog;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessaging;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements FabQuickActionsDialog.OnActionSelectedListener {
 	private ActivityMainBinding binding;
 	private FirebaseAuth mAuth;
 	private String currentUserId;
+	private FabQuickActionsDialog quickActionsDialog;
 
 	// Add result launcher for settings/profile activities
 	private final ActivityResultLauncher<Intent> settingsLauncher =
@@ -66,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
 		setupToolbar();
 		setupViewPager();
 		setupFAB();
+		setupQuickActionsDialog();
 		updateUserPresence();
 		updateFCMToken();
 	}
@@ -124,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
 		switch (position) {
 			case 0: // Chats
 				binding.fab.setImageResource(R.drawable.ic_chat_add);
-				binding.fab.setContentDescription("Add Friend");
+				binding.fab.setContentDescription("New Chat");
 				break;
 			case 1: // Status
 				binding.fab.setImageResource(R.drawable.ic_camera);
@@ -137,12 +140,33 @@ public class MainActivity extends AppCompatActivity {
 		}
 	}
 
+	private void setupQuickActionsDialog() {
+		quickActionsDialog = new FabQuickActionsDialog(this);
+		quickActionsDialog.setOnActionSelectedListener(this);
+	}
+
 	private void setupFAB() {
 		binding.fab.setOnClickListener(v -> {
+			// Add bounce animation for better user feedback
+			v.animate()
+				.scaleX(0.9f)
+				.scaleY(0.9f)
+				.setDuration(100)
+				.withEndAction(() -> {
+					v.animate()
+						.scaleX(1.0f)
+						.scaleY(1.0f)
+						.setDuration(100)
+						.start();
+				})
+				.start();
+			
 			int currentTab = binding.viewPager.getCurrentItem();
 			switch (currentTab) {
-				case 0: // Chats tab
-					startActivity(new Intent(this, AddFriendActivity.class));
+				case 0: // Chats tab - show quick actions dialog
+					if (quickActionsDialog != null) {
+						quickActionsDialog.show();
+					}
 					break;
 				case 1: // Status tab
 					startActivity(new Intent(this, StatusCreationActivity.class));
@@ -153,6 +177,28 @@ public class MainActivity extends AppCompatActivity {
 					break;
 			}
 		});
+	}
+
+	// Implement quick actions callbacks
+	@Override
+	public void onNewGroupSelected() {
+		// TODO: Implement group creation
+		startActivity(new Intent(this, SelectContactsActivity.class));
+	}
+
+	@Override
+	public void onNewBroadcastSelected() {
+		startActivity(new Intent(this, BroadcastListActivity.class));
+	}
+
+	@Override
+	public void onAddFriendSelected() {
+		startActivity(new Intent(this, AddFriendActivity.class));
+	}
+
+	@Override
+	public void onNewChatSelected() {
+		startActivity(new Intent(this, SelectContactsActivity.class));
 	}
 
 	private void updateUserPresence() {
@@ -208,5 +254,13 @@ public class MainActivity extends AppCompatActivity {
 			return true;
 		}
 		return super.onOptionsItemSelected(item);
+	}
+
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		if (quickActionsDialog != null) {
+			quickActionsDialog.dismiss();
+		}
 	}
 }
