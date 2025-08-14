@@ -49,11 +49,7 @@
             android:summary="Show notifications for new messages"
             android:defaultValue="true" />
 
-        <SwitchPreferenceCompat
-            android:key="group_notifications"
-            android:title="Group notifications"
-            android:summary="Show notifications for group messages"
-            android:defaultValue="true" />
+
 
         <SwitchPreferenceCompat
             android:key="status_notifications"

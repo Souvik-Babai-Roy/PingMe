@@ -24,7 +24,7 @@ public class SettingsFragment extends PreferenceFragmentCompat
         bindSwitchPreference("profile_photo");
         bindSwitchPreference("about");
         bindSwitchPreference("message_notifications");
-        bindSwitchPreference("group_notifications");
+
         bindSwitchPreference("status_notifications");
 
         // Set up About section
@@ -122,9 +122,7 @@ public class SettingsFragment extends PreferenceFragmentCompat
                 PreferenceUtils.setMessageNotificationsEnabled(context, (boolean) newValue);
                 return true;
 
-            case "group_notifications":
-                PreferenceUtils.setGroupNotificationsEnabled(context, (boolean) newValue);
-                return true;
+
 
             case "status_notifications":
                 PreferenceUtils.setStatusNotificationsEnabled(context, (boolean) newValue);

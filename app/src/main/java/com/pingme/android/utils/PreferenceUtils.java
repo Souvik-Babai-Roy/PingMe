@@ -20,7 +20,7 @@ public class PreferenceUtils {
     private static final String PREF_PROFILE_PHOTO = "profile_photo";
     private static final String PREF_ABOUT = "about";
     private static final String PREF_MESSAGE_NOTIFS = "message_notifications";
-    private static final String PREF_GROUP_NOTIFS = "group_notifications";
+
     private static final String PREF_STATUS_NOTIFS = "status_notifications";
 
     // Default values
@@ -29,7 +29,7 @@ public class PreferenceUtils {
     private static final boolean DEFAULT_PROFILE_PHOTO = true;
     private static final boolean DEFAULT_ABOUT = true;
     private static final boolean DEFAULT_MESSAGE_NOTIFS = true;
-    private static final boolean DEFAULT_GROUP_NOTIFS = true;
+
     private static final boolean DEFAULT_STATUS_NOTIFS = false;
 
     // FIXED: Apply selected theme with immediate activity recreation
@@ -110,11 +110,7 @@ public class PreferenceUtils {
         // WhatsApp-like: Toggle notification channels
     }
 
-    // 👥 Group notifications
-    public static void setGroupNotificationsEnabled(Context context, boolean enabled) {
-        savePreference(context, PREF_GROUP_NOTIFS, enabled);
-        // WhatsApp-like: Toggle notification channels
-    }
+
 
     // 📢 Status notifications
     public static void setStatusNotificationsEnabled(Context context, boolean enabled) {
@@ -284,10 +280,7 @@ public class PreferenceUtils {
                 .getBoolean(PREF_MESSAGE_NOTIFS, DEFAULT_MESSAGE_NOTIFS);
     }
 
-    public static boolean areGroupNotificationsEnabled(Context context) {
-        return PreferenceManager.getDefaultSharedPreferences(context)
-                .getBoolean(PREF_GROUP_NOTIFS, DEFAULT_GROUP_NOTIFS);
-    }
+
 
     public static boolean areStatusNotificationsEnabled(Context context) {
         return PreferenceManager.getDefaultSharedPreferences(context)
