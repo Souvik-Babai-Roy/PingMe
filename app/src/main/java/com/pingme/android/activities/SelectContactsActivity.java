@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import com.google.android.gms.tasks.TaskCompletionSource;
 
 public class SelectContactsActivity extends AppCompatActivity {
     private static final String TAG = "SelectContactsActivity";
@@ -216,17 +215,17 @@ public class SelectContactsActivity extends AppCompatActivity {
                 // This would need to be passed from the original message
             }
             
-            TaskCompletionSource<Void> taskCompletionSource = new TaskCompletionSource<>();
-            FirestoreUtil.sendMessageToRealtime(chatId, currentUserId, messageText, messageType, mediaData, taskCompletionSource);
-            
-            forwardedCount[0]++;
-            if (forwardedCount[0] == totalContacts) {
-                runOnUiThread(() -> {
-                    binding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(this, "Message forwarded to " + totalContacts + " contact(s)", Toast.LENGTH_SHORT).show();
-                    finish();
-                });
-            }
+            FirestoreUtil.sendMessageWithDeliveryTracking(chatId, currentUserId, messageText, messageType, mediaData)
+                    .addOnCompleteListener(task -> {
+                        forwardedCount[0]++;
+                        if (forwardedCount[0] == totalContacts) {
+                            runOnUiThread(() -> {
+                                binding.progressBar.setVisibility(View.GONE);
+                                Toast.makeText(this, "Message forwarded to " + totalContacts + " contact(s)", Toast.LENGTH_SHORT).show();
+                                finish();
+                            });
+                        }
+                    });
         }
     }
 

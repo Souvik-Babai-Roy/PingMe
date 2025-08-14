@@ -100,6 +100,9 @@
           "documentUrl": {
             ".validate": "newData.isString()"
           },
+          "fileUrl": {
+            ".validate": "newData.isString()"
+          },
           "thumbnailUrl": {
             ".validate": "newData.isString()"
           },
@@ -199,33 +202,86 @@
     // User presence - Online/offline status with privacy controls
     "presence": {
       "$userId": {
-        // Only friends can read presence based on privacy settings
-        ".read": "auth != null",
+        ".read": "auth != null && (auth.uid === $userId || root.child('users').child($userId).child('privacy').child('lastSeen').val() !== 'nobody')",
         ".write": "auth != null && auth.uid === $userId",
         
         "isOnline": {
           ".validate": "newData.isBoolean()"
         },
-        "online": {
-          ".validate": "newData.isBoolean()"
-        },
         "lastSeen": {
           ".validate": "newData.isNumber()"
-        },
-        "showLastSeen": {
-          ".validate": "newData.isBoolean()"
         }
       }
     },
     
-    // Blocked users - Track who has blocked whom
+    // Blocked users list - For managing user blocks
     "blocked_users": {
       "$userId": {
         ".read": "auth != null && auth.uid === $userId",
         ".write": "auth != null && auth.uid === $userId",
         
         "$blockedUserId": {
-          ".validate": "newData.isBoolean() || newData.isNumber()"
+          ".validate": "newData.isBoolean() && newData.val() === true"
+        }
+      }
+    },
+    
+    // User data - Profile and settings
+    "users": {
+      "$userId": {
+        ".read": "auth != null && (auth.uid === $userId || root.child('users').child($userId).child('privacy').child('profilePhoto').val() !== 'nobody')",
+        ".write": "auth != null && auth.uid === $userId",
+        
+        // Basic profile fields
+        "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 50" },
+        "email": { ".validate": "newData.isString()" },
+        "phoneNumber": { ".validate": "newData.isString()" },
+        "fcmToken": { ".validate": "newData.isString()" },
+        "imageUrl": { ".validate": "newData.isString()" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        
+        // Privacy settings
+        "privacy": {
+          "lastSeen": { ".validate": "newData.val() in ['everyone', 'contacts', 'nobody']" },
+          "profilePhoto": { ".validate": "newData.val() in ['everyone', 'contacts', 'nobody']" },
+          "status": { ".validate": "newData.val() in ['everyone', 'contacts', 'nobody']" },
+          "readReceipts": { ".validate": "newData.isBoolean()" },
+          "blockedUsers": { ".validate": "newData.isBoolean()" }
+        },
+        
+        // Friend relationships
+        "friends": {
+          "$friendId": {
+            ".validate": "newData.isBoolean() && newData.val() === true"
+          }
+        },
+        
+        // Settings
+        "settings": {
+          "notifications": { ".validate": "newData.isBoolean()" },
+          "theme": { ".validate": "newData.val() in ['light', 'dark', 'system']" },
+          "language": { ".validate": "newData.isString()" },
+          "chatBackup": { ".validate": "newData.isBoolean()" },
+          "mediaAutoDownload": { ".validate": "newData.isBoolean()" },
+          "fontSize": { ".validate": "newData.isNumber() && newData.val() >= 12 && newData.val() <= 24" }
+        },
+        
+        // Statuses under each user
+        "statuses": {
+          "$statusId": {
+            ".validate": "newData.hasChildren(['id','text','mediaUrl','mediaType','timestamp','expiryTime'])",
+            "id": { ".validate": "newData.isString()" },
+            "text": { ".validate": "newData.isString()" },
+            "mediaUrl": { ".validate": "newData.isString()" },
+            "mediaType": { ".validate": "newData.val() in ['image','video','text','audio']" },
+            "timestamp": { ".validate": "newData.isNumber()" },
+            "expiryTime": { ".validate": "newData.isNumber()" },
+            
+            // Viewers of the status
+            "viewers": {
+              "$viewerId": { ".validate": "newData.isNumber()" }
+            }
+          }
         }
       }
     },

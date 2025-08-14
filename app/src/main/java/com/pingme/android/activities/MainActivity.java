@@ -250,7 +250,7 @@ public class MainActivity extends AppCompatActivity implements FabQuickActionsDi
 			return true;
 		}
 		if (id == R.id.action_profile) {
-			profileLauncher.launch(new Intent(this, ProfileActivity.class));
+			profileLauncher.launch(new Intent(this, EditProfileActivity.class));
 			return true;
 		}
 		return super.onOptionsItemSelected(item);
