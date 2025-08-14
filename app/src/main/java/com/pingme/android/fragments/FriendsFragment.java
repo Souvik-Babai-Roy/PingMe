@@ -198,9 +198,6 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
 
     @Override
     public void onFriendClick(User friend) {
-        // Debug: Show a toast first to confirm click is working
-        Toast.makeText(getContext(), "Clicked on " + friend.getDisplayName(), Toast.LENGTH_SHORT).show();
-        
         // Start chat with friend
         startChatWithFriend(friend);
     }
@@ -221,7 +218,7 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
             String friendEmail = friend.getEmail();
             if (friendEmail != null && !friendEmail.isEmpty()) {
                 // Search for friend by email to get proper ID
-                FirestoreUtil.getUserByEmail(friendEmail, new FirestoreUtil.UserSearchCallback() {
+                FirestoreUtil.searchUserByEmail(friendEmail, new FirestoreUtil.UserSearchCallback() {
                     @Override
                     public void onUserFound(User foundUser) {
                         foundUser.setPersonalName(friend.getPersonalName()); // Keep personal name
@@ -231,6 +228,12 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
                     @Override
                     public void onUserNotFound() {
                         Toast.makeText(getContext(), "Could not find friend data. Please remove and re-add this friend.", Toast.LENGTH_LONG).show();
+                    }
+                    
+                    @Override
+                    public void onError(String error) {
+                        Toast.makeText(getContext(), "Error searching for friend: " + error, Toast.LENGTH_LONG).show();
+                        Log.e(TAG, "Error searching for friend by email: " + error);
                     }
                 });
                 return;
