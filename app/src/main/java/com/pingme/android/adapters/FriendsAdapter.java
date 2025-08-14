@@ -84,9 +84,7 @@ public class FriendsAdapter extends RecyclerView.Adapter<FriendsAdapter.FriendVi
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION && listener != null) {
-                    User friend = friendsList.get(position);
-                    android.util.Log.d("FriendsAdapter", "Friend clicked: " + friend.getDisplayName() + " ID: " + friend.getId());
-                    listener.onFriendClick(friend);
+                    listener.onFriendClick(friendsList.get(position));
                 }
             });
             
