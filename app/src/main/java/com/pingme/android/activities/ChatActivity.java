@@ -799,96 +799,31 @@ public class ChatActivity extends AppCompatActivity {
 
     private void handleImageSelection(Uri imageUri) {
         if (imageUri != null && !isBlocked) {
-            showLoading(true);
-            CloudinaryUtil.getInstance()
-                    .uploadImage(imageUri, "chat_images/" + chatId, this)
-                    .thenAccept(imageUrl -> runOnUiThread(() -> {
-                        showLoading(false);
-                        sendImageMessage(imageUri);
-                    }))
-                    .exceptionally(throwable -> {
-                        runOnUiThread(() -> {
-                            showLoading(false);
-                            Toast.makeText(this, "Failed to upload image", Toast.LENGTH_SHORT).show();
-                        });
-                        return null;
-                    });
+            sendImageMessage(imageUri);
         }
     }
 
     private void handleVideoSelection(Uri videoUri) {
         if (videoUri != null && !isBlocked) {
-            showLoading(true);
-            CloudinaryUtil.getInstance()
-                    .uploadVideo(videoUri, chatId, this)
-                    .thenAccept(videoUrl -> runOnUiThread(() -> {
-                        showLoading(false);
-                        sendVideoMessage(videoUri);
-                    }))
-                    .exceptionally(throwable -> {
-                        runOnUiThread(() -> {
-                            showLoading(false);
-                            Toast.makeText(this, "Failed to upload video", Toast.LENGTH_SHORT).show();
-                        });
-                        return null;
-                    });
+            sendVideoMessage(videoUri);
         }
     }
 
     private void handleAudioSelection(Uri audioUri) {
         if (audioUri != null && !isBlocked) {
-            showLoading(true);
-            CloudinaryUtil.getInstance()
-                    .uploadAudio(audioUri, chatId, this)
-                    .thenAccept(audioUrl -> runOnUiThread(() -> {
-                        showLoading(false);
-                        sendAudioMessage(audioUri);
-                    }))
-                    .exceptionally(throwable -> {
-                        runOnUiThread(() -> {
-                            showLoading(false);
-                            Toast.makeText(this, "Failed to upload audio", Toast.LENGTH_SHORT).show();
-                        });
-                        return null;
-                    });
+            sendAudioMessage(audioUri);
         }
     }
 
     private void handleDocumentSelection(Uri documentUri) {
         if (documentUri != null && !isBlocked) {
-            showLoading(true);
-            CloudinaryUtil.getInstance()
-                    .uploadDocument(documentUri, "chat_documents/" + chatId, this)
-                    .thenAccept(documentUrl -> runOnUiThread(() -> {
-                        showLoading(false);
-                        sendDocumentMessage(documentUri);
-                    }))
-                    .exceptionally(throwable -> {
-                        runOnUiThread(() -> {
-                            showLoading(false);
-                            Toast.makeText(this, "Failed to upload document", Toast.LENGTH_SHORT).show();
-                        });
-                        return null;
-                    });
+            sendDocumentMessage(documentUri);
         }
     }
 
     private void handleCameraCapture(Boolean success) {
         if (success && cameraImageUri != null && !isBlocked) {
-            showLoading(true);
-            CloudinaryUtil.getInstance()
-                    .uploadImage(cameraImageUri, "chat_images/" + chatId, this)
-                    .thenAccept(imageUrl -> runOnUiThread(() -> {
-                        showLoading(false);
-                        sendImageMessage(cameraImageUri);
-                    }))
-                    .exceptionally(throwable -> {
-                        runOnUiThread(() -> {
-                            showLoading(false);
-                            Toast.makeText(this, "Failed to upload camera image", Toast.LENGTH_SHORT).show();
-                        });
-                        return null;
-                    });
+            sendImageMessage(cameraImageUri);
         }
     }
 
