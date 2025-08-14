@@ -24,7 +24,7 @@ service cloud.firestore {
       return isSignedIn() && (
         isOwner(userId) || 
         (isFriend(userId) && isNotBlocked(userId)) ||
-        // Allow reading basic info for user discovery (email search)
+        // Allow reading basic info for user discovery (email/phone search)
         (!exists(/databases/$(database)/documents/users/$(userId)/blocked/$(request.auth.uid)))
       );
     }
@@ -43,35 +43,65 @@ service cloud.firestore {
 
     // Users collection - core user data
     match /users/{userId} {
-      allow read: if canReadUserBasedOnPrivacy(userId);
-      allow write: if isOwner(userId);
+      // Allow reading user data for search and friend management
+      allow read: if isSignedIn() && (
+        isOwner(userId) || 
+        // Allow reading basic user info for search (email, phone, name, imageUrl)
+        (request.auth.uid != userId && 
+         !exists(/databases/$(database)/documents/users/$(userId)/blocked/$(request.auth.uid)) &&
+         !exists(/databases/$(database)/documents/users/$(request.auth.uid)/blocked/$(userId)))
+      );
       
-      // Friend requests subcollection
-      match /friend_requests/{requestId} {
-        allow read: if isOwner(userId) || isOwner(resource.data.fromUserId);
-        allow create: if isSignedIn() && request.auth.uid != userId && isNotBlocked(userId);
-        allow update, delete: if isOwner(userId);
-      }
+      // Allow users to create/update their own profile
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
       
-      // Friends subcollection with personal names
+      // Friends subcollection - allow bidirectional friend management
       match /friends/{friendId} {
-        allow read: if isOwner(userId);
-        allow write: if isOwner(userId);
+        allow read: if isSignedIn() && (isOwner(userId) || isOwner(friendId));
+        allow create: if isSignedIn() && (
+          isOwner(userId) && 
+          request.auth.uid != friendId &&
+          !exists(/databases/$(database)/documents/users/$(userId)/blocked/$(friendId)) &&
+          !exists(/databases/$(database)/documents/users/$(friendId)/blocked/$(userId))
+        );
+        allow update: if isSignedIn() && (isOwner(userId) || isOwner(friendId));
+        allow delete: if isSignedIn() && (isOwner(userId) || isOwner(friendId));
       }
       
       // Blocked users subcollection
       match /blocked/{blockedUserId} {
-        allow read, write: if isOwner(userId);
+        allow read: if isSignedIn() && isOwner(userId);
+        allow create: if isSignedIn() && isOwner(userId) && request.auth.uid != blockedUserId;
+        allow update: if isSignedIn() && isOwner(userId);
+        allow delete: if isSignedIn() && isOwner(userId);
       }
       
       // User settings subcollection
       match /settings/{settingId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isSignedIn() && isOwner(userId);
       }
       
       // Privacy settings subcollection
       match /privacy/{settingId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isSignedIn() && isOwner(userId);
+      }
+      
+      // User statuses subcollection
+      match /statuses/{statusId} {
+        allow read: if isSignedIn() && (
+          isOwner(userId) || 
+          (isFriend(userId) && isNotBlocked(userId))
+        );
+        allow create: if isSignedIn() && isOwner(userId);
+        allow update: if isSignedIn() && (
+          isOwner(userId) || 
+          // Allow friends to update viewers field
+          (isFriend(userId) && 
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']))
+        );
+        allow delete: if isSignedIn() && isOwner(userId);
       }
     }
 
@@ -89,22 +119,6 @@ service cloud.firestore {
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']))
       );
       allow delete: if isOwner(resource.data.userId);
-    }
-    
-    // User-specific statuses subcollection
-    match /users/{userId}/statuses/{statusId} {
-      allow read: if isSignedIn() && (
-        isOwner(userId) || 
-        (isFriend(userId) && isNotBlocked(userId))
-      );
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && (
-        isOwner(userId) || 
-        // Allow friends to update viewers field
-        (isFriend(userId) && 
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']))
-      );
-      allow delete: if isSignedIn() && isOwner(userId);
     }
 
     // Chat management - metadata about chats
