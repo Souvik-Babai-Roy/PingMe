@@ -82,6 +82,13 @@ public class ChatActivity extends AppCompatActivity {
                 }
             });
 
+    public static void start(android.content.Context context, String chatId, String receiverId) {
+        android.content.Intent intent = new android.content.Intent(context, ChatActivity.class);
+        intent.putExtra("chat_id", chatId);
+        intent.putExtra("receiver_id", receiverId);
+        context.startActivity(intent);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

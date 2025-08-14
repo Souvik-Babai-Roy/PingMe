@@ -14,7 +14,6 @@ import com.pingme.android.adapters.ViewPagerAdapter;
 import com.pingme.android.databinding.ActivityMainBinding;
 import com.pingme.android.fragments.CallsFragment;
 import com.pingme.android.fragments.ChatsFragment;
-import com.pingme.android.fragments.FriendsFragment;
 import com.pingme.android.fragments.StatusFragment;
 import com.pingme.android.utils.FirestoreUtil;
 import com.pingme.android.utils.PreferenceUtils;
@@ -23,259 +22,191 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 public class MainActivity extends AppCompatActivity {
-    private ActivityMainBinding binding;
-    private FirebaseAuth mAuth;
-    private String currentUserId;
+	private ActivityMainBinding binding;
+	private FirebaseAuth mAuth;
+	private String currentUserId;
 
-    // Add result launcher for settings/profile activities
-    private final ActivityResultLauncher<Intent> settingsLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
-                    result -> {
-                        // Handle result from settings - theme might have changed
-                        recreateIfNeeded();
-                    });
+	// Add result launcher for settings/profile activities
+	private final ActivityResultLauncher<Intent> settingsLauncher =
+			registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+					result -> {
+						// Handle result from settings - theme might have changed
+						recreateIfNeeded();
+					});
 
-    private final ActivityResultLauncher<Intent> profileLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
-                    result -> {
-                        if (result.getResultCode() == RESULT_OK) {
-                            // Profile updated - refresh if needed
-                            recreateIfNeeded();
-                        }
-                    });
+	private final ActivityResultLauncher<Intent> profileLauncher =
+			registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+					result -> {
+						if (result.getResultCode() == RESULT_OK) {
+							// Profile updated - refresh if needed
+							recreateIfNeeded();
+						}
+					});
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		binding = ActivityMainBinding.inflate(getLayoutInflater());
+		setContentView(binding.getRoot());
 
-        mAuth = FirebaseAuth.getInstance();
-        // Check for null user to prevent crash
-        if (mAuth.getCurrentUser() == null) {
-            // User not authenticated, redirect to auth
-            startActivity(new Intent(this, AuthActivity.class));
-            finish();
-            return;
-        }
-        currentUserId = mAuth.getCurrentUser().getUid();
+		mAuth = FirebaseAuth.getInstance();
+		// Check for null user to prevent crash
+		if (mAuth.getCurrentUser() == null) {
+			// User not authenticated, redirect to auth
+			startActivity(new Intent(this, AuthActivity.class));
+			finish();
+			return;
+		}
+		currentUserId = mAuth.getCurrentUser().getUid();
 
-        // Apply theme and sync preferences before setting up UI
-        applyCurrentTheme();
-        syncUserPreferences();
+		// Apply theme and sync preferences before setting up UI
+		applyCurrentTheme();
+		syncUserPreferences();
 
-        setupToolbar();
-        setupViewPager();
-        setupFAB();
-        updateUserPresence();
-        updateFCMToken();
-    }
+		setupToolbar();
+		setupViewPager();
+		setupFAB();
+		updateUserPresence();
+		updateFCMToken();
+	}
 
-    // Apply current theme
-    private void applyCurrentTheme() {
-        String savedTheme = PreferenceUtils.getThemePreference(this);
-        PreferenceUtils.applyTheme(savedTheme);
-    }
+	// Apply current theme
+	private void applyCurrentTheme() {
+		String savedTheme = PreferenceUtils.getThemePreference(this);
+		PreferenceUtils.applyTheme(savedTheme);
+	}
 
-    // Sync user preferences from Firestore
-    private void syncUserPreferences() {
-        PreferenceUtils.syncPreferencesFromFirestore(this);
-    }
+	// Sync user preferences from Firestore
+	private void syncUserPreferences() {
+		PreferenceUtils.syncPreferencesFromFirestore(this);
+	}
 
-    private void setupToolbar() {
-        setSupportActionBar(binding.toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("PingMe");
-        }
-        // Set popup theme based on current theme
-        binding.toolbar.setPopupTheme(R.style.PopupMenuStyle);
-        
-        // Ensure title text color is white for both themes
-        binding.toolbar.setTitleTextColor(getColor(R.color.white));
-    }
+	private void setupToolbar() {
+		setSupportActionBar(binding.toolbar);
+		if (getSupportActionBar() != null) {
+			getSupportActionBar().setTitle("PingMe");
+		}
+		// Set popup theme based on current theme
+		binding.toolbar.setPopupTheme(R.style.PopupMenuStyle);
+		
+		// Ensure title text color is white for both themes
+		binding.toolbar.setTitleTextColor(getColor(R.color.white));
+	}
 
-    private void setupViewPager() {
-        ViewPagerAdapter adapter = new ViewPagerAdapter(this);
-        adapter.addFragment(new ChatsFragment(), "CHATS");
-        adapter.addFragment(new StatusFragment(), "STATUS");
-        adapter.addFragment(new CallsFragment(), "CALLS");
-        adapter.addFragment(new FriendsFragment(), "FRIENDS");
+	private void setupViewPager() {
+		ViewPagerAdapter adapter = new ViewPagerAdapter(this);
+		adapter.addFragment(new ChatsFragment(), "CHATS");
+		adapter.addFragment(new StatusFragment(), "STATUS");
+		adapter.addFragment(new CallsFragment(), "CALLS");
 
-        binding.viewPager.setAdapter(adapter);
-        // Reduce offscreen limit to improve memory usage and tab switching
-        binding.viewPager.setOffscreenPageLimit(1);
+		binding.viewPager.setAdapter(adapter);
+		// Reduce offscreen limit to improve memory usage and tab switching
+		binding.viewPager.setOffscreenPageLimit(1);
 
-        new TabLayoutMediator(binding.tabLayout, binding.viewPager,
-                (tab, position) -> tab.setText(adapter.getTabTitle(position))
-        ).attach();
+		new TabLayoutMediator(binding.tabLayout, binding.viewPager,
+				(tab, position) -> tab.setText(adapter.getTabTitle(position))
+		).attach();
 
-        // Add page change callback to update FAB
-        binding.viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                super.onPageSelected(position);
-                updateFABForCurrentTab(position);
-            }
-        });
+		// Add page change callback to update FAB
+		binding.viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+			@Override
+			public void onPageSelected(int position) {
+				super.onPageSelected(position);
+				updateFABForCurrentTab(position);
+			}
+		});
 
-        // Set initial FAB state
-        updateFABForCurrentTab(0);
-    }
+		// Set initial FAB state
+		updateFABForCurrentTab(0);
+	}
 
-    private void updateFABForCurrentTab(int position) {
-        switch (position) {
-            case 0: // Chats
-                binding.fab.setImageResource(R.drawable.ic_chat_add);
-                binding.fab.setContentDescription("Add Friend");
-                break;
-            case 1: // Status
-                binding.fab.setImageResource(R.drawable.ic_camera);
-                binding.fab.setContentDescription("Add Status");
-                break;
-            case 2: // Calls
-                binding.fab.setImageResource(R.drawable.ic_baseline_person_24);
-                binding.fab.setContentDescription("New Call");
-                break;
-            case 3: // Friends
-                binding.fab.setImageResource(R.drawable.ic_people);
-                binding.fab.setContentDescription("Add Friend");
-                break;
-        }
-    }
+	private void updateFABForCurrentTab(int position) {
+		switch (position) {
+			case 0: // Chats
+				binding.fab.setImageResource(R.drawable.ic_chat_add);
+				binding.fab.setContentDescription("Add Friend");
+				break;
+			case 1: // Status
+				binding.fab.setImageResource(R.drawable.ic_camera);
+				binding.fab.setContentDescription("Add Status");
+				break;
+			case 2: // Calls
+				binding.fab.setImageResource(R.drawable.ic_baseline_person_24);
+				binding.fab.setContentDescription("New Call");
+				break;
+		}
+	}
 
-    private void setupFAB() {
-        binding.fab.setOnClickListener(v -> {
-            int currentTab = binding.viewPager.getCurrentItem();
-            switch (currentTab) {
-                case 0: // Chats tab
-                    startActivity(new Intent(this, AddFriendActivity.class));
-                    break;
-                case 1: // Status tab
-                    startActivity(new Intent(this, StatusCreationActivity.class));
-                    break;
-                case 2: // Calls tab
-                    // Open contacts for calling
-                    startActivity(new Intent(this, SelectContactsActivity.class));
-                    break;
-                case 3: // Friends tab
-                    startActivity(new Intent(this, AddFriendActivity.class));
-                    break;
-            }
-        });
-    }
+	private void setupFAB() {
+		binding.fab.setOnClickListener(v -> {
+			int currentTab = binding.viewPager.getCurrentItem();
+			switch (currentTab) {
+				case 0: // Chats tab
+					startActivity(new Intent(this, AddFriendActivity.class));
+					break;
+				case 1: // Status tab
+					startActivity(new Intent(this, StatusCreationActivity.class));
+					break;
+				case 2: // Calls tab
+					// Open contacts for calling
+					startActivity(new Intent(this, SelectContactsActivity.class));
+					break;
+			}
+		});
+	}
 
-    private void updateUserPresence() {
-        if (currentUserId != null) {
-            FirestoreUtil.updatePresence(currentUserId, true);
-        }
-    }
+	private void updateUserPresence() {
+		if (currentUserId != null) {
+			FirestoreUtil.updatePresence(currentUserId, true);
+		}
+	}
 
-    private void updateFCMToken() {
-        if (currentUserId == null) return;
+	private void updateFCMToken() {
+		if (currentUserId == null) return;
 
-        FirebaseMessaging.getInstance().getToken()
-                .addOnCompleteListener(task -> {
-                    if (!task.isSuccessful()) {
-                        return;
-                    }
+		FirebaseMessaging.getInstance().getToken()
+				.addOnCompleteListener(task -> {
+					if (!task.isSuccessful()) {
+						return;
+					}
 
-                    // Get new FCM registration token
-                    String token = task.getResult();
-                    if (token != null) {
-                        // Update token in user profile
-                        FirestoreUtil.getUserRef(currentUserId)
-                                .update("fcmToken", token);
-                    }
-                });
-    }
+					// Get new FCM registration token
+					String token = task.getResult();
+					if (token != null) {
+						// Update token in user profile
+						FirestoreUtil.getUserRef(currentUserId)
+								.update("fcmToken", token);
+					}
+				});
+	}
 
-    // Check if recreation is needed (theme change, etc.)
-    private void recreateIfNeeded() {
-        String currentTheme = PreferenceUtils.getThemePreference(this);
-        String appliedTheme = PreferenceUtils.getAppliedTheme();
-        
-        if (!currentTheme.equals(appliedTheme)) {
-            recreate();
-        }
-    }
+	// Check if recreation is needed (theme change, etc.)
+	private void recreateIfNeeded() {
+		String currentTheme = PreferenceUtils.getThemePreference(this);
+		String appliedTheme = PreferenceUtils.getAppliedTheme();
+		
+		if (!currentTheme.equals(appliedTheme)) {
+			recreate();
+		}
+	}
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
-    }
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		getMenuInflater().inflate(R.menu.main_menu, menu);
+		return true;
+	}
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        if (id == R.id.action_search) {
-            startActivity(new Intent(this, SearchActivity.class));
-            return true;
-        } else if (id == R.id.action_settings) {
-            settingsLauncher.launch(new Intent(this, SettingsActivity.class));
-            return true;
-        } else if (id == R.id.action_profile) {
-            profileLauncher.launch(new Intent(this, EditProfileActivity.class));
-            return true;
-        } else if (id == R.id.action_blocked_users) {
-            startActivity(new Intent(this, BlockedUsersActivity.class));
-            return true;
-        } else if (id == R.id.action_logout) {
-            performLogout();
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        updateUserPresence();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (currentUserId != null) {
-            FirestoreUtil.updatePresence(currentUserId, false);
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (currentUserId != null) {
-            FirestoreUtil.updatePresence(currentUserId, false);
-        }
-        binding = null;
-    }
-
-    private void performLogout() {
-        // Show confirmation dialog
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Logout")
-                .setMessage("Are you sure you want to logout?")
-                .setPositiveButton("Logout", (dialog, which) -> {
-                    // Update user presence to offline
-                    if (currentUserId != null) {
-                        FirestoreUtil.updatePresence(currentUserId, false);
-                    }
-                    
-                    // Sign out from Firebase Auth
-                    FirebaseAuth.getInstance().signOut();
-                    
-                    // Clear any stored data (if needed)
-                    PreferenceUtils.clearUserData(this);
-                    
-                    // Redirect to AuthActivity
-                    Intent intent = new Intent(MainActivity.this, AuthActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                    finish();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		int id = item.getItemId();
+		if (id == R.id.action_settings) {
+			settingsLauncher.launch(new Intent(this, SettingsActivity.class));
+			return true;
+		}
+		if (id == R.id.action_profile) {
+			profileLauncher.launch(new Intent(this, ProfileActivity.class));
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
 }

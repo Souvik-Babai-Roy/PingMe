@@ -306,6 +306,43 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Friends List Section -->
+            <TextView
+                android:id="@+id/tvFriendsHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Your Friends"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/textColorPrimary"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilFriendSearch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Search friends"
+                style="@style/InputFieldStyle"
+                app:startIconDrawable="@drawable/ic_search"
+                app:startIconTint="@color/colorPrimary">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etFriendSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:textSize="16sp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerFriends"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never" />
+
             <!-- Progress Bar -->
             <ProgressBar
                 android:id="@+id/progressBar"

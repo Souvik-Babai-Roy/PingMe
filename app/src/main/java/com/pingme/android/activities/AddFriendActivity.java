@@ -1,27 +1,38 @@
 package com.pingme.android.activities;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.google.firebase.auth.FirebaseUser;
 import com.pingme.android.R;
+import com.pingme.android.adapters.FriendsAdapter;
 import com.pingme.android.databinding.ActivityAddFriendBinding;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.FirestoreUtil;
 import com.google.firebase.auth.FirebaseAuth;
 
-public class AddFriendActivity extends AppCompatActivity {
+import java.util.ArrayList;
+import java.util.List;
+
+public class AddFriendActivity extends AppCompatActivity implements FriendsAdapter.OnFriendClickListener {
 
     private ActivityAddFriendBinding binding;
     private String currentUserId;
     private User foundUser;
     private User currentUser;
+
+    private FriendsAdapter friendsAdapter;
+    private final List<User> friends = new ArrayList<>();
+    private final List<User> filteredFriends = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,7 +50,9 @@ public class AddFriendActivity extends AppCompatActivity {
 
         setupToolbar();
         setupClickListeners();
+        setupFriendsList();
         loadCurrentUser();
+        loadFriends();
     }
 
     private void setupToolbar() {
@@ -54,6 +67,57 @@ public class AddFriendActivity extends AppCompatActivity {
     private void setupClickListeners() {
         binding.btnSearch.setOnClickListener(v -> searchUserByEmail());
         binding.btnAddFriend.setOnClickListener(v -> addFriend());
+        binding.etFriendSearch.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) { filterFriends(s.toString()); }
+        });
+    }
+
+    private void setupFriendsList() {
+        friendsAdapter = new FriendsAdapter(this, filteredFriends, this);
+        binding.recyclerFriends.setLayoutManager(new LinearLayoutManager(this));
+        binding.recyclerFriends.setAdapter(friendsAdapter);
+    }
+
+    private void loadFriends() {
+        FirestoreUtil.getFriendsRef(currentUserId).get()
+                .addOnSuccessListener(querySnapshot -> {
+                    friends.clear();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        String friendId = doc.getId();
+                        FirestoreUtil.getUserRef(friendId).get().addOnSuccessListener(userDoc -> {
+                            if (userDoc.exists()) {
+                                User friend = userDoc.toObject(User.class);
+                                if (friend != null) {
+                                    friend.setId(friendId);
+                                    friends.add(friend);
+                                    filterFriends(binding.etFriendSearch.getText() != null ? binding.etFriendSearch.getText().toString() : "");
+                                }
+                            }
+                        });
+                    }
+                })
+                .addOnFailureListener(e -> Log.e("AddFriendActivity", "Failed to load friends", e));
+    }
+
+    private void filterFriends(String query) {
+        filteredFriends.clear();
+        if (query == null) query = "";
+        String q = query.toLowerCase();
+        for (User u : friends) {
+            if (u.getDisplayName().toLowerCase().contains(q) || u.getEmail().toLowerCase().contains(q)) {
+                filteredFriends.add(u);
+            }
+        }
+        friendsAdapter.updateFriends(new ArrayList<>(filteredFriends));
+    }
+
+    @Override
+    public void onFriendClick(User friend) {
+        // Open chat with friend
+        String chatId = FirestoreUtil.generateChatId(currentUserId, friend.getId());
+        ChatActivity.start(this, chatId, friend.getId());
     }
 
     private void loadCurrentUser() {
