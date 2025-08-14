@@ -1,200 +1,38 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions for better readability and reusability
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-    
-    function isValidUser() {
-      return isAuthenticated() && 
-             request.auth.uid != null && 
-             request.auth.uid.size() > 0;
-    }
-    
-    // Check if user is blocked by another user
-    function isBlocked(blockerId, blockedId) {
-      return exists(/databases/$(database)/documents/users/$(blockerId)/blocked/$(blockedId));
-    }
-    
-    // Check if users are friends
-    function areFriends(userId1, userId2) {
-      return exists(/databases/$(database)/documents/users/$(userId1)/friends/$(userId2));
-    }
-    
-    // Validate user data structure
-    function isValidUserData() {
-      return request.resource.data.keys().hasAll(['name', 'email']) &&
-             request.resource.data.name is string &&
-             request.resource.data.email is string &&
-             request.resource.data.name.size() >= 1 &&
-             request.resource.data.name.size() <= 50;
-    }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
 
-    // Can discover user for friend requests (more restrictive)
-    function canDiscoverUser(targetUserId, currentUserId) {
-      return !isBlocked(targetUserId, currentUserId) && 
-             !isBlocked(currentUserId, targetUserId) &&
-             targetUserId != currentUserId;
-    }
-
-    // Users collection - core user profiles
+    // users
     match /users/{userId} {
-      // Users can read their own profile, friends' profiles, OR for friend discovery
-      allow read: if isValidUser() && (
-        isOwner(userId) || 
-        areFriends(request.auth.uid, userId) ||
-        // Allow reading for friend discovery (restricted to authenticated users)
-        canDiscoverUser(userId, request.auth.uid)
-      );
-      
-      // Users can only create/update their own profile
-      allow create: if isValidUser() && 
-                   isOwner(userId) && 
-                   isValidUserData();
-      
-      allow update: if isValidUser() && 
-                   isOwner(userId) && 
-                   isValidUserData();
-      
-      // Users cannot delete their profiles (use admin functions)
-      allow delete: if false;
-
-      // Friends subcollection - manage friendships
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
+      // subcollections
+      match /friend_requests/{doc} {
+        allow read, write: if isOwner(userId);
+      }
       match /friends/{friendId} {
-        // Users can read their own friends list OR if they are the friend being checked
-        allow read: if isValidUser() && (
-          isOwner(userId) || 
-          request.auth.uid == friendId
-        );
-        
-        // Users can add/remove friends - allow mutual friendship creation
-        allow create, update: if isValidUser() && (
-          isOwner(userId) ||  // User can manage their own friends
-          request.resource.data.userId == request.auth.uid  // Allow adding yourself to someone else's friends list
-        );
-        
-        allow delete: if isValidUser() && isOwner(userId);
+        allow read, write: if isOwner(userId);
       }
-
-      // Blocked subcollection - manage blocked users
-      match /blocked/{blockedUserId} {
-        // Users can read/write their own blocked list
-        allow read, write: if isValidUser() && isOwner(userId);
-      }
-
-      // Settings subcollection - user preferences
-      match /settings/{settingId} {
-        // Users can read/write their own settings
-        allow read, write: if isValidUser() && isOwner(userId);
+      match /statuses/{statusId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId);
       }
     }
 
-    // Status collection - user status updates (stories)
-    match /status/{statusId} {
-      // Users can read status from friends only (or their own)
-      allow read: if isValidUser() && (
-        resource.data.userId == request.auth.uid ||
-        areFriends(request.auth.uid, resource.data.userId)
-      );
-      
-      // Users can create their own status (simplified validation)
-      allow create: if isValidUser() && 
-                   request.resource.data.userId == request.auth.uid;
-      
-      // Users can update their own status
-      allow update: if isValidUser() && 
-                   isOwner(resource.data.userId);
-      
-      // Users can delete their own status
-      allow delete: if isValidUser() && 
-                   isOwner(resource.data.userId);
+    // global statuses collection if used
+    match /statuses/{statusId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
-    // Messages collection - stored in Firestore for search/backup
-    match /messages/{messageId} {
-      // Users can read messages from chats they participate in
-      allow read: if isValidUser() && 
-                 (resource.data.senderId == request.auth.uid || 
-                  resource.data.receiverId == request.auth.uid);
-      
-      // Users can create messages they are sending
-      allow create: if isValidUser() && 
-                   request.resource.data.senderId == request.auth.uid;
-      
-      // Users can update their own messages (edit/delete)
-      allow update: if isValidUser() && 
-                   resource.data.senderId == request.auth.uid;
-      
-      allow delete: if isValidUser() && 
-                   resource.data.senderId == request.auth.uid;
+    // chat_management and chat_history (server-managed or user-owned metadata)
+    match /chat_management/{chatId} {
+      allow read, write: if isSignedIn();
     }
-
-    // Chats collection - chat metadata
-    match /chats/{chatId} {
-      // Users can read chats they participate in
-      allow read: if isValidUser() && 
-                 resource.data.participants[request.auth.uid] == true;
-      
-      // Users can create chats where they are a participant
-      allow create: if isValidUser() && 
-                   request.resource.data.participants[request.auth.uid] == true;
-      
-      // Users can update chats they participate in
-      allow update: if isValidUser() && 
-                   resource.data.participants[request.auth.uid] == true;
-      
-      allow delete: if false; // Chats shouldn't be deleted
-    }
-
-    // Notifications collection
-    match /notifications/{notificationId} {
-      // Users can read their own notifications
-      allow read: if isValidUser() && 
-                 resource.data.userId == request.auth.uid;
-      
-      // System and friends can create notifications
-      allow create: if isValidUser() && (
-        request.resource.data.userId == request.auth.uid || 
-        areFriends(request.auth.uid, request.resource.data.userId)
-      );
-      
-      // Users can update/delete their own notifications
-      allow update, delete: if isValidUser() && 
-                           resource.data.userId == request.auth.uid;
-    }
-
-    // Reports collection - for reporting users/content
-    match /reports/{reportId} {
-      // Users can create reports
-      allow create: if isValidUser() && 
-                   request.resource.data.reporterId == request.auth.uid;
-      
-      // Users can read their own reports
-      allow read: if isValidUser() && 
-                 resource.data.reporterId == request.auth.uid;
-      
-      // No updates or deletes allowed (admin only)
-      allow update, delete: if false;
-    }
-
-    // Admin collections (admin access only)
-    match /admin/{document=**} {
-      allow read, write: if false; // Only admin SDK can access
-    }
-
-    // Analytics and logs (system only)
-    match /analytics/{document=**} {
-      allow read, write: if false; // Only server can access
-    }
-
-    // Deny all other access
-    match /{document=**} {
-      allow read, write: if false;
+    match /chat_history/{chatId} {
+      allow read, write: if isSignedIn();
     }
   }
 }
