@@ -19,6 +19,7 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.pingme.android.models.Broadcast;
 import com.pingme.android.models.Chat;
 import com.pingme.android.models.ChatHistory;
 import com.pingme.android.models.ChatManagement;
