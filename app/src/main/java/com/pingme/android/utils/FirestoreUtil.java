@@ -368,13 +368,15 @@ public class FirestoreUtil {
 
     // ===== MESSAGING =====
 
-    public static void sendMessageWithDeliveryTracking(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
+    public static com.google.android.gms.tasks.Task<Void> sendMessageWithDeliveryTracking(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
         if (chatId == null || senderId == null || text == null) {
             Log.e(TAG, "Invalid parameters for sending message");
-            return;
+            return com.google.android.gms.tasks.Tasks.forException(new IllegalArgumentException("Invalid parameters"));
         }
         
         Log.d(TAG, "Sending message to chat: " + chatId + " from: " + senderId + " text: " + text);
+        
+        com.google.android.gms.tasks.TaskCompletionSource<Void> taskCompletionSource = new com.google.android.gms.tasks.TaskCompletionSource<>();
         
         // First ensure chat exists, if not create it
         getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
@@ -389,25 +391,29 @@ public class FirestoreUtil {
                         createNewChatInRealtime(chatId, senderId, otherUserId);
                         // Wait a moment then send message
                         new android.os.Handler().postDelayed(() -> {
-                            sendMessageToRealtime(chatId, senderId, text, type, mediaData);
+                            sendMessageToRealtime(chatId, senderId, text, type, mediaData, taskCompletionSource);
                         }, 1000);
                     } else {
                         Log.e(TAG, "Invalid chat ID format: " + chatId);
+                        taskCompletionSource.setException(new IllegalArgumentException("Invalid chat ID format"));
                     }
                 } else {
                     Log.d(TAG, "Chat exists, sending message");
-                    sendMessageToRealtime(chatId, senderId, text, type, mediaData);
+                    sendMessageToRealtime(chatId, senderId, text, type, mediaData, taskCompletionSource);
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 Log.e(TAG, "Failed to check chat existence", databaseError.toException());
+                taskCompletionSource.setException(databaseError.toException());
             }
         });
+        
+        return taskCompletionSource.getTask();
     }
 
-    public static void sendMessageToRealtime(String chatId, String senderId, String text, String type, Map<String, Object> mediaData) {
+    public static void sendMessageToRealtime(String chatId, String senderId, String text, String type, Map<String, Object> mediaData, com.google.android.gms.tasks.TaskCompletionSource<Void> taskCompletionSource) {
         Log.d(TAG, "=== STARTING MESSAGE SEND ===");
         Log.d(TAG, "Chat ID: " + chatId);
         Log.d(TAG, "Sender ID: " + senderId);
@@ -418,6 +424,7 @@ public class FirestoreUtil {
         
         if (messageId == null) {
             Log.e(TAG, "Failed to generate message ID");
+            taskCompletionSource.setException(new RuntimeException("Failed to generate message ID"));
             return;
         }
         
@@ -462,12 +469,16 @@ public class FirestoreUtil {
                                 Log.d(TAG, "✅ CHAT UPDATED SUCCESSFULLY");
                                 // Trigger delivery notification to other user
                                 triggerDeliveryNotification(chatId, messageId, senderId);
+                                taskCompletionSource.setResult(null);
                             })
-                            .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO UPDATE CHAT: " + e.getMessage(), e));
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "❌ FAILED TO UPDATE CHAT: " + e.getMessage(), e);
+                                taskCompletionSource.setException(e);
+                            });
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "❌ FAILED TO SEND MESSAGE: " + e.getMessage(), e);
-                    Log.e(TAG, "Error details: " + e.toString());
+                    taskCompletionSource.setException(e);
                 });
     }
 
@@ -676,39 +687,54 @@ public class FirestoreUtil {
         return getRealtimeDatabase().child("blocked_users").child(userId);
     }
 
-    public static void createNewChatInRealtime(String chatId, String user1Id, String user2Id) {
-        Log.d(TAG, "Creating new chat: " + chatId + " between " + user1Id + " and " + user2Id);
-
-        Map<String, Object> chatData = new HashMap<>();
-        chatData.put("id", chatId);
-
-        // Participants as a map for easier querying
-        Map<String, Boolean> participants = new HashMap<>();
-        participants.put(user1Id, true);
-        participants.put(user2Id, true);
-        chatData.put("participants", participants);
-
-        chatData.put("lastMessage", "");
-        chatData.put("lastMessageTimestamp", System.currentTimeMillis());
-        chatData.put("lastMessageSenderId", "");
-        chatData.put("lastMessageType", "empty_chat");
-        chatData.put("createdAt", System.currentTimeMillis());
-        chatData.put("type", "direct");
-        chatData.put("isActive", true);
-
-        // Create chat and update user chat references atomically
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("chats/" + chatId, chatData);
+    private static void createNewChatInRealtime(String chatId, String senderId, String otherUserId) {
+        Log.d(TAG, "Creating new chat: " + chatId);
         
-        // Use consistent object structure for user_chats
-        Map<String, Object> chatRef = new HashMap<>();
-        chatRef.put("isActive", true);
-        updates.put("user_chats/" + user1Id + "/" + chatId, chatRef);
-        updates.put("user_chats/" + user2Id + "/" + chatId, chatRef);
+        Map<String, Object> chatData = new HashMap<>();
+        chatData.put("participants", new HashMap<String, Boolean>() {{
+            put(senderId, true);
+            put(otherUserId, true);
+        }});
+        chatData.put("createdAt", System.currentTimeMillis());
+        chatData.put("lastMessage", "");
+        chatData.put("lastMessageTimestamp", 0L);
+        chatData.put("lastMessageSenderId", "");
+        chatData.put("lastMessageType", "text");
+        chatData.put("lastMessageId", "");
+        
+        // Add chat to both users' chat lists
+        getChatRef(chatId).setValue(chatData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "✅ Chat created successfully: " + chatId);
+                    
+                    // Add to sender's chat list
+                    getUserChatsRef(senderId).child(chatId).setValue(true);
+                    
+                    // Add to other user's chat list
+                    getUserChatsRef(otherUserId).child(chatId).setValue(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Failed to create chat: " + e.getMessage(), e);
+                });
+    }
 
-        getRealtimeDatabase().updateChildren(updates)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "Chat created successfully: " + chatId))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to create chat: " + chatId, e));
+    public static void ensureChatExists(String chatId, String senderId, String otherUserId) {
+        getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (!dataSnapshot.exists()) {
+                    Log.d(TAG, "Chat doesn't exist, creating it: " + chatId);
+                    createNewChatInRealtime(chatId, senderId, otherUserId);
+                } else {
+                    Log.d(TAG, "Chat already exists: " + chatId);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Failed to check chat existence", databaseError.toException());
+            }
+        });
     }
 
     public static void createEmptyFriendChat(String userId1, String userId2) {

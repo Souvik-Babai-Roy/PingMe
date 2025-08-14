@@ -95,6 +95,16 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
     private void loadStatuses() {
         showLoading(true);
         
+        // Check if user is authenticated
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            Log.e(TAG, "User not authenticated");
+            showLoading(false);
+            updateUI();
+            return;
+        }
+        
+        Log.d(TAG, "Loading statuses for user: " + currentUserId);
+        
         // Load statuses from friends only
         FirestoreUtil.getFriendsRef(currentUserId)
                 .get()
@@ -103,6 +113,8 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                     for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
                         friendIds.add(doc.getId());
                     }
+                    
+                    Log.d(TAG, "Found " + friendIds.size() + " friends");
                     
                     if (friendIds.isEmpty()) {
                         showLoading(false);
@@ -117,14 +129,19 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                     showLoading(false);
                     Log.e(TAG, "Failed to load friends", e);
                     Toast.makeText(getContext(), "Failed to load statuses", Toast.LENGTH_SHORT).show();
+                    updateUI();
                 });
     }
 
     private void loadStatusesFromFriends(List<String> friendIds) {
         Log.d(TAG, "Loading statuses from " + friendIds.size() + " friends");
         
+        // Add current user to the list to show their own status
+        List<String> allUserIds = new ArrayList<>(friendIds);
+        allUserIds.add(currentUserId);
+        
         FirestoreUtil.getStatusCollectionRef()
-                .whereIn("userId", friendIds)
+                .whereIn("userId", allUserIds)
                 .whereGreaterThan("expiryTime", System.currentTimeMillis()) // Only non-expired
                 .orderBy("expiryTime")
                 .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
@@ -138,14 +155,27 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                         if (status != null) {
                             status.setId(doc.getId());
                             
-                            // Set viewed status
-                            if (status.getViewers() != null && status.getViewers().containsKey(currentUserId)) {
+                            // Set viewed status for non-current user statuses
+                            if (!status.getUserId().equals(currentUserId) && 
+                                status.getViewers() != null && 
+                                status.getViewers().containsKey(currentUserId)) {
                                 status.setViewed(true);
                             }
                             
                             statusList.add(status);
                         }
                     }
+                    
+                    // Sort statuses: current user's status first, then others by timestamp
+                    Collections.sort(statusList, (s1, s2) -> {
+                        if (s1.getUserId().equals(currentUserId) && !s2.getUserId().equals(currentUserId)) {
+                            return -1;
+                        } else if (!s1.getUserId().equals(currentUserId) && s2.getUserId().equals(currentUserId)) {
+                            return 1;
+                        } else {
+                            return Long.compare(s2.getTimestamp(), s1.getTimestamp());
+                        }
+                    });
                     
                     showLoading(false);
                     updateUI();
@@ -154,6 +184,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                     showLoading(false);
                     Log.e(TAG, "Failed to load statuses", e);
                     Toast.makeText(getContext(), "Failed to load statuses", Toast.LENGTH_SHORT).show();
+                    updateUI();
                 });
     }
 
@@ -192,6 +223,12 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                             binding.textMyStatusTime.setText(myStatus.getFormattedTimeAgo());
                             binding.textMyStatusTitle.setText("My Status");
                             binding.textMyStatusSubtitle.setText("Tap to view");
+                            
+                            // Update status count
+                            long activeStatusCount = querySnapshot.size();
+                            if (activeStatusCount > 1) {
+                                binding.textMyStatusSubtitle.setText(activeStatusCount + " statuses");
+                            }
                         }
                     } else {
                         // No active status
@@ -202,7 +239,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to check my status", e);
-                    // Set default state on error
+                    // Set default state
                     binding.textMyStatusTime.setVisibility(View.GONE);
                     binding.textMyStatusTitle.setText("My Status");
                     binding.textMyStatusSubtitle.setText("Tap to add status update");
