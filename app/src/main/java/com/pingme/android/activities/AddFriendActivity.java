@@ -115,9 +115,9 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
 
     @Override
     public void onFriendClick(User friend) {
-        // Open chat with friend
-        String chatId = FirestoreUtil.generateChatId(currentUserId, friend.getId());
-        ChatActivity.start(this, chatId, friend.getId());
+        // Show friend profile instead of opening chat
+        Toast.makeText(this, "Friend: " + friend.getName(), Toast.LENGTH_SHORT).show();
+        // TODO: Implement friend profile view if needed
     }
 
     private void loadCurrentUser() {

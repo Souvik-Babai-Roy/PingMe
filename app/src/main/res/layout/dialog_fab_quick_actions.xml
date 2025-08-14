@@ -15,66 +15,6 @@
         android:orientation="vertical"
         android:padding="8dp">
 
-        <!-- New Group Option -->
-        <LinearLayout
-            android:id="@+id/layoutNewGroup"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:orientation="horizontal"
-            android:padding="16dp">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="center_vertical"
-                android:src="@drawable/ic_people"
-                android:tint="@color/colorPrimary" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:layout_marginStart="16dp"
-                android:layout_weight="1"
-                android:text="New group"
-                android:textColor="@color/textColorPrimary"
-                android:textSize="16sp" />
-
-        </LinearLayout>
-
-        <!-- New Broadcast Option -->
-        <LinearLayout
-            android:id="@+id/layoutNewBroadcast"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:orientation="horizontal"
-            android:padding="16dp">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="center_vertical"
-                android:src="@drawable/ic_broadcast"
-                android:tint="@color/colorPrimary" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:layout_marginStart="16dp"
-                android:layout_weight="1"
-                android:text="New broadcast"
-                android:textColor="@color/textColorPrimary"
-                android:textSize="16sp" />
-
-        </LinearLayout>
-
         <!-- Add Friend Option -->
         <LinearLayout
             android:id="@+id/layoutAddFriend"
@@ -100,36 +40,6 @@
                 android:layout_marginStart="16dp"
                 android:layout_weight="1"
                 android:text="Add friend"
-                android:textColor="@color/textColorPrimary"
-                android:textSize="16sp" />
-
-        </LinearLayout>
-
-        <!-- New Chat Option -->
-        <LinearLayout
-            android:id="@+id/layoutNewChat"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:orientation="horizontal"
-            android:padding="16dp">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="center_vertical"
-                android:src="@drawable/ic_chat_add"
-                android:tint="@color/colorPrimary" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:layout_marginStart="16dp"
-                android:layout_weight="1"
-                android:text="New chat"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="16sp" />
 

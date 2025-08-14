@@ -181,24 +181,8 @@ public class MainActivity extends AppCompatActivity implements FabQuickActionsDi
 
 	// Implement quick actions callbacks
 	@Override
-	public void onNewGroupSelected() {
-		// TODO: Implement group creation
-		startActivity(new Intent(this, SelectContactsActivity.class));
-	}
-
-	@Override
-	public void onNewBroadcastSelected() {
-		startActivity(new Intent(this, BroadcastListActivity.class));
-	}
-
-	@Override
 	public void onAddFriendSelected() {
 		startActivity(new Intent(this, AddFriendActivity.class));
-	}
-
-	@Override
-	public void onNewChatSelected() {
-		startActivity(new Intent(this, SelectContactsActivity.class));
 	}
 
 	private void updateUserPresence() {

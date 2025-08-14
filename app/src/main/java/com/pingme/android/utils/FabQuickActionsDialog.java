@@ -13,17 +13,13 @@ import android.view.WindowManager;
 
 import com.pingme.android.R;
 import com.pingme.android.activities.AddFriendActivity;
-import com.pingme.android.activities.BroadcastListActivity;
-import com.pingme.android.activities.SelectContactsActivity;
+
 import com.pingme.android.databinding.DialogFabQuickActionsBinding;
 
 public class FabQuickActionsDialog {
     
     public interface OnActionSelectedListener {
-        void onNewGroupSelected();
-        void onNewBroadcastSelected();
         void onAddFriendSelected();
-        void onNewChatSelected();
     }
     
     private final Context context;
@@ -61,26 +57,6 @@ public class FabQuickActionsDialog {
     }
     
     private void setupClickListeners() {
-        binding.layoutNewGroup.setOnClickListener(v -> {
-            dismiss();
-            if (listener != null) {
-                listener.onNewGroupSelected();
-            } else {
-                // Default action - open contacts for group creation
-                context.startActivity(new Intent(context, SelectContactsActivity.class));
-            }
-        });
-        
-        binding.layoutNewBroadcast.setOnClickListener(v -> {
-            dismiss();
-            if (listener != null) {
-                listener.onNewBroadcastSelected();
-            } else {
-                // Default action - open broadcast list
-                context.startActivity(new Intent(context, BroadcastListActivity.class));
-            }
-        });
-        
         binding.layoutAddFriend.setOnClickListener(v -> {
             dismiss();
             if (listener != null) {
@@ -88,16 +64,6 @@ public class FabQuickActionsDialog {
             } else {
                 // Default action - open add friend activity
                 context.startActivity(new Intent(context, AddFriendActivity.class));
-            }
-        });
-        
-        binding.layoutNewChat.setOnClickListener(v -> {
-            dismiss();
-            if (listener != null) {
-                listener.onNewChatSelected();
-            } else {
-                // Default action - open contacts for new chat
-                context.startActivity(new Intent(context, SelectContactsActivity.class));
             }
         });
         
