@@ -25,6 +25,18 @@ service cloud.firestore {
         (isFriend(userId) && isNotBlocked(userId))
       );
     }
+    
+    function isAdmin() {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/admin_users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admin_users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isSystemUser() {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/system_users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/system_users/$(request.auth.uid)).data.role == 'system';
+    }
 
     // Users collection - core user data
     match /users/{userId} {
@@ -136,8 +148,16 @@ service cloud.firestore {
 
     // Chat history - for message persistence (if using Firestore for messages)
     match /chat_history/{chatId} {
-      allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_management/$(chatId)).data.participants;
-      allow write: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_management/$(chatId)).data.participants;
+      allow read: if isSignedIn() && (
+        request.auth.uid in get(/databases/$(database)/documents/chat_management/$(chatId)).data.participants ||
+        isAdmin() ||
+        isSystemUser()
+      );
+      allow write: if isSignedIn() && (
+        request.auth.uid in get(/databases/$(database)/documents/chat_management/$(chatId)).data.participants ||
+        isAdmin() ||
+        isSystemUser()
+      );
     }
 
     // Broadcast lists
@@ -174,6 +194,18 @@ service cloud.firestore {
         request.auth.uid in resource.data.recipients
       );
       allow delete: if isSignedIn() && isOwner(resource.data.senderId);
+    }
+    
+    // Admin users collection
+    match /admin_users/{adminId} {
+      allow read: if isSignedIn() && (isOwner(adminId) || isAdmin());
+      allow write: if isSignedIn() && isSystemUser(); // Only system users can create/modify admins
+    }
+    
+    // System users collection
+    match /system_users/{systemId} {
+      allow read: if isSignedIn() && isOwner(systemId);
+      allow write: if false; // No one can modify system users except Firebase Admin SDK
     }
   }
 }
