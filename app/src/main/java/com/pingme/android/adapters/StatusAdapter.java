@@ -90,7 +90,7 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusView
             }
 
             // Set timestamp
-            if (status.getTimestamp() != null) {
+            if (status.getTimestamp() > 0) {
                 timestampText.setText(status.getFormattedTimestamp());
             } else {
                 timestampText.setText("");
