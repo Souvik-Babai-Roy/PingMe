@@ -39,6 +39,34 @@ public class User {
     // Personal name for friends (custom nickname)
     private String personalName;
 
+    // Add missing field mappings for Firestore
+    @PropertyName("displayName")
+    private String displayName;
+    
+    @PropertyName("onlineStatus")
+    private String onlineStatus;
+    
+    @PropertyName("notificationsEnabled")
+    private boolean notificationsEnabled = true;
+    
+    @PropertyName("friend")
+    private boolean friend = false;
+    
+    @PropertyName("validEmail")
+    private boolean validEmail = true;
+    
+    @PropertyName("theme")
+    private String theme = "auto";
+    
+    @PropertyName("blockedByMe")
+    private boolean blockedByMe = false;
+    
+    @PropertyName("displayAbout")
+    private String displayAbout;
+    
+    @PropertyName("complete")
+    private boolean complete = false;
+
     // Default constructor
     public User() {
         this.joinedAt = System.currentTimeMillis();
@@ -93,7 +121,17 @@ public class User {
     public boolean isLastSeenEnabled() { return lastSeenEnabled; }
     public boolean isAboutEnabled() { return aboutEnabled; }
     public boolean isReadReceiptsEnabled() { return readReceiptsEnabled; }
-    public boolean isNotificationsEnabled() { return true; } // Default to true for notifications
+    public boolean isNotificationsEnabled() { return notificationsEnabled; } // Updated to use field
+
+    // Getters for new fields
+    public String getDisplayName() { return displayName; }
+    public String getOnlineStatus() { return onlineStatus; }
+    public boolean isFriend() { return friend; }
+    public boolean isValidEmail() { return validEmail; }
+    public String getTheme() { return theme; }
+    public boolean isBlockedByMe() { return blockedByMe; }
+    public String getDisplayAbout() { return displayAbout; }
+    public boolean isComplete() { return complete; }
 
     // Setters
     public void setId(String id) { this.id = id; }
@@ -125,14 +163,27 @@ public class User {
         this.readReceiptsEnabled = readReceiptsEnabled;
     }
 
+    // Setters for new fields
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
+    public void setOnlineStatus(String onlineStatus) { this.onlineStatus = onlineStatus; }
+    public void setNotificationsEnabled(boolean notificationsEnabled) { this.notificationsEnabled = notificationsEnabled; }
+    public void setFriend(boolean friend) { this.friend = friend; }
+    public void setValidEmail(boolean validEmail) { this.validEmail = validEmail; }
+    public void setTheme(String theme) { this.theme = theme; }
+    public void setBlockedByMe(boolean blockedByMe) { this.blockedByMe = blockedByMe; }
+    public void setDisplayAbout(String displayAbout) { this.displayAbout = displayAbout; }
+    public void setComplete(boolean complete) { this.complete = complete; }
+
     // Helper methods
     public boolean hasProfilePhoto() {
         return imageUrl != null && !imageUrl.trim().isEmpty() && profilePhotoEnabled;
     }
 
     public String getDisplayName() {
-        // Priority: personal name > name > phone number > email username
-        if (personalName != null && !personalName.trim().isEmpty()) {
+        // Priority: displayName field > personal name > name > phone number > email username
+        if (displayName != null && !displayName.trim().isEmpty()) {
+            return displayName;
+        } else if (personalName != null && !personalName.trim().isEmpty()) {
             return personalName;
         } else if (name != null && !name.trim().isEmpty()) {
             return name;
@@ -182,11 +233,11 @@ public class User {
 
     // Friend management helper methods
     public boolean isFriend() {
-        return "friend".equals(friendshipStatus);
+        return friend || "friend".equals(friendshipStatus);
     }
 
     public boolean isBlockedByMe() {
-        return "blocked".equals(friendshipStatus);
+        return blockedByMe || "blocked".equals(friendshipStatus);
     }
 
     public boolean canBeAdded() {
@@ -195,12 +246,11 @@ public class User {
 
     // Validation methods
     public boolean isValidEmail() {
-        return email != null && email.contains("@") && email.contains(".");
+        return validEmail && email != null && email.contains("@") && email.contains(".");
     }
 
-
     public boolean isComplete() {
-        return name != null && !name.trim().isEmpty() && isValidEmail();
+        return complete || (name != null && !name.trim().isEmpty() && isValidEmail());
     }
 
     // Copy

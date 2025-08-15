@@ -23,6 +23,7 @@ import com.pingme.android.activities.StatusCreationActivity;
 import com.pingme.android.adapters.StatusAdapter;
 import com.pingme.android.models.Status;
 import com.pingme.android.utils.FirebaseUtil;
+import com.pingme.android.activities.StatusViewerActivity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -119,11 +120,13 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
 
     @Override
     public void onStatusClick(Status status) {
-        // Open status viewing activity - implement similar to WhatsApp
-        // For now, we can use the existing ImageViewerActivity
-        Intent intent = new Intent(getActivity(), com.pingme.android.activities.ImageViewerActivity.class);
-        intent.putExtra("imageUrl", status.getImageUrl());
-        intent.putExtra("caption", status.getCaption());
+        // Open status viewer activity for story-like viewing experience
+        Intent intent = StatusViewerActivity.createIntent(
+                getActivity(), 
+                status.getId(), 
+                status.getUserId(), 
+                0
+        );
         startActivity(intent);
     }
 }
