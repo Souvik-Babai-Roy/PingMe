@@ -34,7 +34,7 @@ import com.pingme.android.databinding.ActivityChatBinding;
 import com.pingme.android.models.Message;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.CloudinaryUtil;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -217,7 +217,7 @@ public class ChatActivity extends AppCompatActivity {
 
         showLoading(true);
         
-        FirestoreUtil.clearChat(chatId, currentUser.getUid());
+        FirebaseUtil.clearChat(chatId, currentUser.getUid());
         
         // Clear messages from local list
         messages.clear();
@@ -236,7 +236,7 @@ public class ChatActivity extends AppCompatActivity {
 
         showLoading(true);
         
-        FirestoreUtil.deleteChat(chatId, currentUser.getUid());
+        FirebaseUtil.deleteChat(chatId, currentUser.getUid());
         
         showLoading(false);
         Toast.makeText(this, "Chat deleted successfully", Toast.LENGTH_SHORT).show();
@@ -254,7 +254,7 @@ public class ChatActivity extends AppCompatActivity {
         }
         
         String currentUserId = firebaseUser.getUid();
-        FirestoreUtil.getUserRef(currentUserId).get().addOnSuccessListener(snapshot -> {
+        FirebaseUtil.getUserRef(currentUserId).get().addOnSuccessListener(snapshot -> {
             if (snapshot.exists()) {
                 currentUser = snapshot.toObject(User.class);
                 if (currentUser != null) {
@@ -270,7 +270,7 @@ public class ChatActivity extends AppCompatActivity {
     private void loadReceiver() {
         Log.d(TAG, "Loading receiver: " + receiverId);
 
-        FirestoreUtil.getUserRef(receiverId).get().addOnSuccessListener(snapshot -> {
+        FirebaseUtil.getUserRef(receiverId).get().addOnSuccessListener(snapshot -> {
             if (snapshot.exists()) {
                 receiver = snapshot.toObject(User.class);
                 if (receiver != null) {
@@ -306,8 +306,8 @@ public class ChatActivity extends AppCompatActivity {
         String currentUserId = firebaseUser.getUid();
 
         // Check both blocking directions
-        FirestoreUtil.checkIfBlocked(currentUserId, receiverId, currentUserBlocked -> {
-            FirestoreUtil.checkIfBlocked(receiverId, currentUserId, receiverBlocked -> {
+        FirebaseUtil.checkIfBlocked(currentUserId, receiverId, currentUserBlocked -> {
+            FirebaseUtil.checkIfBlocked(receiverId, currentUserId, receiverBlocked -> {
                 isBlocked = currentUserBlocked || receiverBlocked;
 
                 runOnUiThread(() -> {
@@ -407,12 +407,12 @@ public class ChatActivity extends AppCompatActivity {
     private void ensureChatExists() {
         Log.d(TAG, "Ensuring chat exists: " + chatId);
 
-        FirestoreUtil.getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
+        FirebaseUtil.getChatRef(chatId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (!dataSnapshot.exists()) {
                     Log.d(TAG, "Chat doesn't exist, creating new chat: " + chatId);
-                    FirestoreUtil.createNewChatInRealtime(chatId,
+                    FirebaseUtil.createNewChatInRealtime(chatId,
                             FirebaseAuth.getInstance().getUid(), receiverId);
                 } else {
                     Log.d(TAG, "Chat already exists: " + chatId);
@@ -429,11 +429,11 @@ public class ChatActivity extends AppCompatActivity {
     private void setupMessageListener() {
         Log.d(TAG, "=== SETTING UP MESSAGE LISTENER ===");
         Log.d(TAG, "Chat ID: " + chatId);
-        Log.d(TAG, "Messages ref path: " + FirestoreUtil.getMessagesRef(chatId).toString());
+        Log.d(TAG, "Messages ref path: " + FirebaseUtil.getMessagesRef(chatId).toString());
 
         // Remove existing listener if any
         if (messageListener != null) {
-            FirestoreUtil.getMessagesRef(chatId).removeEventListener(messageListener);
+            FirebaseUtil.getMessagesRef(chatId).removeEventListener(messageListener);
         }
 
         messageListener = new ChildEventListener() {
@@ -458,7 +458,7 @@ public class ChatActivity extends AppCompatActivity {
                     // Process all messages, but filter blocked users
                     if (!message.getSenderId().equals(currentUserId)) {
                         // Check if current user blocked the sender
-                        FirestoreUtil.checkIfBlocked(currentUserId, message.getSenderId(), blocked -> {
+                        FirebaseUtil.checkIfBlocked(currentUserId, message.getSenderId(), blocked -> {
                             if (blocked) {
                                 Log.d(TAG, "Message filtered - sender is blocked");
                                 return;
@@ -489,7 +489,7 @@ public class ChatActivity extends AppCompatActivity {
                     
                     // Update message status for all messages
                     if (!updatedMessage.getSenderId().equals(currentUserId)) {
-                        FirestoreUtil.checkIfBlocked(currentUserId, updatedMessage.getSenderId(), blocked -> {
+                        FirebaseUtil.checkIfBlocked(currentUserId, updatedMessage.getSenderId(), blocked -> {
                             if (!blocked) {
                                 updateMessageInList(updatedMessage);
                             }
@@ -517,7 +517,7 @@ public class ChatActivity extends AppCompatActivity {
             }
         };
 
-        FirestoreUtil.getMessagesRef(chatId).addChildEventListener(messageListener);
+        FirebaseUtil.getMessagesRef(chatId).addChildEventListener(messageListener);
     }
 
     private void processIncomingMessage(Message message) {
@@ -537,11 +537,11 @@ public class ChatActivity extends AppCompatActivity {
             FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
             if (firebaseUser != null && !message.getSenderId().equals(firebaseUser.getUid())) {
                 // Mark message as delivered immediately when received
-                FirestoreUtil.markMessageAsDelivered(chatId, message.getId(), firebaseUser.getUid());
+                FirebaseUtil.markMessageAsDelivered(chatId, message.getId(), firebaseUser.getUid());
                 
                 // Mark as read if chat is active and user is viewing
                 if (isChatActive()) {
-                    FirestoreUtil.markMessageAsRead(chatId, message.getId(), firebaseUser.getUid());
+                    FirebaseUtil.markMessageAsRead(chatId, message.getId(), firebaseUser.getUid());
                 }
             }
         }
@@ -587,7 +587,7 @@ public class ChatActivity extends AppCompatActivity {
             public void onCancelled(DatabaseError databaseError) {}
         };
 
-        FirestoreUtil.getTypingRef(chatId).addValueEventListener(typingListener);
+        FirebaseUtil.getTypingRef(chatId).addValueEventListener(typingListener);
     }
 
     private void setupOnlineStatusListener() {
@@ -608,7 +608,7 @@ public class ChatActivity extends AppCompatActivity {
             public void onCancelled(DatabaseError databaseError) {}
         };
 
-        FirestoreUtil.getRealtimePresenceRef(receiverId).addValueEventListener(onlineStatusListener);
+        FirebaseUtil.getRealtimePresenceRef(receiverId).addValueEventListener(onlineStatusListener);
     }
 
     private void setupClickListeners() {
@@ -627,7 +627,7 @@ public class ChatActivity extends AppCompatActivity {
                         isTyping = shouldShowTyping;
                         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
                         if (currentUser != null) {
-                            FirestoreUtil.setTyping(chatId, currentUser.getUid(), isTyping);
+                            FirebaseUtil.setTyping(chatId, currentUser.getUid(), isTyping);
                         }
                     }
                 }
@@ -782,7 +782,7 @@ public class ChatActivity extends AppCompatActivity {
                 .setPositiveButton("Save", (dialogInterface, i) -> {
                     String newText = etEditText.getText().toString().trim();
                     if (!newText.isEmpty() && !newText.equals(message.getText())) {
-                        FirestoreUtil.editMessage(chatId, message.getId(), newText);
+                        FirebaseUtil.editMessage(chatId, message.getId(), newText);
                     }
                 })
                 .setNegativeButton("Cancel", null)
@@ -793,12 +793,12 @@ public class ChatActivity extends AppCompatActivity {
 
     private void deleteMessageForMe(Message message) {
         String currentUserId = FirebaseAuth.getInstance().getUid();
-        FirestoreUtil.deleteMessageForUser(chatId, message.getId(), currentUserId);
+        FirebaseUtil.deleteMessageForUser(chatId, message.getId(), currentUserId);
     }
 
     private void deleteMessageForEveryone(Message message) {
         String currentUserId = FirebaseAuth.getInstance().getUid();
-        FirestoreUtil.deleteMessageForEveryone(chatId, message.getId(), currentUserId);
+        FirebaseUtil.deleteMessageForEveryone(chatId, message.getId(), currentUserId);
     }
 
     private void handleImageSelection(Uri imageUri) {
@@ -877,7 +877,7 @@ public class ChatActivity extends AppCompatActivity {
         Log.d(TAG, "Sending text message: " + messageText + " to chat: " + chatId);
         
         // Use the enhanced message delivery system
-        FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId, messageText, Message.TYPE_TEXT, null)
+        FirebaseUtil.sendMessageWithDeliveryTracking(chatId, senderId, messageText, Message.TYPE_TEXT, null)
                 .addOnSuccessListener(aVoid -> {
                     showSendingIndicator(false);
                     Log.d(TAG, "Message sent successfully");
@@ -915,7 +915,7 @@ public class ChatActivity extends AppCompatActivity {
                     Map<String, Object> mediaData = new HashMap<>();
                     mediaData.put("imageUrl", imageUrl);
                     
-                    FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId, "📷 Image", Message.TYPE_IMAGE, mediaData)
+                    FirebaseUtil.sendMessageWithDeliveryTracking(chatId, senderId, "📷 Image", Message.TYPE_IMAGE, mediaData)
                             .addOnSuccessListener(aVoid -> {
                                 showLoading(false);
                                 Log.d(TAG, "Image message sent successfully");
@@ -955,7 +955,7 @@ public class ChatActivity extends AppCompatActivity {
                     mediaData.put("thumbnailUrl", videoData.get("thumbnailUrl"));
                     mediaData.put("duration", videoData.get("duration"));
                     
-                    FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId, "🎥 Video", Message.TYPE_VIDEO, mediaData)
+                    FirebaseUtil.sendMessageWithDeliveryTracking(chatId, senderId, "🎥 Video", Message.TYPE_VIDEO, mediaData)
                             .addOnSuccessListener(aVoid -> {
                                 showLoading(false);
                                 Log.d(TAG, "Video message sent successfully");
@@ -994,7 +994,7 @@ public class ChatActivity extends AppCompatActivity {
                     mediaData.put("audioUrl", audioData.get("audioUrl"));
                     mediaData.put("duration", audioData.get("duration"));
                     
-                    FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId, "🎤 Audio", Message.TYPE_AUDIO, mediaData)
+                    FirebaseUtil.sendMessageWithDeliveryTracking(chatId, senderId, "🎤 Audio", Message.TYPE_AUDIO, mediaData)
                             .addOnSuccessListener(aVoid -> {
                                 showLoading(false);
                                 Log.d(TAG, "Audio message sent successfully");
@@ -1031,7 +1031,7 @@ public class ChatActivity extends AppCompatActivity {
                     mediaData.put("fileName", documentData.get("fileName"));
                     mediaData.put("fileSize", documentData.get("fileSize"));
                     
-                    FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId, "📄 Document", Message.TYPE_DOCUMENT, mediaData);
+                    FirebaseUtil.sendMessageWithDeliveryTracking(chatId, senderId, "📄 Document", Message.TYPE_DOCUMENT, mediaData);
                     showLoading(false);
                 }))
                 .exceptionally(throwable -> {
@@ -1045,7 +1045,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private void updateMessageStatus(String messageId, int status) {
         if (!isBlocked) {
-            FirestoreUtil.getMessagesRef(chatId)
+            FirebaseUtil.getMessagesRef(chatId)
                     .child(messageId)
                     .child("status")
                     .setValue(status);
@@ -1063,7 +1063,7 @@ public class ChatActivity extends AppCompatActivity {
             if (!message.getSenderId().equals(currentUserId)) {
                 // Check if message is not already read
                 if (message.getReadBy() == null || !message.getReadBy().containsKey(currentUserId)) {
-                    FirestoreUtil.markMessageAsRead(chatId, message.getId(), currentUserId);
+                    FirebaseUtil.markMessageAsRead(chatId, message.getId(), currentUserId);
                 }
             }
         }
@@ -1077,7 +1077,7 @@ public class ChatActivity extends AppCompatActivity {
                     FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
                     if (currentUser != null) {
                         String currentUserId = currentUser.getUid();
-                        FirestoreUtil.blockUser(currentUserId, receiverId);
+                        FirebaseUtil.blockUser(currentUserId, receiverId);
                         isBlocked = true;
                         updateInputState();
                         Toast.makeText(this, receiver.getDisplayName() + " has been blocked", Toast.LENGTH_SHORT).show();
@@ -1095,7 +1095,7 @@ public class ChatActivity extends AppCompatActivity {
                     FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
                     if (currentUser != null) {
                         String currentUserId = currentUser.getUid();
-                        FirestoreUtil.unblockUser(currentUserId, receiverId);
+                        FirebaseUtil.unblockUser(currentUserId, receiverId);
                         isBlocked = false;
                         updateInputState();
                         Toast.makeText(this, receiver.getDisplayName() + " has been unblocked", Toast.LENGTH_SHORT).show();
@@ -1113,7 +1113,7 @@ public class ChatActivity extends AppCompatActivity {
                     FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
                     if (currentUser != null) {
                         String currentUserId = currentUser.getUid();
-                        FirestoreUtil.removeFriend(currentUserId, receiverId);
+                        FirebaseUtil.removeFriend(currentUserId, receiverId);
                         Toast.makeText(this, receiver.getDisplayName() + " has been removed from friends", Toast.LENGTH_SHORT).show();
                         finish();
                     }
@@ -1127,7 +1127,7 @@ public class ChatActivity extends AppCompatActivity {
                 .setTitle("Clear Chat")
                 .setMessage("Are you sure you want to clear all messages in this chat?")
                 .setPositiveButton("Clear", (dialog, which) -> {
-                    FirestoreUtil.clearChatHistory(chatId);
+                    FirebaseUtil.clearChatHistory(chatId);
                     messages.clear();
                     items.clear();
                     adapter.notifyDataSetChanged();
@@ -1172,7 +1172,7 @@ public class ChatActivity extends AppCompatActivity {
         // Update user presence
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
-            FirestoreUtil.updateUserPresence(currentUser.getUid(), true);
+            FirebaseUtil.updateUserPresence(currentUser.getUid(), true);
         }
     }
 
@@ -1183,13 +1183,13 @@ public class ChatActivity extends AppCompatActivity {
         // Update user presence
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
-            FirestoreUtil.updateUserPresence(currentUser.getUid(), false);
+            FirebaseUtil.updateUserPresence(currentUser.getUid(), false);
         }
         
         // Stop typing indicator
         if (isTyping) {
             isTyping = false;
-            FirestoreUtil.setTyping(chatId, currentUser.getUid(), false);
+            FirebaseUtil.setTyping(chatId, currentUser.getUid(), false);
         }
     }
 
@@ -1200,17 +1200,17 @@ public class ChatActivity extends AppCompatActivity {
         Log.d(TAG, "ChatActivity destroyed, removing listeners");
 
         if (messageListener != null) {
-            FirestoreUtil.getMessagesRef(chatId).removeEventListener(messageListener);
+            FirebaseUtil.getMessagesRef(chatId).removeEventListener(messageListener);
         }
         if (typingListener != null) {
-            FirestoreUtil.getTypingRef(chatId).removeEventListener(typingListener);
+            FirebaseUtil.getTypingRef(chatId).removeEventListener(typingListener);
         }
         if (onlineStatusListener != null) {
-            FirestoreUtil.getRealtimePresenceRef(receiverId).removeEventListener(onlineStatusListener);
+            FirebaseUtil.getRealtimePresenceRef(receiverId).removeEventListener(onlineStatusListener);
         }
 
         if (isTyping) {
-            FirestoreUtil.setTyping(chatId, FirebaseAuth.getInstance().getUid(), false);
+            FirebaseUtil.setTyping(chatId, FirebaseAuth.getInstance().getUid(), false);
         }
     }
 }

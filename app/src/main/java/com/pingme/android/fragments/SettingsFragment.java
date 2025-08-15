@@ -8,6 +8,7 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.SwitchPreferenceCompat;
 import com.pingme.android.R;
+import com.pingme.android.utils.FirebaseUtil;
 import com.pingme.android.utils.PreferenceUtils;
 
 public class SettingsFragment extends PreferenceFragmentCompat
@@ -175,7 +176,7 @@ public class SettingsFragment extends PreferenceFragmentCompat
         com.google.firebase.auth.FirebaseUser currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
             String currentUserId = currentUser.getUid();
-            com.pingme.android.utils.FirestoreUtil.updatePresence(currentUserId, false);
+            FirebaseUtil.updatePresence(currentUserId, false);
         }
 
         // Sign out from Firebase Auth

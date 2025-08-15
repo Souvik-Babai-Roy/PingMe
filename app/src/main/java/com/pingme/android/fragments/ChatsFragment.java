@@ -12,17 +12,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.pingme.android.adapters.ChatListAdapter;
 import com.pingme.android.databinding.FragmentChatsBinding;
 import com.pingme.android.models.Chat;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 import com.pingme.android.models.ChatManagement;
 
 import java.util.ArrayList;
@@ -105,7 +102,7 @@ public class ChatsFragment extends Fragment {
 
         // Remove existing listener
         if (userChatsListener != null) {
-            FirestoreUtil.getUserChatsRef(currentUserId).removeEventListener(userChatsListener);
+            FirebaseUtil.getUserChatsRef(currentUserId).removeEventListener(userChatsListener);
         }
 
         userChatsListener = new ValueEventListener() {
@@ -143,12 +140,12 @@ public class ChatsFragment extends Fragment {
             }
         };
 
-        FirestoreUtil.getUserChatsRef(currentUserId).addValueEventListener(userChatsListener);
+        FirebaseUtil.getUserChatsRef(currentUserId).addValueEventListener(userChatsListener);
     }
 
     private void checkChatVisibility(Chat chat) {
         // Check if chat is deleted for current user
-        FirestoreUtil.getChatManagementRef(chat.getId()).get()
+        FirebaseUtil.getChatManagementRef(chat.getId()).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         ChatManagement chatManagement = documentSnapshot.toObject(ChatManagement.class);
@@ -182,7 +179,7 @@ public class ChatsFragment extends Fragment {
         String otherUserId = userIds[0].equals(currentUserId) ? userIds[1] : userIds[0];
         
         // Load the other user's information
-        FirestoreUtil.getUserRef(otherUserId).get()
+        FirebaseUtil.getUserRef(otherUserId).get()
                 .addOnSuccessListener(userSnapshot -> {
                     if (userSnapshot.exists()) {
                         User otherUser = userSnapshot.toObject(User.class);
@@ -235,7 +232,7 @@ public class ChatsFragment extends Fragment {
                 if (otherUserId != null) {
                     // First check if users are still friends before updating chat
                     final String finalOtherUserId = otherUserId;
-                    FirestoreUtil.checkFriendship(currentUserId, finalOtherUserId, areFriends -> {
+                    FirebaseUtil.checkFriendship(currentUserId, finalOtherUserId, areFriends -> {
                         if (!areFriends) {
                             Log.d(TAG, "Users are no longer friends, removing chat: " + chatId);
                             // Remove chat from list
@@ -302,7 +299,7 @@ public class ChatsFragment extends Fragment {
         };
 
         // Load full chat snapshot once to get last message and participants
-        FirestoreUtil.getChatRef(chatId).addListenerForSingleValueEvent(chatListener);
+        FirebaseUtil.getChatRef(chatId).addListenerForSingleValueEvent(chatListener);
         chatListeners.put(chatId, chatListener);
     }
 
@@ -311,14 +308,14 @@ public class ChatsFragment extends Fragment {
         Log.d(TAG, "Loading other user details: " + otherUserId + " for chat: " + chatId);
 
         // First verify friendship before loading user details
-        FirestoreUtil.checkFriendship(currentUserId, otherUserId, areFriends -> {
+        FirebaseUtil.checkFriendship(currentUserId, otherUserId, areFriends -> {
             if (!areFriends) {
                 Log.d(TAG, "Users are not friends, skipping chat: " + chatId);
                 return;
             }
 
             // Load user details from Firestore
-            FirestoreUtil.getUserRef(otherUserId).get()
+            FirebaseUtil.getUserRef(otherUserId).get()
                     .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         User otherUser = documentSnapshot.toObject(User.class);
@@ -349,7 +346,7 @@ public class ChatsFragment extends Fragment {
     }
 
     private void loadUserPresence(User user, Runnable onComplete) {
-        FirestoreUtil.getRealtimePresenceRef(user.getId())
+        FirebaseUtil.getRealtimePresenceRef(user.getId())
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -395,7 +392,7 @@ public class ChatsFragment extends Fragment {
     private void calculateUnreadCount(Chat chat) {
         Log.d(TAG, "Calculating unread count for chat: " + chat.getId());
         
-        FirestoreUtil.getMessagesRef(chat.getId())
+        FirebaseUtil.getMessagesRef(chat.getId())
                 .orderByChild("senderId")
                 .addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
@@ -433,7 +430,7 @@ public class ChatsFragment extends Fragment {
 
     private void loadUnreadCount(String chatId, Chat chat) {
         // Calculate unread count by checking messages not read by current user
-        FirestoreUtil.getMessagesRef(chatId)
+        FirebaseUtil.getMessagesRef(chatId)
                 .orderByChild("timestamp")
                 .startAfter(chat.getLastMessageTimestamp())
                 .addListenerForSingleValueEvent(new ValueEventListener() {
@@ -486,7 +483,7 @@ public class ChatsFragment extends Fragment {
     private void setupChatListener(String chatId) {
         // Remove existing listener if any
         if (chatListeners.containsKey(chatId)) {
-            FirestoreUtil.getChatRef(chatId).removeEventListener(chatListeners.get(chatId));
+            FirebaseUtil.getChatRef(chatId).removeEventListener(chatListeners.get(chatId));
         }
 
         ValueEventListener chatListener = new ValueEventListener() {
@@ -507,7 +504,7 @@ public class ChatsFragment extends Fragment {
             }
         };
 
-        FirestoreUtil.getChatRef(chatId).addValueEventListener(chatListener);
+        FirebaseUtil.getChatRef(chatId).addValueEventListener(chatListener);
         chatListeners.put(chatId, chatListener);
     }
 
@@ -544,7 +541,7 @@ public class ChatsFragment extends Fragment {
         super.onPause();
         // Clean up listeners when fragment is not visible
         if (userChatsListener != null) {
-            FirestoreUtil.getUserChatsRef(currentUserId).removeEventListener(userChatsListener);
+            FirebaseUtil.getUserChatsRef(currentUserId).removeEventListener(userChatsListener);
         }
     }
 
@@ -554,7 +551,7 @@ public class ChatsFragment extends Fragment {
         
         // Remove listeners
         if (userChatsListener != null) {
-            FirestoreUtil.getUserChatsRef(currentUserId).removeEventListener(userChatsListener);
+            FirebaseUtil.getUserChatsRef(currentUserId).removeEventListener(userChatsListener);
         }
         
         for (ValueEventListener listener : chatListeners.values()) {

@@ -12,12 +12,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.pingme.android.R;
 import com.pingme.android.adapters.ContactSelectionAdapter;
 import com.pingme.android.databinding.ActivitySelectContactsBinding;
 import com.pingme.android.models.Broadcast;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -119,7 +118,7 @@ public class SelectContactsActivity extends AppCompatActivity {
         binding.recyclerViewContacts.setVisibility(View.GONE);
         binding.layoutEmptyState.setVisibility(View.GONE);
 
-        FirestoreUtil.getFriendsRef(currentUserId)
+        FirebaseUtil.getFriendsRef(currentUserId)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     contacts.clear();
@@ -133,7 +132,7 @@ public class SelectContactsActivity extends AppCompatActivity {
                         String userId = doc.getId();
                         
                         // Load user details
-                        FirestoreUtil.getUserRef(userId)
+                        FirebaseUtil.getUserRef(userId)
                                 .get()
                                 .addOnSuccessListener(userDoc -> {
                                     if (userDoc.exists()) {
@@ -205,7 +204,7 @@ public class SelectContactsActivity extends AppCompatActivity {
 
         for (User contact : selectedContacts) {
             // Create or get chat with this contact
-            String chatId = FirestoreUtil.generateChatId(currentUserId, contact.getId());
+            String chatId = FirebaseUtil.generateChatId(currentUserId, contact.getId());
             
             // Forward the message
             Map<String, Object> mediaData = null;
@@ -215,7 +214,7 @@ public class SelectContactsActivity extends AppCompatActivity {
                 // This would need to be passed from the original message
             }
             
-            FirestoreUtil.sendMessageWithDeliveryTracking(chatId, currentUserId, messageText, messageType, mediaData)
+            FirebaseUtil.sendMessageWithDeliveryTracking(chatId, currentUserId, messageText, messageType, mediaData)
                     .addOnCompleteListener(task -> {
                         forwardedCount[0]++;
                         if (forwardedCount[0] == totalContacts) {
@@ -243,7 +242,7 @@ public class SelectContactsActivity extends AppCompatActivity {
             selectedContactIds.add(contact.getId());
         }
 
-        FirestoreUtil.createBroadcastList(broadcastName, currentUserId, selectedContactIds, new FirestoreUtil.BroadcastCallback() {
+        FirebaseUtil.createBroadcastList(broadcastName, currentUserId, selectedContactIds, new FirebaseUtil.BroadcastCallback() {
             @Override
             public void onBroadcastCreated(Broadcast broadcast) {
                 runOnUiThread(() -> {
