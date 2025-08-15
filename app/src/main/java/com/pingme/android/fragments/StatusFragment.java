@@ -51,7 +51,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
     }
 
     private void initViews(View view) {
-        recyclerView = view.findViewById(R.id.recyclerView);
+        recyclerView = view.findViewById(R.id.recyclerViewStatus);
         FloatingActionButton fabAddStatus = view.findViewById(R.id.fabAddStatus);
         
         if (fabAddStatus != null) {
