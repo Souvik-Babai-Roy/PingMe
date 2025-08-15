@@ -2,6 +2,10 @@ package com.pingme.android.models;
 
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
+import com.google.firebase.firestore.PropertyName;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class Chat extends BaseObservable {
     private String id;
@@ -15,6 +19,13 @@ public class Chat extends BaseObservable {
     private String typingUserId;
     private long createdAt;
     private boolean isActive;
+    
+    // Add missing fields that are being written to Firestore
+    @PropertyName("lastMessageId")
+    private String lastMessageId;
+    
+    @PropertyName("participants")
+    private Map<String, Boolean> participants = new HashMap<>();
 
     public Chat() {
         // Required empty constructor for Firestore
@@ -126,6 +137,25 @@ public class Chat extends BaseObservable {
 
     public void setActive(boolean active) {
         isActive = active;
+    }
+
+    // Add getters and setters for the missing fields
+    @Bindable
+    public String getLastMessageId() {
+        return lastMessageId;
+    }
+
+    public void setLastMessageId(String lastMessageId) {
+        this.lastMessageId = lastMessageId;
+    }
+
+    @Bindable
+    public Map<String, Boolean> getParticipants() {
+        return participants;
+    }
+
+    public void setParticipants(Map<String, Boolean> participants) {
+        this.participants = participants;
     }
 
     // Helper methods
