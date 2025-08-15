@@ -53,12 +53,14 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusView
         private ImageView statusImage;
         private TextView statusText;
         private TextView timestampText;
+        private TextView userNameText;
 
         public StatusViewHolder(@NonNull View itemView) {
             super(itemView);
             statusImage = itemView.findViewById(R.id.statusImage);
             statusText = itemView.findViewById(R.id.statusText);
-            timestampText = itemView.findViewById(R.id.timestampText);
+            timestampText = itemView.findViewById(R.id.textTime);
+            userNameText = itemView.findViewById(R.id.textUserName);
 
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
@@ -69,6 +71,13 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusView
         }
 
         public void bind(Status status) {
+            // Set user name
+            if (userNameText != null && status.getUserName() != null) {
+                userNameText.setText(status.getUserName());
+            } else if (userNameText != null) {
+                userNameText.setText("Unknown User");
+            }
+
             // Load status image if available
             if (status.getImageUrl() != null && !status.getImageUrl().isEmpty()) {
                 statusImage.setVisibility(View.VISIBLE);
@@ -90,10 +99,12 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusView
             }
 
             // Set timestamp
-            if (status.getTimestamp() > 0) {
-                timestampText.setText(status.getFormattedTimestamp());
-            } else {
-                timestampText.setText("");
+            if (timestampText != null) {
+                if (status.getTimestamp() > 0) {
+                    timestampText.setText(status.getFormattedTimestamp());
+                } else {
+                    timestampText.setText("");
+                }
             }
         }
     }
