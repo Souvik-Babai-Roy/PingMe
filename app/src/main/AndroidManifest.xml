@@ -109,10 +109,10 @@
             android:parentActivityName=".activities.MainActivity" />
 
         <!-- Message Search Activity -->
-        <activity
+        <!-- <activity
             android:name=".activities.MessageSearchActivity"
             android:exported="false"
-            android:parentActivityName=".activities.MainActivity" />
+            android:parentActivityName=".activities.MainActivity" /> -->
 
         <!-- User Profile Activity -->
         <activity

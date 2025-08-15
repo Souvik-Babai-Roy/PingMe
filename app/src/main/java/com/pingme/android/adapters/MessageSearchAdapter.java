@@ -1,3 +1,4 @@
+/*
 package com.pingme.android.adapters;
 
 import android.content.Context;
@@ -104,23 +105,24 @@ public class MessageSearchAdapter extends RecyclerView.Adapter<MessageSearchAdap
             
             messageText.setText(spannableString);
 
-            // Format timestamp
-            String timestamp = formatTimestamp(message.getTimestamp());
-            timestampText.setText(timestamp);
+            // Set timestamp
+            if (message.getTimestamp() != null) {
+                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy 'at' h:mm a", Locale.getDefault());
+                String timestamp = sdf.format(new Date(message.getTimestamp()));
+                timestampText.setText(timestamp);
+            } else {
+                timestampText.setText("");
+            }
         }
 
         private String getSenderName(String senderId) {
             for (User user : usersList) {
                 if (user.getId().equals(senderId)) {
-                    return user.getName();
+                    return user.getDisplayName();
                 }
             }
             return "Unknown User";
         }
-
-        private String formatTimestamp(long timestamp) {
-            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy 'at' HH:mm", Locale.getDefault());
-            return sdf.format(new Date(timestamp));
-        }
     }
 }
+*/

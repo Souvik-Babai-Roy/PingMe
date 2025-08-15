@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace 'com.pingme.android'
-    compileSdk 36
+    compileSdk 33
 
     defaultConfig {
         applicationId "com.pingme.android"
         minSdk 24
-        targetSdk 36
+        targetSdk 33
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
@@ -24,11 +24,17 @@ android {
     }
 
     buildTypes {
+        debug {
+            minifyEnabled false
+            shrinkResources false
+        }
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    
+
 
     buildFeatures {
         viewBinding true
@@ -37,8 +43,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 

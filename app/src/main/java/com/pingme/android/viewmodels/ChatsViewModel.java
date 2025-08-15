@@ -1,3 +1,4 @@
+/*
 package com.pingme.android.viewmodels;
 
 import androidx.lifecycle.LiveData;
@@ -226,3 +227,4 @@ public class ChatsViewModel extends ViewModel {
         searchObserver = null;
     }
 }
+*/

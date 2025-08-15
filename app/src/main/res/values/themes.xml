@@ -27,7 +27,7 @@
 
         <!-- Navigation bar -->
         <item name="android:navigationBarColor">@color/background_color</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
         
         <!-- Menu styling -->
         <item name="actionMenuTextColor">@color/white</item>

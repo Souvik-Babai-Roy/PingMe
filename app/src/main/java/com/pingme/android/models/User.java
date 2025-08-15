@@ -11,6 +11,7 @@ public class User {
     private String id;
     private String name;
     private String email;
+    private String phoneNumber;
     private String imageUrl;
     private String about;
     @PropertyName("isOnline")
@@ -75,6 +76,7 @@ public class User {
     public String getId() { return id; }
     public String getName() { return name != null ? name : ""; }
     public String getEmail() { return email != null ? email : ""; }
+    public String getPhoneNumber() { return phoneNumber != null ? phoneNumber : ""; }
 
     public String getImageUrl() { return imageUrl; }
     public String getAbout() { return about != null ? about : "Hey there! I am using PingMe."; }
@@ -97,6 +99,7 @@ public class User {
     public void setId(String id) { this.id = id; }
     public void setName(String name) { this.name = name; }
     public void setEmail(String email) { this.email = email; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public void setAbout(String about) { this.about = about; }

@@ -99,6 +99,15 @@ public class FirebaseUtil {
         return getPresenceRef(userId);
     }
 
+    // Additional methods for compatibility
+    public static DatabaseReference getUsersRef() {
+        return getRealtimeDatabase().child("users");
+    }
+
+    public static DatabaseReference getChatMessagesRef(String chatId) {
+        return getMessagesRef(chatId);
+    }
+
     public static DatabaseReference getTypingRef(String chatId) {
         return getRealtimeDatabase().child(RT_TYPING).child(chatId);
     }
