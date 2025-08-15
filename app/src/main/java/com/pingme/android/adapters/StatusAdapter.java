@@ -75,7 +75,7 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusView
                 Glide.with(context)
                     .load(status.getImageUrl())
                     .placeholder(R.drawable.ic_image_placeholder)
-                    .error(R.drawable.ic_image_error)
+                    .error(R.drawable.ic_error)
                     .into(statusImage);
             } else {
                 statusImage.setVisibility(View.GONE);
@@ -90,7 +90,7 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusView
             }
 
             // Set timestamp
-            if (status.getTimestamp() != null) {
+            if (status.getTimestamp() > 0) {
                 timestampText.setText(status.getFormattedTimestamp());
             } else {
                 timestampText.setText("");
