@@ -94,6 +94,8 @@
 
     <color name="online_green">#4CAF50</color>
     <color name="date_header_bg">#F5F5F5</color>
+    <color name="gray">#757575</color>
+    <color name="highlight_yellow">#FFF3CD</color>
 
     <!-- Status colors -->
     <color name="status_sent">#9E9E9E</color>
