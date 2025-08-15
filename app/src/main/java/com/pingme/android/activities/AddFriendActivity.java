@@ -406,7 +406,7 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
             }
 
             @Override
-            public void onFailure(String error) {
+            public void onError(String error) {
                 showLoading(false);
                 Toast.makeText(AddFriendActivity.this, 
                     "Failed to add friend: " + error, 
