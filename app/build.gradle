@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace 'com.pingme.android'
-    compileSdk 33
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.pingme.android"
@@ -43,9 +43,10 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
+
 }
 
 // Enable -Xlint:unchecked for more warnings
