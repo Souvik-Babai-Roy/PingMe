@@ -218,6 +218,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         TextView tvAudioDuration, tvDocumentName, tvDocumentSize, tvVideoDuration;
         ImageView ivStatus, ivImageStatus, ivVideoStatus, ivAudioStatus, ivDocumentStatus;
         ImageView ivMessageImage, ivVideoThumbnail, ivPlayButton, ivPlayAudio;
+        
+        // Reaction views
+        LinearLayout layoutReactions;
+        TextView tvReactions;
 
         public SentMessageViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -257,6 +261,15 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
             String messageType = message.getType();
             String timeText = getFormattedTime(message.getTimestamp());
+            
+            // Initialize reaction views if not already done
+            if (layoutReactions == null) {
+                layoutReactions = itemView.findViewById(R.id.layoutReactions);
+                tvReactions = itemView.findViewById(R.id.tvReactions);
+            }
+            
+            // Setup reactions
+            setupReactions(message);
 
             switch (messageType) {
                 case Message.TYPE_TEXT:
@@ -405,6 +418,49 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 statusText.setText("");
             }
         }
+        
+        private void setupReactions(Message message) {
+            if (layoutReactions == null || tvReactions == null) return;
+            
+            // Show reactions if any exist
+            String reactionsText = com.pingme.android.utils.ReactionUtil.formatReactionsForDisplay(message);
+            if (!reactionsText.isEmpty()) {
+                tvReactions.setText(reactionsText);
+                layoutReactions.setVisibility(View.VISIBLE);
+            } else {
+                layoutReactions.setVisibility(View.GONE);
+            }
+            
+            // Setup long press for reaction picker
+            itemView.setOnLongClickListener(v -> {
+                com.pingme.android.utils.ReactionUtil.showReactionPicker(
+                    context, 
+                    itemView, 
+                    message, 
+                    currentUserId,
+                    new com.pingme.android.utils.ReactionUtil.ReactionListener() {
+                        @Override
+                        public void onReactionSelected(String emoji) {
+                            // Update the message reaction
+                            message.addReaction(currentUserId, emoji);
+                            // Update UI
+                            setupReactions(message);
+                            // TODO: Save to Firebase
+                        }
+                        
+                        @Override
+                        public void onReactionRemoved() {
+                            // Remove the reaction
+                            message.removeReaction(currentUserId);
+                            // Update UI
+                            setupReactions(message);
+                            // TODO: Save to Firebase
+                        }
+                    }
+                );
+                return true;
+            });
+        }
     }
 
     // Received Message ViewHolder
@@ -413,6 +469,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         TextView tvMessage, tvTime, tvImageCaption, tvImageTime, tvVideoTime, tvAudioTime, tvDocumentTime;
         TextView tvAudioDuration, tvDocumentName, tvDocumentSize, tvVideoDuration;
         ImageView ivProfile, ivMessageImage, ivVideoThumbnail, ivPlayButton, ivPlayAudio;
+        
+        // Reaction views
+        LinearLayout layoutReactions;
+        TextView tvReactions;
 
         public ReceivedMessageViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -460,6 +520,15 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
             String messageType = message.getType();
             String timeText = getFormattedTime(message.getTimestamp());
+            
+            // Initialize reaction views if not already done
+            if (layoutReactions == null) {
+                layoutReactions = itemView.findViewById(R.id.layoutReactions);
+                tvReactions = itemView.findViewById(R.id.tvReactions);
+            }
+            
+            // Setup reactions
+            setupReactions(message);
 
             switch (messageType) {
                 case Message.TYPE_TEXT:
@@ -543,6 +612,49 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                         .placeholder(R.drawable.ic_video_placeholder)
                         .into(ivVideoThumbnail);
             }
+        }
+        
+        private void setupReactions(Message message) {
+            if (layoutReactions == null || tvReactions == null) return;
+            
+            // Show reactions if any exist
+            String reactionsText = com.pingme.android.utils.ReactionUtil.formatReactionsForDisplay(message);
+            if (!reactionsText.isEmpty()) {
+                tvReactions.setText(reactionsText);
+                layoutReactions.setVisibility(View.VISIBLE);
+            } else {
+                layoutReactions.setVisibility(View.GONE);
+            }
+            
+            // Setup long press for reaction picker
+            itemView.setOnLongClickListener(v -> {
+                com.pingme.android.utils.ReactionUtil.showReactionPicker(
+                    context, 
+                    itemView, 
+                    message, 
+                    currentUserId,
+                    new com.pingme.android.utils.ReactionUtil.ReactionListener() {
+                        @Override
+                        public void onReactionSelected(String emoji) {
+                            // Update the message reaction
+                            message.addReaction(currentUserId, emoji);
+                            // Update UI
+                            setupReactions(message);
+                            // TODO: Save to Firebase
+                        }
+                        
+                        @Override
+                        public void onReactionRemoved() {
+                            // Remove the reaction
+                            message.removeReaction(currentUserId);
+                            // Update UI
+                            setupReactions(message);
+                            // TODO: Save to Firebase
+                        }
+                    }
+                );
+                return true;
+            });
         }
     }
 

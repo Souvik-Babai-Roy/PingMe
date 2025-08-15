@@ -83,9 +83,9 @@ public class MainActivity extends AppCompatActivity {
 
 	private void setupToolbar() {
 		setSupportActionBar(binding.toolbar);
-		if (getSupportActionBar() != null) {
-			getSupportActionBar().setTitle("PingMe");
-		}
+		        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle("WhatsApp");
+        }
 		// Set popup theme based on current theme
 		binding.toolbar.setPopupTheme(R.style.PopupMenuStyle);
 		

@@ -73,6 +73,9 @@ public class Message {
     private boolean isEncrypted = false;
     private String encryptedContent; // For E2E encryption
 
+    // Reactions (WhatsApp feature)
+    private Map<String, Map<String, String>> reactions; // Map of userId -> Map of reactionId -> emoji
+
     public Message() {
         this.type = TYPE_TEXT;
         this.status = STATUS_SENT;
@@ -432,6 +435,47 @@ public class Message {
 
     public Long getClearedTimestampForUser(String userId) {
         return clearedFor != null ? clearedFor.get(userId) : null;
+    }
+
+    // Reactions getters and setters
+    public Map<String, Map<String, String>> getReactions() {
+        return reactions;
+    }
+
+    public void setReactions(Map<String, Map<String, String>> reactions) {
+        this.reactions = reactions;
+    }
+
+    public void addReaction(String userId, String emoji) {
+        if (reactions == null) {
+            reactions = new HashMap<>();
+        }
+        if (!reactions.containsKey(userId)) {
+            reactions.put(userId, new HashMap<>());
+        }
+        // Remove any existing reaction from this user
+        reactions.get(userId).clear();
+        // Add new reaction
+        reactions.get(userId).put("reaction", emoji);
+    }
+
+    public void removeReaction(String userId) {
+        if (reactions != null) {
+            reactions.remove(userId);
+        }
+    }
+
+    public String getUserReaction(String userId) {
+        if (reactions == null || !reactions.containsKey(userId)) {
+            return null;
+        }
+        Map<String, String> userReactions = reactions.get(userId);
+        return userReactions.isEmpty() ? null : userReactions.values().iterator().next();
+    }
+
+    public int getReactionCount() {
+        if (reactions == null) return 0;
+        return reactions.size();
     }
 
     @Override

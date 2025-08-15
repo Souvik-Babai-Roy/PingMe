@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Primary Colors -->
-    <color name="colorPrimary">#7C4DFF</color>
-    <color name="colorPrimaryDark">#651FFF</color>
-    <color name="colorAccent">#9575CD</color>
+    <!-- Primary Colors - WhatsApp Green Theme -->
+    <color name="colorPrimary">#25D366</color>
+    <color name="colorPrimaryDark">#128C7E</color>
+    <color name="colorAccent">#25D366</color>
 
-    <!-- WhatsApp Green Shades (now purplish) -->
-    <color name="soft_lavender">#9575CD</color>
-    <color name="medium_purple">#7E57C2</color>
-    <color name="royal_purple">#673AB7</color>
+    <!-- WhatsApp Green Shades -->
+    <color name="soft_lavender">#25D366</color>
+    <color name="medium_purple">#128C7E</color>
+    <color name="royal_purple">#075E54</color>
 
-    <!-- Background Colors -->
-    <color name="background_color">#F3E5F5</color>
-    <color name="chat_background">#EDE7F6</color>
+    <!-- Background Colors - WhatsApp Style -->
+    <color name="background_color">#FFFFFF</color>
+    <color name="chat_background">#E5DDD5</color>
     <color name="surface_color">#FFFFFF</color>
 
     <!-- Text Colors - Improved for better readability -->
@@ -25,10 +25,10 @@
     <color name="gray_medium">#9E9E9E</color>
     <color name="gray_dark">#424242</color>
 
-    <!-- Message Bubble Colors -->
-    <color name="sender_bubble">#D1C4E9</color>
+    <!-- Message Bubble Colors - WhatsApp Style -->
+    <color name="sender_bubble">#DCF8C6</color>
     <color name="receiver_bubble">#FFFFFF</color>
-    <color name="sender_bubble_pressed">#B39DDB</color>
+    <color name="sender_bubble_pressed">#C5E8A4</color>
     <color name="receiver_bubble_pressed">#F1F1F1</color>
 
     <!-- Status Colors -->
@@ -41,22 +41,22 @@
     <color name="tab_selected">#FFFFFF</color>
     <color name="tab_unselected">#80FFFFFF</color>
 
-    <!-- Message Status Colors -->
+    <!-- Message Status Colors - WhatsApp Style -->
     <color name="message_sent">#9E9E9E</color>
-    <color name="message_delivered">#7E57C2</color>
-    <color name="message_read">#7986CB</color>
+    <color name="message_delivered">#34B7F1</color>
+    <color name="message_read">#34B7F1</color>
 
     <!-- Online Status -->
     <color name="graphite_black">#7CB342</color>
     <color name="dim_graphite">#9E9E9E</color>
 
-    <!-- Notification and Badge Colors -->
-    <color name="notification_badge">#7E57C2</color>
-    <color name="unread_count_bg">#6A1B9A</color>
+    <!-- Notification and Badge Colors - WhatsApp Style -->
+    <color name="notification_badge">#25D366</color>
+    <color name="unread_count_bg">#25D366</color>
 
-    <!-- Stroke and Border Colors -->
-    <color name="strokeColor">#D1C4E9</color>
-    <color name="stroke_light">#EDE7F6</color>
+    <!-- Stroke and Border Colors - WhatsApp Style -->
+    <color name="strokeColor">#25D366</color>
+    <color name="stroke_light">#E5DDD5</color>
     <color name="dividerColor">#1F1F1F1F</color>
 
     <!-- White Variants -->
@@ -64,28 +64,28 @@
     <color name="white_70">#B3FFFFFF</color>
     <color name="white_90">#E6FFFFFF</color>
 
-    <!-- Date Header -->
-    <color name="date_header_background">#E1BEE7</color>
-    <color name="date_header_text">#6A1B9A</color>
+    <!-- Date Header - WhatsApp Style -->
+    <color name="date_header_background">#E5DDD5</color>
+    <color name="date_header_text">#075E54</color>
 
-    <!-- Input Field Colors -->
-    <color name="input_background">#F3E5F5</color>
-    <color name="input_focused">#7C4DFF</color>
+    <!-- Input Field Colors - WhatsApp Style -->
+    <color name="input_background">#F0F0F0</color>
+    <color name="input_focused">#25D366</color>
 
     <!-- Shadow Colors -->
     <color name="shadow_light">#1A000000</color>
     <color name="shadow_medium">#33000000</color>
 
-    <!-- Attachment Colors -->
-    <color name="attachment_bg">#F3E5F5</color>
-    <color name="document_icon_bg">#512DA8</color>
+    <!-- Attachment Colors - WhatsApp Style -->
+    <color name="attachment_bg">#F0F0F0</color>
+    <color name="document_icon_bg">#25D366</color>
 
     <!-- Legacy Colors (for compatibility) -->
     <color name="text_secondary">#5C5F66</color>
 
-    <!-- Misc -->
-    <color name="input_stroke_color">#D1C4E9</color>
-    <color name="colorBackground">#F3E5F5</color>
+    <!-- Misc - WhatsApp Style -->
+    <color name="input_stroke_color">#25D366</color>
+    <color name="colorBackground">#FFFFFF</color>
 
     <color name="online_status">#4CAF50</color>
     <color name="offline_status">#757575</color>
@@ -106,17 +106,17 @@
     <color name="privacy_enabled">#4CAF50</color>
     <color name="privacy_disabled">#F44336</color>
 
-    <!-- Message bubble colors -->
-    <color name="message_sent_bg">@color/soft_lavender</color>
+    <!-- Message bubble colors - WhatsApp Style -->
+    <color name="message_sent_bg">@color/sender_bubble</color>
     <color name="message_received_bg">#FFFFFF</color>
 
-    <!-- Typing indicator -->
+    <!-- Typing indicator - WhatsApp Style -->
     <color name="typing_indicator">@color/colorPrimary</color>
 
-    <!-- Fallbacks for night-only colors -->
-    <color name="carbon_black">#D1C4E9</color>
-    <color name="pitch_black">#EDE7F6</color>
-    <color name="deep_night_black">#F3E5F5</color>
+    <!-- Fallbacks for night-only colors - WhatsApp Style -->
+    <color name="carbon_black">#25D366</color>
+    <color name="pitch_black">#E5DDD5</color>
+    <color name="deep_night_black">#FFFFFF</color>
 
     <!-- Compatibility aliases for legacy names -->
     <color name="backgroundColor">@color/background_color</color>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="@drawable/reaction_picker_background"
+    android:padding="8dp"
+    android:gravity="center">
+
+    <TextView
+        android:id="@+id/btnReaction1"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:text="👍"
+        android:textSize="24sp"
+        android:gravity="center"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Like" />
+
+    <TextView
+        android:id="@+id/btnReaction2"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:text="❤️"
+        android:textSize="24sp"
+        android:gravity="center"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Love" />
+
+    <TextView
+        android:id="@+id/btnReaction3"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:text="😂"
+        android:textSize="24sp"
+        android:gravity="center"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Laugh" />
+
+    <TextView
+        android:id="@+id/btnReaction4"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:text="😮"
+        android:textSize="24sp"
+        android:gravity="center"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Wow" />
+
+    <TextView
+        android:id="@+id/btnReaction5"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:text="😢"
+        android:textSize="24sp"
+        android:gravity="center"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Sad" />
+
+    <TextView
+        android:id="@+id/btnReaction6"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:text="😡"
+        android:textSize="24sp"
+        android:gravity="center"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Angry" />
+
+</LinearLayout>

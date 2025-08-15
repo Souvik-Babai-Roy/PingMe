@@ -41,7 +41,7 @@ public class User {
     // Default constructor
     public User() {
         this.joinedAt = System.currentTimeMillis();
-        this.about = "Hey there! I am using PingMe.";
+        this.about = "Hey there! I am using WhatsApp.";
         this.isOnline = false;
         this.lastSeen = 0;
     }
@@ -77,7 +77,7 @@ public class User {
     public String getEmail() { return email != null ? email : ""; }
 
     public String getImageUrl() { return imageUrl; }
-    public String getAbout() { return about != null ? about : "Hey there! I am using PingMe."; }
+    public String getAbout() { return about != null ? about : "Hey there! I am using WhatsApp."; }
     public boolean isOnline() { return isOnline; }
     public long getLastSeen() { return lastSeen; }
     public String getFcmToken() { return fcmToken; }
