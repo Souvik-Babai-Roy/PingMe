@@ -11,7 +11,6 @@ public class User {
     private String id;
     private String name;
     private String email;
-    private String phoneNumber;
     private String imageUrl;
     private String about;
     @PropertyName("isOnline")
@@ -52,7 +51,6 @@ public class User {
         this();
         this.name = name;
         this.email = email;
-        this.phoneNumber = phoneNumber;
     }
 
     // Constructor for setup profile
@@ -70,7 +68,6 @@ public class User {
         this.id = id;
         this.name = name;
         this.email = email;
-        this.phoneNumber = phoneNumber;
         this.imageUrl = imageUrl;
     }
 
@@ -78,7 +75,7 @@ public class User {
     public String getId() { return id; }
     public String getName() { return name != null ? name : ""; }
     public String getEmail() { return email != null ? email : ""; }
-    public String getPhoneNumber() { return phoneNumber != null ? phoneNumber : ""; }
+
     public String getImageUrl() { return imageUrl; }
     public String getAbout() { return about != null ? about : "Hey there! I am using PingMe."; }
     public boolean isOnline() { return isOnline; }
@@ -100,7 +97,7 @@ public class User {
     public void setId(String id) { this.id = id; }
     public void setName(String name) { this.name = name; }
     public void setEmail(String email) { this.email = email; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public void setAbout(String about) { this.about = about; }
     public void setOnline(boolean online) { isOnline = online; }
@@ -136,8 +133,6 @@ public class User {
             return personalName;
         } else if (name != null && !name.trim().isEmpty()) {
             return name;
-        } else if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
-            return phoneNumber;
         } else if (email != null && !email.trim().isEmpty() && email.contains("@")) {
             return email.split("@")[0];
         }
@@ -200,13 +195,9 @@ public class User {
         return email != null && email.contains("@") && email.contains(".");
     }
 
-    public boolean isValidPhoneNumber() {
-        return phoneNumber != null && phoneNumber.length() >= 10;
-    }
 
     public boolean isComplete() {
-        return name != null && !name.trim().isEmpty() &&
-                (isValidEmail() || isValidPhoneNumber());
+        return name != null && !name.trim().isEmpty() && isValidEmail();
     }
 
     // Copy
@@ -215,7 +206,6 @@ public class User {
         copy.id = this.id;
         copy.name = this.name;
         copy.email = this.email;
-        copy.phoneNumber = this.phoneNumber;
         copy.imageUrl = this.imageUrl;
         copy.about = this.about;
         copy.isOnline = this.isOnline;
@@ -249,7 +239,6 @@ public class User {
                 Objects.equals(id, user.id) &&
                 Objects.equals(name, user.name) &&
                 Objects.equals(email, user.email) &&
-                Objects.equals(phoneNumber, user.phoneNumber) &&
                 Objects.equals(imageUrl, user.imageUrl) &&
                 Objects.equals(about, user.about) &&
                 Objects.equals(fcmToken, user.fcmToken) &&
@@ -259,7 +248,7 @@ public class User {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, email, phoneNumber, imageUrl, about, isOnline,
+        return Objects.hash(id, name, email, imageUrl, about, isOnline,
                 lastSeen, fcmToken, profilePhotoEnabled, lastSeenEnabled, aboutEnabled,
                 readReceiptsEnabled, joinedAt, isBlocked, friendshipStatus, personalName);
     }
@@ -271,7 +260,6 @@ public class User {
                 "id='" + id + '\'' +
                 ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
-                ", phoneNumber='" + phoneNumber + '\'' +
                 ", isOnline=" + isOnline +
                 ", lastSeen=" + lastSeen +
                 ", profilePhotoEnabled=" + profilePhotoEnabled +

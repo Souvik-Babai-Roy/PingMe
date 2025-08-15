@@ -28,8 +28,6 @@ import java.util.ArrayList;
 public class FirebaseUtil {
     private static final String TAG = "FirebaseUtil";
     private static final String COLLECTION_USERS = "users";
-    private static final String COLLECTION_MESSAGES = "messages";
-    private static final String COLLECTION_CHATS = "chats";
     private static final String COLLECTION_NOTIFICATIONS = "notifications";
     private static final String COLLECTION_REPORTS = "reports";
 
@@ -165,44 +163,6 @@ public class FirebaseUtil {
                 });
     }
 
-    public static void searchUserByPhoneNumber(String phoneNumber, UserSearchCallback callback) {
-        Log.d(TAG, "Searching for user with phone: " + phoneNumber);
-        
-        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
-            callback.onError("Phone number cannot be empty");
-            return;
-        }
-
-        // Normalize phone number
-        String normalizedPhone = phoneNumber.trim().replaceAll("[^0-9+]", "");
-        
-        getUsersCollectionRef()
-                .whereEqualTo("phoneNumber", normalizedPhone)
-                .limit(1)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    Log.d(TAG, "Phone search completed. Found " + querySnapshot.size() + " users");
-                    
-                    if (!querySnapshot.isEmpty()) {
-                        User user = querySnapshot.getDocuments().get(0).toObject(User.class);
-                        if (user != null) {
-                            user.setId(querySnapshot.getDocuments().get(0).getId());
-                            Log.d(TAG, "User found by phone: " + user.getDisplayName() + " (" + user.getPhoneNumber() + ")");
-                            callback.onUserFound(user);
-                        } else {
-                            Log.w(TAG, "User document exists but failed to parse");
-                            callback.onUserNotFound();
-                        }
-                    } else {
-                        Log.d(TAG, "No user found with phone: " + normalizedPhone);
-                        callback.onUserNotFound();
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Phone search failed for: " + normalizedPhone, e);
-                    callback.onError("Search failed: " + e.getMessage());
-                });
-    }
 
     // ===== FRIEND MANAGEMENT =====
 
