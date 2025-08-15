@@ -1,22 +1,24 @@
+/*
 package com.pingme.android.activities;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
-import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.ValueEventListener;
+import com.pingme.android.R;
 import com.pingme.android.adapters.MessageSearchAdapter;
-import com.pingme.android.databinding.ActivityMessageSearchBinding;
 import com.pingme.android.models.Message;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.FirebaseUtil;
@@ -25,59 +27,52 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MessageSearchActivity extends AppCompatActivity implements MessageSearchAdapter.OnMessageClickListener {
-    private static final String TAG = "MessageSearchActivity";
-    
-    private ActivityMessageSearchBinding binding;
+    private RecyclerView recyclerViewMessages;
+    private EditText searchEditText;
+    private TextView emptyStateText;
     private MessageSearchAdapter adapter;
+    private List<Message> allMessages = new ArrayList<>();
+    private List<User> allUsers = new ArrayList<>();
     private String currentUserId;
-    private List<Message> searchResults = new ArrayList<>();
-    private List<User> usersList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityMessageSearchBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+        setContentView(R.layout.activity_message_search);
 
-        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (firebaseUser == null) {
-            Log.e(TAG, "User not authenticated");
-            finish();
-            return;
-        }
-        currentUserId = firebaseUser.getUid();
+        currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         
-        setupToolbar();
+        initViews();
         setupRecyclerView();
-        setupSearchFunctionality();
         loadUsers();
+        setupSearchListener();
     }
 
-    private void setupToolbar() {
-        setSupportActionBar(binding.toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("Search Messages");
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
+    private void initViews() {
+        recyclerViewMessages = findViewById(R.id.recyclerViewMessages);
+        searchEditText = findViewById(R.id.searchEditText);
+        emptyStateText = findViewById(R.id.emptyStateText);
     }
 
     private void setupRecyclerView() {
-        adapter = new MessageSearchAdapter(this, searchResults, usersList, this);
-        binding.recyclerViewMessages.setLayoutManager(new LinearLayoutManager(this));
-        binding.recyclerViewMessages.setAdapter(adapter);
+        adapter = new MessageSearchAdapter(this, new ArrayList<>(), allUsers, this);
+        recyclerViewMessages.setLayoutManager(new LinearLayoutManager(this));
+        recyclerViewMessages.setAdapter(adapter);
     }
 
-    private void setupSearchFunctionality() {
-        binding.searchEditText.addTextChangedListener(new TextWatcher() {
+    private void setupSearchListener() {
+        searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (s.length() >= 2) {
-                    searchMessages(s.toString());
+                String query = s.toString().trim();
+                if (query.isEmpty()) {
+                    adapter.updateMessages(new ArrayList<>());
+                    showEmptyState(true);
                 } else {
-                    clearSearchResults();
+                    searchMessages(query);
                 }
             }
 
@@ -87,139 +82,98 @@ public class MessageSearchActivity extends AppCompatActivity implements MessageS
     }
 
     private void loadUsers() {
-        // Load all users to get names for search results
-        FirebaseUtil.getUsersRef()
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    usersList.clear();
-                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
-                        User user = doc.toObject(User.class);
-                        if (user != null) {
-                            user.setId(doc.getId());
-                            usersList.add(user);
-                        }
+        FirebaseUtil.getUsersRef().addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                allUsers.clear();
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    User user = snapshot.getValue(User.class);
+                    if (user != null) {
+                        allUsers.add(user);
                     }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error loading users", e);
-                });
+                }
+                // Now load messages after users are loaded
+                loadMessages();
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // Handle error
+            }
+        });
+    }
+
+    private void loadMessages() {
+        // Load messages from all chats
+        FirebaseUtil.getChatsRef().addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                allMessages.clear();
+                for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
+                    String chatId = chatSnapshot.getKey();
+                    if (chatId != null) {
+                        loadMessagesFromChat(chatId);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // Handle error
+            }
+        });
+    }
+
+    private void loadMessagesFromChat(String chatId) {
+        FirebaseUtil.getChatMessagesRef(chatId).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for (DataSnapshot messageSnapshot : dataSnapshot.getChildren()) {
+                    Message message = messageSnapshot.getValue(Message.class);
+                    if (message != null && !allMessages.contains(message)) {
+                        allMessages.add(message);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                // Handle error
+            }
+        });
     }
 
     private void searchMessages(String query) {
-        showLoading(true);
+        List<Message> filteredMessages = new ArrayList<>();
         
-        // Search in all chats for the current user
-        FirebaseUtil.getUserChatsRef(currentUserId)
-                .get()
-                .addOnSuccessListener(chatsSnapshot -> {
-                    searchResults.clear();
-                    
-                    for (DocumentSnapshot chatDoc : chatsSnapshot.getDocuments()) {
-                        String chatId = chatDoc.getId();
-                        String otherUserId = chatDoc.getString("otherUserId");
-                        
-                        // Search messages in this chat
-                        FirebaseUtil.getChatMessagesRef(chatId)
-                                .whereGreaterThanOrEqualTo("text", query)
-                                .whereLessThanOrEqualTo("text", query + '\uf8ff')
-                                .limit(10)
-                                .get()
-                                .addOnSuccessListener(messagesSnapshot -> {
-                                    for (DocumentSnapshot messageDoc : messagesSnapshot.getDocuments()) {
-                                        Message message = messageDoc.toObject(Message.class);
-                                        if (message != null) {
-                                            message.setId(messageDoc.getId());
-                                            message.setChatId(chatId);
-                                            message.setOtherUserId(otherUserId);
-                                            searchResults.add(message);
-                                        }
-                                    }
-                                    
-                                    // Also search for case-insensitive matches
-                                    searchCaseInsensitive(query, chatId, otherUserId);
-                                })
-                                .addOnFailureListener(e -> {
-                                    Log.e(TAG, "Error searching messages in chat " + chatId, e);
-                                });
-                    }
-                    
-                    showLoading(false);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error loading user chats", e);
-                    showLoading(false);
-                });
-    }
-
-    private void searchCaseInsensitive(String query, String chatId, String otherUserId) {
-        String lowerQuery = query.toLowerCase();
-        
-        FirebaseUtil.getChatMessagesRef(chatId)
-                .get()
-                .addOnSuccessListener(messagesSnapshot -> {
-                    for (DocumentSnapshot messageDoc : messagesSnapshot.getDocuments()) {
-                        Message message = messageDoc.toObject(Message.class);
-                        if (message != null && message.getText() != null && 
-                            message.getText().toLowerCase().contains(lowerQuery)) {
-                            
-                            // Check if this message is already in results
-                            boolean alreadyExists = false;
-                            for (Message existingMessage : searchResults) {
-                                if (existingMessage.getId().equals(message.getId())) {
-                                    alreadyExists = true;
-                                    break;
-                                }
-                            }
-                            
-                            if (!alreadyExists) {
-                                message.setId(messageDoc.getId());
-                                message.setChatId(chatId);
-                                message.setOtherUserId(otherUserId);
-                                searchResults.add(message);
-                            }
-                        }
-                    }
-                    
-                    adapter.notifyDataSetChanged();
-                    updateEmptyState();
-                });
-    }
-
-    private void clearSearchResults() {
-        searchResults.clear();
-        adapter.notifyDataSetChanged();
-        updateEmptyState();
-    }
-
-    private void updateEmptyState() {
-        if (searchResults.isEmpty()) {
-            binding.emptyStateText.setText("No messages found matching your search.");
-            binding.emptyStateText.setVisibility(View.VISIBLE);
-        } else {
-            binding.emptyStateText.setVisibility(View.GONE);
+        for (Message message : allMessages) {
+            if (message.getText() != null && 
+                message.getText().toLowerCase().contains(query.toLowerCase())) {
+                filteredMessages.add(message);
+            }
         }
+        
+        adapter.updateMessages(filteredMessages);
+        adapter.setSearchQuery(query);
+        showEmptyState(filteredMessages.isEmpty());
     }
 
-    private void showLoading(boolean show) {
-        binding.progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+    private void showEmptyState(boolean show) {
+        if (show) {
+            emptyStateText.setVisibility(View.VISIBLE);
+            recyclerViewMessages.setVisibility(View.GONE);
+        } else {
+            emptyStateText.setVisibility(View.GONE);
+            recyclerViewMessages.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
     public void onMessageClick(Message message) {
-        // Open the chat with this message
-        Intent intent = new Intent(this, ChatActivity.class);
-        intent.putExtra("userId", message.getOtherUserId());
-        intent.putExtra("messageId", message.getId());
-        startActivity(intent);
+        // Navigate to the specific chat where this message was sent
+        // You can implement this based on your navigation structure
+        // For now, just show a toast or navigate back
         finish();
     }
-
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
 }
+*/

@@ -181,8 +181,7 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
     }
 
     private void showPersonalNameOptions(User friend) {
-        PersonalNameDialog dialog = new PersonalNameDialog(this, friend, currentUserId);
-        dialog.setOnPersonalNameSetListener(newName -> {
+        PersonalNameDialog dialog = new PersonalNameDialog(this, friend, newName -> {
             // Refresh the friends list to show updated personal name
             loadFriends();
         });
@@ -202,7 +201,6 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
         finish(); // Close this activity after starting chat
     }
 
-    @Override
     public void onFriendLongClick(User friend) {
         showPersonalNameOptions(friend);
     }

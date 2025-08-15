@@ -123,4 +123,8 @@
     <color name="textPrimary">@color/textColorPrimary</color>
     <color name="textSecondary">@color/textColorSecondary</color>
 
+    <!-- Additional colors for new layouts -->
+    <color name="background_light">#F8F9FA</color>
+    <color name="text_tertiary">#9E9E9E</color>
+
 </resources>

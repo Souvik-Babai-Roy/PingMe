@@ -7,7 +7,6 @@
     <string name="switch_to_signup">Don\'t have an account? Sign up</string>
     <string name="switch_to_login">Already have an account? Login</string>
     <string name="default_about">Hey there! I\'m using PingMe</string>
-    <string name="default_web_client_id">311578259630-gclh80k19uo1rom5bdhieolcrnellvf3.apps.googleusercontent.com</string>
     <string name="todo">TODO</string>
     <string name="pingme_logo">PingMe Logo</string>
     <string name="forgot_password">Forgot Password?</string>
@@ -57,7 +56,6 @@
 
     <!-- Empty states -->
     <string name="no_chats_yet">No chats yet</string>
-    <string name="add_friends_to_start_chatting">Add friends to start chatting</string>
 
     <!-- Time formats -->
     <string name="time_format_12h">h:mm a</string>
@@ -89,5 +87,27 @@
     <string name="loading_image">Loading image…</string>
     <string name="failed_to_load_image">Failed to load image</string>
     <string name="retry">Retry</string>
+    
+    <!-- Search and Friends -->
+    <string name="search_messages">Search Messages</string>
+    <string name="search_messages_hint">Search in messages...</string>
+    <string name="search">Search</string>
+    <string name="no_messages_found">No messages found</string>
+    <string name="try_different_keywords">Try different keywords</string>
+    <string name="friends">Friends</string>
+    <string name="add_friend">Add Friend</string>
+    <string name="search_friends">Search friends...</string>
+    <string name="all_friends">All Friends</string>
+    <string name="online_friends">Online</string>
+    <string name="recent_contacts">Recent</string>
+    <string name="no_friends_yet">No friends yet</string>
+    <string name="add_friends_to_start_chatting">Add friends to start chatting</string>
+    
+    <!-- Broadcast -->
+    <string name="broadcast_icon">Broadcast Icon</string>
+    <string name="create_broadcast">Create Broadcast</string>
+    <string name="broadcast_name">Broadcast Name</string>
+    <string name="create">Create</string>
+    <string name="add_status">Add Status</string>
     
 </resources>

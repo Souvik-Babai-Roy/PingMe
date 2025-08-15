@@ -19,3 +19,12 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# R8 configuration to avoid compilation issues
+-dontwarn com.pingme.android.**
+-keep class com.pingme.android.** { *; }
+-keepclassmembers class com.pingme.android.** { *; }
+
+# Disable aggressive optimizations that might cause R8 issues
+-dontoptimize
+-dontpreverify
