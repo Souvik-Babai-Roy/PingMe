@@ -102,6 +102,18 @@
             android:exported="false"
             android:parentActivityName=".activities.MainActivity" />
 
+        <!-- Friends Layout Activity -->
+        <activity
+            android:name=".activities.FriendsLayoutActivity"
+            android:exported="false"
+            android:parentActivityName=".activities.MainActivity" />
+
+        <!-- Message Search Activity -->
+        <activity
+            android:name=".activities.MessageSearchActivity"
+            android:exported="false"
+            android:parentActivityName=".activities.MainActivity" />
+
         <!-- User Profile Activity -->
         <activity
             android:name=".activities.UserProfileActivity"

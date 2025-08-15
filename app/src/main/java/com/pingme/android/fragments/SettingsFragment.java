@@ -78,6 +78,7 @@ public class SettingsFragment extends PreferenceFragmentCompat
         setupPreferenceClick("network_usage", () -> openNetworkUsage());
         setupPreferenceClick("terms_of_service", () -> openWebPage("https://example.com/terms"));
         setupPreferenceClick("privacy_policy", () -> openWebPage("https://example.com/privacy"));
+        setupPreferenceClick("logout", () -> showLogoutDialog());
     }
 
     private void setupPreferenceClick(String key, Runnable action) {
@@ -156,5 +157,37 @@ public class SettingsFragment extends PreferenceFragmentCompat
         //   Intent intent = new Intent(requireContext(), WebViewActivity.class);
         //   intent.putExtra("url", url);
         //   startActivity(intent);
+    }
+
+    private void showLogoutDialog() {
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Logout")
+            .setMessage("Are you sure you want to logout?")
+            .setPositiveButton("Logout", (dialog, which) -> {
+                logout();
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+    private void logout() {
+        // Update user presence to offline
+        com.google.firebase.auth.FirebaseUser currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            String currentUserId = currentUser.getUid();
+            com.pingme.android.utils.FirestoreUtil.updatePresence(currentUserId, false);
+        }
+
+        // Sign out from Firebase Auth
+        com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
+
+        // Clear any stored preferences
+        PreferenceUtils.clearUserData(requireContext());
+
+        // Navigate to AuthActivity
+        Intent intent = new Intent(requireContext(), com.pingme.android.activities.AuthActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        requireActivity().finish();
     }
 }
