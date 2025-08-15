@@ -6,7 +6,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -15,13 +14,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.pingme.android.R;
 import com.pingme.android.activities.StatusCreationActivity;
 import com.pingme.android.adapters.StatusAdapter;
 import com.pingme.android.databinding.FragmentStatusBinding;
 import com.pingme.android.models.Status;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -80,7 +78,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
     }
 
     private void loadCurrentUser() {
-        FirestoreUtil.getUserRef(currentUserId).get()
+        FirebaseUtil.getUserRef(currentUserId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         currentUser = documentSnapshot.toObject(User.class);
@@ -107,7 +105,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
         Log.d(TAG, "Loading statuses for user: " + currentUserId);
         
         // First load friends to get their IDs
-        FirestoreUtil.getFriendsRef(currentUserId).get()
+        FirebaseUtil.getFriendsRef(currentUserId).get()
                 .addOnSuccessListener(querySnapshot -> {
                     Log.d(TAG, "Found " + querySnapshot.size() + " friends");
                     
@@ -143,7 +141,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
         statusList.clear();
         
         // Load statuses from the global statuses collection for all friend users and current user
-        FirestoreUtil.getStatusCollectionRef()
+        FirebaseUtil.getStatusCollectionRef()
                 .whereIn("userId", userIds)
                 .whereGreaterThan("expiryTime", System.currentTimeMillis())
                 .orderBy("expiryTime")
@@ -178,7 +176,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                                     }
                                 } else {
                                     // Check if friend allows status visibility (using about visibility as proxy for status visibility)
-                                    FirestoreUtil.getUserRef(statusUserId).get()
+                                    FirebaseUtil.getUserRef(statusUserId).get()
                                             .addOnSuccessListener(userDoc -> {
                                                 processedCount[0]++;
                                                 
@@ -276,7 +274,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
         if (currentUser == null) return;
         
         // Check if current user has any active status
-        FirestoreUtil.getStatusCollectionRef()
+        FirebaseUtil.getStatusCollectionRef()
                 .whereEqualTo("userId", currentUserId)
                 .whereGreaterThan("expiryTime", System.currentTimeMillis())
                 .orderBy("expiryTime")
@@ -328,7 +326,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
 
     private void viewMyStatus() {
         // Load and view current user's status
-        FirestoreUtil.getStatusCollectionRef()
+        FirebaseUtil.getStatusCollectionRef()
                 .whereEqualTo("userId", currentUserId)
                 .whereGreaterThan("expiryTime", System.currentTimeMillis())
                 .orderBy("expiryTime")
@@ -473,7 +471,7 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
         status.addViewer(currentUserId);
         
         // Update in Firestore
-        FirestoreUtil.getStatusCollectionRef()
+        FirebaseUtil.getStatusCollectionRef()
                 .document(status.getId())
                 .update("viewers." + currentUserId, System.currentTimeMillis())
                 .addOnSuccessListener(aVoid -> {

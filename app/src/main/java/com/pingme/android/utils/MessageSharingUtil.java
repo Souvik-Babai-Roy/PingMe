@@ -39,13 +39,13 @@ public class MessageSharingUtil {
         Log.d(TAG, "Sharing message to " + totalRecipients + " recipients");
         
         for (User recipient : recipients) {
-            String chatId = FirestoreUtil.generateChatId(senderId, recipient.getId());
+            String chatId = FirebaseUtil.generateChatId(senderId, recipient.getId());
             
             // Create forward message data
             Map<String, Object> messageData = createForwardMessageData(originalMessage, senderId);
             
             // Send the forwarded message
-            FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId,
+            FirebaseUtil.sendMessageWithDeliveryTracking(chatId, senderId,
                     getForwardedMessageText(originalMessage),
                     originalMessage.getType(),
                     messageData)
@@ -93,12 +93,12 @@ public class MessageSharingUtil {
         Log.d(TAG, "Sharing " + messages.size() + " messages to " + recipients.size() + " recipients");
         
         for (User recipient : recipients) {
-            String chatId = FirestoreUtil.generateChatId(senderId, recipient.getId());
+            String chatId = FirebaseUtil.generateChatId(senderId, recipient.getId());
             
             for (Message message : messages) {
                 Map<String, Object> messageData = createForwardMessageData(message, senderId);
                 
-                FirestoreUtil.sendMessageWithDeliveryTracking(chatId, senderId,
+                FirebaseUtil.sendMessageWithDeliveryTracking(chatId, senderId,
                         getForwardedMessageText(message),
                         message.getType(),
                         messageData)

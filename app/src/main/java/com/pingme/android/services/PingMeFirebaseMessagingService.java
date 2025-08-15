@@ -5,7 +5,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 import com.pingme.android.utils.NotificationUtil;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessagingService;
@@ -70,7 +70,7 @@ public class PingMeFirebaseMessagingService extends FirebaseMessagingService {
                 FirebaseAuth.getInstance().getCurrentUser().getUid() : null;
 
         if (userId != null) {
-            FirestoreUtil.getUserRef(userId)
+            FirebaseUtil.getUserRef(userId)
                     .update("fcmToken", token)
                     .addOnSuccessListener(aVoid -> Log.d(TAG, "FCM token updated successfully"))
                     .addOnFailureListener(e -> Log.w(TAG, "Failed to update FCM token", e));

@@ -1,7 +1,6 @@
 package com.pingme.android.activities;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
@@ -13,12 +12,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.pingme.android.R;
 import com.pingme.android.databinding.ActivityUserProfileBinding;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 public class UserProfileActivity extends AppCompatActivity {
     private ActivityUserProfileBinding binding;
@@ -66,7 +64,7 @@ public class UserProfileActivity extends AppCompatActivity {
         binding.contentLayout.setVisibility(View.GONE);
 
         // Load user data from Firestore
-        FirestoreUtil.getUserRef(targetUserId).get()
+        FirebaseUtil.getUserRef(targetUserId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         targetUser = documentSnapshot.toObject(User.class);
@@ -134,7 +132,7 @@ public class UserProfileActivity extends AppCompatActivity {
         if (currentUser == null || targetUserId == null) return;
 
         // Check if users are friends
-        FirestoreUtil.getUserRef(currentUser.getUid())
+        FirebaseUtil.getUserRef(currentUser.getUid())
                 .collection("friends")
                 .document(targetUserId)
                 .get()
@@ -235,7 +233,7 @@ public class UserProfileActivity extends AppCompatActivity {
         if (currentUser == null || targetUserId == null) return;
 
         // Add to blocked users
-        FirestoreUtil.getUserRef(currentUser.getUid())
+        FirebaseUtil.getUserRef(currentUser.getUid())
                 .collection("blocked_users")
                 .document(targetUserId)
                 .set(targetUser)

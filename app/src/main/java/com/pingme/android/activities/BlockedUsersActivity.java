@@ -12,12 +12,10 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
-import com.google.firebase.auth.FirebaseUser;
-import android.widget.Toast;
 import com.pingme.android.adapters.BlockedUsersAdapter;
 import com.pingme.android.databinding.ActivityBlockedUsersBinding;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,7 +72,7 @@ public class BlockedUsersActivity extends AppCompatActivity {
     private void loadBlockedUsers() {
         showLoading(true);
         
-        FirestoreUtil.getBlockedUsers(currentUserId, new FirestoreUtil.BlockedUsersCallback() {
+        FirebaseUtil.getBlockedUsers(currentUserId, new FirebaseUtil.BlockedUsersCallback() {
             @Override
             public void onBlockedUsersLoaded(List<User> users) {
                 blockedUsers.clear();
@@ -107,7 +105,7 @@ public class BlockedUsersActivity extends AppCompatActivity {
             String userId = blockedUserIds.get(i);
             DocumentSnapshot blockDoc = blockingData.getDocuments().get(i);
             
-            FirestoreUtil.getUserRef(userId).get()
+            FirebaseUtil.getUserRef(userId).get()
                     .addOnSuccessListener(documentSnapshot -> {
                         if (documentSnapshot.exists()) {
                             User user = documentSnapshot.toObject(User.class);
@@ -153,7 +151,7 @@ public class BlockedUsersActivity extends AppCompatActivity {
     }
 
     private void unblockUser(User user, int position) {
-        FirestoreUtil.unblockUser(currentUserId, user.getId());
+        FirebaseUtil.unblockUser(currentUserId, user.getId());
         
         // Remove from list
         blockedUsers.remove(position);

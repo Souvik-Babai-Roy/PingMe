@@ -10,8 +10,8 @@
         <ImageView
             android:layout_width="321dp"
             android:layout_height="243dp"
-            android:src="@drawable/logo"
-            android:contentDescription="@string/pingme_logo"/>
+            android:contentDescription="@string/pingme_logo"
+            android:src="@drawable/logo" />
 
     </LinearLayout>
 </layout>

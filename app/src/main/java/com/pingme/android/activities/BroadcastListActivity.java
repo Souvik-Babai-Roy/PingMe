@@ -2,7 +2,6 @@ package com.pingme.android.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
@@ -21,8 +20,7 @@ import com.pingme.android.R;
 import com.pingme.android.adapters.BroadcastListAdapter;
 import com.pingme.android.databinding.ActivityBroadcastListBinding;
 import com.pingme.android.models.Broadcast;
-import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -107,7 +105,7 @@ public class BroadcastListActivity extends AppCompatActivity {
         binding.progressBar.setVisibility(View.VISIBLE);
         binding.emptyState.setVisibility(View.GONE);
 
-        FirestoreUtil.loadUserBroadcasts(currentUserId, new FirestoreUtil.BroadcastListCallback() {
+        FirebaseUtil.loadUserBroadcasts(currentUserId, new FirebaseUtil.BroadcastListCallback() {
             @Override
             public void onBroadcastsLoaded(List<Broadcast> broadcastList) {
                 binding.progressBar.setVisibility(View.GONE);
@@ -185,7 +183,7 @@ public class BroadcastListActivity extends AppCompatActivity {
                 .setMessage("Are you sure you want to delete '" + broadcast.getName() + "'?")
                 .setPositiveButton("Delete", (dialog, which) -> {
                     // Delete broadcast from database
-                    FirestoreUtil.getBroadcastRef(broadcast.getId())
+                    FirebaseUtil.getBroadcastRef(broadcast.getId())
                             .child("isActive")
                             .setValue(false)
                             .addOnSuccessListener(aVoid -> {
@@ -208,7 +206,7 @@ public class BroadcastListActivity extends AppCompatActivity {
 
         binding.progressBar.setVisibility(View.VISIBLE);
 
-        FirestoreUtil.createBroadcastList(name, currentUserId, selectedContactIds, new FirestoreUtil.BroadcastCallback() {
+        FirebaseUtil.createBroadcastList(name, currentUserId, selectedContactIds, new FirebaseUtil.BroadcastCallback() {
             @Override
             public void onBroadcastCreated(Broadcast broadcast) {
                 binding.progressBar.setVisibility(View.GONE);

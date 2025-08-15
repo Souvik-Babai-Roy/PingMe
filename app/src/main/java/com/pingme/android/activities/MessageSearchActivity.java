@@ -7,7 +7,6 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -16,13 +15,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
-import com.pingme.android.R;
 import com.pingme.android.adapters.MessageSearchAdapter;
 import com.pingme.android.databinding.ActivityMessageSearchBinding;
 import com.pingme.android.models.Message;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -91,7 +88,7 @@ public class MessageSearchActivity extends AppCompatActivity implements MessageS
 
     private void loadUsers() {
         // Load all users to get names for search results
-        FirestoreUtil.getUsersRef()
+        FirebaseUtil.getUsersRef()
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     usersList.clear();
@@ -112,7 +109,7 @@ public class MessageSearchActivity extends AppCompatActivity implements MessageS
         showLoading(true);
         
         // Search in all chats for the current user
-        FirestoreUtil.getUserChatsRef(currentUserId)
+        FirebaseUtil.getUserChatsRef(currentUserId)
                 .get()
                 .addOnSuccessListener(chatsSnapshot -> {
                     searchResults.clear();
@@ -122,7 +119,7 @@ public class MessageSearchActivity extends AppCompatActivity implements MessageS
                         String otherUserId = chatDoc.getString("otherUserId");
                         
                         // Search messages in this chat
-                        FirestoreUtil.getChatMessagesRef(chatId)
+                        FirebaseUtil.getChatMessagesRef(chatId)
                                 .whereGreaterThanOrEqualTo("text", query)
                                 .whereLessThanOrEqualTo("text", query + '\uf8ff')
                                 .limit(10)
@@ -157,7 +154,7 @@ public class MessageSearchActivity extends AppCompatActivity implements MessageS
     private void searchCaseInsensitive(String query, String chatId, String otherUserId) {
         String lowerQuery = query.toLowerCase();
         
-        FirestoreUtil.getChatMessagesRef(chatId)
+        FirebaseUtil.getChatMessagesRef(chatId)
                 .get()
                 .addOnSuccessListener(messagesSnapshot -> {
                     for (DocumentSnapshot messageDoc : messagesSnapshot.getDocuments()) {

@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 public class EditProfileViewModel extends ViewModel {
     private static final String TAG = "EditProfileViewModel";
@@ -38,7 +38,7 @@ public class EditProfileViewModel extends ViewModel {
         isLoading.setValue(true);
         String userId = firebaseUser.getUid();
 
-        FirestoreUtil.getUserRef(userId).get()
+        FirebaseUtil.getUserRef(userId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         User currentUser = documentSnapshot.toObject(User.class);
@@ -74,7 +74,7 @@ public class EditProfileViewModel extends ViewModel {
                 currentUser.setImageUrl(imageUrl);
             }
 
-            FirestoreUtil.getUserRef(userId).update(
+            FirebaseUtil.getUserRef(userId).update(
                     "name", name,
                     "about", about,
                     "imageUrl", currentUser.getImageUrl()

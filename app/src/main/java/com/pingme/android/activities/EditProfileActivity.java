@@ -2,7 +2,6 @@ package com.pingme.android.activities;
 
 import android.net.Uri;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -14,7 +13,7 @@ import com.pingme.android.R;
 import com.pingme.android.databinding.ActivityEditProfileBinding;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.CloudinaryUtil;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -63,7 +62,7 @@ public class EditProfileActivity extends AppCompatActivity {
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         showLoading(true);
 
-        FirestoreUtil.getUserRef(userId).get().addOnSuccessListener(snapshot -> {
+        FirebaseUtil.getUserRef(userId).get().addOnSuccessListener(snapshot -> {
             showLoading(false);
             if (snapshot.exists()) {
                 currentUser = snapshot.toObject(User.class);

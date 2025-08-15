@@ -12,7 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.pingme.android.R;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -21,14 +21,14 @@ import java.util.Locale;
 
 public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapter.SearchResultViewHolder> {
     
-    private List<FirestoreUtil.SearchResult> searchResults;
+    private List<FirebaseUtil.SearchResult> searchResults;
     private OnSearchResultClickListener listener;
 
     public interface OnSearchResultClickListener {
-        void onSearchResultClick(FirestoreUtil.SearchResult result);
+        void onSearchResultClick(FirebaseUtil.SearchResult result);
     }
 
-    public SearchResultAdapter(List<FirestoreUtil.SearchResult> searchResults, OnSearchResultClickListener listener) {
+    public SearchResultAdapter(List<FirebaseUtil.SearchResult> searchResults, OnSearchResultClickListener listener) {
         this.searchResults = searchResults;
         this.listener = listener;
     }
@@ -43,7 +43,7 @@ public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapte
 
     @Override
     public void onBindViewHolder(@NonNull SearchResultViewHolder holder, int position) {
-        FirestoreUtil.SearchResult result = searchResults.get(position);
+        FirebaseUtil.SearchResult result = searchResults.get(position);
         holder.bind(result);
     }
 
@@ -52,7 +52,7 @@ public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapte
         return searchResults.size();
     }
 
-    public void updateResults(List<FirestoreUtil.SearchResult> newResults) {
+    public void updateResults(List<FirebaseUtil.SearchResult> newResults) {
         this.searchResults = newResults;
         notifyDataSetChanged();
     }
@@ -73,7 +73,7 @@ public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapte
             tvChatName = itemView.findViewById(R.id.tvChatName);
         }
 
-        public void bind(FirestoreUtil.SearchResult result) {
+        public void bind(FirebaseUtil.SearchResult result) {
             // Set contact name
             if (result.getContactName() != null) {
                 tvContactName.setText(result.getContactName());

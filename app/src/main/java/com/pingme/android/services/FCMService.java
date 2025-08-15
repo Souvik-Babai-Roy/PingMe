@@ -20,7 +20,7 @@ import com.pingme.android.R;
 import com.pingme.android.activities.ChatActivity;
 import com.pingme.android.activities.MainActivity;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import java.util.Map;
 
@@ -39,7 +39,7 @@ public class FCMService extends FirebaseMessagingService {
         FirebaseAuth auth = FirebaseAuth.getInstance();
         if (auth.getCurrentUser() != null) {
             String userId = auth.getCurrentUser().getUid();
-            FirestoreUtil.updateFCMToken(userId, token);
+            FirebaseUtil.updateFCMToken(userId, token);
         }
     }
 
@@ -106,7 +106,7 @@ public class FCMService extends FirebaseMessagingService {
         if (chatId == null || senderId == null) return;
         
         // Get sender info for notification
-        FirestoreUtil.getUserRef(senderId)
+        FirebaseUtil.getUserRef(senderId)
                 .get()
                 .addOnSuccessListener(snapshot -> {
                     if (snapshot.exists()) {

@@ -15,12 +15,11 @@ import com.pingme.android.databinding.ActivityMainBinding;
 import com.pingme.android.fragments.CallsFragment;
 import com.pingme.android.fragments.ChatsFragment;
 import com.pingme.android.fragments.StatusFragment;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 import com.pingme.android.utils.PreferenceUtils;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessaging;
-import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 	private ActivityMainBinding binding;
@@ -178,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
 
 	private void updateUserPresence() {
 		if (currentUserId != null) {
-			FirestoreUtil.updatePresence(currentUserId, true);
+			FirebaseUtil.updatePresence(currentUserId, true);
 		}
 	}
 
@@ -195,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
 					String token = task.getResult();
 					if (token != null) {
 						// Update token in user profile
-						FirestoreUtil.getUserRef(currentUserId)
+						FirebaseUtil.getUserRef(currentUserId)
 								.update("fcmToken", token);
 					}
 				});
@@ -260,7 +259,7 @@ public class MainActivity extends AppCompatActivity {
 	private void logout() {
 		// Update user presence to offline
 		if (currentUserId != null) {
-			FirestoreUtil.updatePresence(currentUserId, false);
+			FirebaseUtil.updatePresence(currentUserId, false);
 		}
 
 		// Sign out from Firebase Auth

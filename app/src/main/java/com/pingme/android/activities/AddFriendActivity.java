@@ -18,7 +18,7 @@ import com.pingme.android.R;
 import com.pingme.android.adapters.FriendsAdapter;
 import com.pingme.android.databinding.ActivityAddFriendBinding;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
@@ -82,12 +82,12 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
     }
 
     private void loadFriends() {
-        FirestoreUtil.getFriendsRef(currentUserId).get()
+        FirebaseUtil.getFriendsRef(currentUserId).get()
                 .addOnSuccessListener(querySnapshot -> {
                     friends.clear();
                     for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
                         String friendId = doc.getId();
-                        FirestoreUtil.getUserRef(friendId).get().addOnSuccessListener(userDoc -> {
+                        FirebaseUtil.getUserRef(friendId).get().addOnSuccessListener(userDoc -> {
                             if (userDoc.exists()) {
                                 User friend = userDoc.toObject(User.class);
                                 if (friend != null) {
@@ -145,7 +145,7 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
     }
 
     private void loadCurrentUser() {
-        FirestoreUtil.getUserRef(currentUserId).get()
+        FirebaseUtil.getUserRef(currentUserId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         currentUser = documentSnapshot.toObject(User.class);
@@ -181,7 +181,7 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
         showLoading(true);
 
         // Use the simplified search method
-        FirestoreUtil.searchUserByEmail(email, new FirestoreUtil.UserSearchCallback() {
+        FirebaseUtil.searchUserByEmail(email, new FirebaseUtil.UserSearchCallback() {
             @Override
             public void onUserFound(User user) {
                 showLoading(false);
@@ -207,13 +207,13 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
     }
 
     private void checkIfBlocked(String userId) {
-        FirestoreUtil.checkIfBlocked(currentUserId, userId, isBlocked -> {
+        FirebaseUtil.checkIfBlocked(currentUserId, userId, isBlocked -> {
             if (isBlocked) {
                 Toast.makeText(this, "Cannot add this user", Toast.LENGTH_SHORT).show();
                 showUserNotFound();
             } else {
                 // Check if user has blocked current user
-                FirestoreUtil.checkIfBlocked(userId, currentUserId, hasBlockedMe -> {
+                FirebaseUtil.checkIfBlocked(userId, currentUserId, hasBlockedMe -> {
                     if (hasBlockedMe) {
                         Toast.makeText(this, "Cannot add this user", Toast.LENGTH_SHORT).show();
                         showUserNotFound();
@@ -327,7 +327,7 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
             return;
         }
 
-        FirestoreUtil.getRealtimePresenceRef(user.getId())
+        FirebaseUtil.getRealtimePresenceRef(user.getId())
                 .addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
                     @Override
                     public void onDataChange(com.google.firebase.database.DataSnapshot dataSnapshot) {
@@ -374,7 +374,7 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
     }
 
     private void checkFriendshipStatus(String userId) {
-        FirestoreUtil.checkFriendship(currentUserId, userId, areFriends -> {
+        FirebaseUtil.checkFriendship(currentUserId, userId, areFriends -> {
             if (areFriends) {
                 // Already friends
                 binding.btnAddFriend.setText("Already Friends");
@@ -400,7 +400,7 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
         showLoading(true);
 
         // Send friend request instead of directly adding friend
-        FirestoreUtil.sendFriendRequest(currentUserId, foundUser.getEmail());
+        FirebaseUtil.sendFriendRequest(currentUserId, foundUser.getEmail());
         
         showLoading(false);
         Toast.makeText(AddFriendActivity.this, 

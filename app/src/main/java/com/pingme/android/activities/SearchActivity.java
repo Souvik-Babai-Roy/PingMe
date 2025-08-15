@@ -12,15 +12,11 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
-import com.google.android.gms.appsearch.SearchResult;
-import com.google.android.material.chip.Chip;
 import com.google.firebase.auth.FirebaseAuth;
-import com.pingme.android.R;
 import com.pingme.android.adapters.SearchResultAdapter;
 import com.pingme.android.databinding.ActivitySearchBinding;
 import com.pingme.android.models.Message;
-import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -34,7 +30,7 @@ public class SearchActivity extends AppCompatActivity {
 
     private ActivitySearchBinding binding;
     private SearchResultAdapter adapter;
-    private List<FirestoreUtil.SearchResult> searchResults = new ArrayList<>();
+    private List<FirebaseUtil.SearchResult> searchResults = new ArrayList<>();
     private String currentUserId;
     private long startDate = 0;
     private long endDate = System.currentTimeMillis();
@@ -181,14 +177,14 @@ public class SearchActivity extends AppCompatActivity {
         binding.progressBar.setVisibility(View.VISIBLE);
         binding.emptyState.setVisibility(View.GONE);
 
-        FirestoreUtil.searchAllChats(currentUserId, query, new FirestoreUtil.SearchCallback() {
+        FirebaseUtil.searchAllChats(currentUserId, query, new FirebaseUtil.SearchCallback() {
             @Override
-            public void onSearchComplete(List<FirestoreUtil.SearchResult> results) {
+            public void onSearchComplete(List<FirebaseUtil.SearchResult> results) {
                 binding.progressBar.setVisibility(View.GONE);
                 
                 // Filter results by date range
-                List<FirestoreUtil.SearchResult> filteredResults = new ArrayList<>();
-                for (FirestoreUtil.SearchResult result : results) {
+                List<FirebaseUtil.SearchResult> filteredResults = new ArrayList<>();
+                for (FirebaseUtil.SearchResult result : results) {
                     Message message = result.getMessage();
                     if (message.getTimestamp() >= startDate && message.getTimestamp() <= endDate) {
                         filteredResults.add(result);

@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -15,16 +14,10 @@ import com.pingme.android.R;
 import com.pingme.android.databinding.ActivitySetupProfileBinding;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.CloudinaryUtil;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.messaging.FirebaseMessaging;
-import com.karumi.dexter.Dexter;
-import com.karumi.dexter.PermissionToken;
-import com.karumi.dexter.listener.PermissionDeniedResponse;
-import com.karumi.dexter.listener.PermissionGrantedResponse;
-import com.karumi.dexter.listener.PermissionRequest;
-import com.karumi.dexter.listener.single.PermissionListener;
 
 public class SetupProfileActivity extends AppCompatActivity {
 
@@ -178,13 +171,13 @@ public class SetupProfileActivity extends AppCompatActivity {
         user.setReadReceiptsEnabled(true);
 
         // Create user with discoverable profile
-        FirestoreUtil.createUserWithDiscoverableProfile(user);
+        FirebaseUtil.createUserWithDiscoverableProfile(user);
 
         // Update FCM token separately
         FirebaseMessaging.getInstance().getToken()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
-                        FirestoreUtil.updateFCMToken(userId, task.getResult());
+                        FirebaseUtil.updateFCMToken(userId, task.getResult());
                     }
 
                     showLoading(false);

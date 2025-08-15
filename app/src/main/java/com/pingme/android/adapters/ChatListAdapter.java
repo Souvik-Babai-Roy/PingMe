@@ -16,7 +16,7 @@ import com.pingme.android.R;
 import com.pingme.android.activities.ChatActivity;
 import com.pingme.android.models.Chat;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 import com.google.firebase.auth.FirebaseAuth;
 
 import java.text.SimpleDateFormat;
@@ -294,7 +294,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                     .setTitle("Remove Friend")
                     .setMessage("Are you sure you want to remove " + friend.getDisplayName() + " from your friends? You can add them back later.")
                     .setPositiveButton("Remove", (dialog, which) -> {
-                        FirestoreUtil.removeFriend(currentUserId, friend.getId(), new FirestoreUtil.FriendActionCallback() {
+                        FirebaseUtil.removeFriend(currentUserId, friend.getId(), new FirebaseUtil.FriendActionCallback() {
                             @Override
                             public void onSuccess() {
                                 // Remove chat from list
@@ -323,7 +323,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                     .setTitle("Block User")
                     .setMessage("Are you sure you want to block " + friend.getDisplayName() + "? They won't be able to send you messages.")
                     .setPositiveButton("Block", (dialog, which) -> {
-                        FirestoreUtil.blockUser(currentUserId, friend.getId(), new FirestoreUtil.FriendActionCallback() {
+                        FirebaseUtil.blockUser(currentUserId, friend.getId(), new FirebaseUtil.FriendActionCallback() {
                             @Override
                             public void onSuccess() {
                                 // Remove chat from list

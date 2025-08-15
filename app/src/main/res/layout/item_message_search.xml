@@ -23,7 +23,7 @@
             android:text="Sender Name"
             android:textSize="14sp"
             android:textStyle="bold"
-            android:textColor="@color/black"
+            android:textColor="@color/carbon_black"
             android:maxLines="1"
             android:ellipsize="end" />
 
@@ -44,7 +44,7 @@
         android:layout_height="wrap_content"
         android:text="Message content here..."
         android:textSize="14sp"
-        android:textColor="@color/black"
+        android:textColor="@color/carbon_black"
         android:maxLines="3"
         android:ellipsize="end"
         android:lineSpacingExtra="2dp" />

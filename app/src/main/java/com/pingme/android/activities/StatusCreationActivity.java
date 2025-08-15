@@ -15,16 +15,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.pingme.android.R;
 import com.pingme.android.databinding.ActivityStatusCreationBinding;
 import com.pingme.android.models.Status;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.CloudinaryUtil;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 public class StatusCreationActivity extends AppCompatActivity {
     private static final String TAG = "StatusCreationActivity";
@@ -158,7 +156,7 @@ public class StatusCreationActivity extends AppCompatActivity {
     }
 
     private void loadCurrentUser() {
-        FirestoreUtil.getUserRef(currentUserId).get()
+        FirebaseUtil.getUserRef(currentUserId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         currentUser = documentSnapshot.toObject(User.class);
@@ -256,7 +254,7 @@ public class StatusCreationActivity extends AppCompatActivity {
         statusData.put("expiryTime", status.getExpiryTime());
         statusData.put("viewers", new HashMap<String, Long>());
 
-        FirestoreUtil.getStatusCollectionRef()
+        FirebaseUtil.getStatusCollectionRef()
                 .add(statusData)
                 .addOnSuccessListener(documentReference -> {
                     showLoading(false);

@@ -18,13 +18,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
-import com.pingme.android.R;
 import com.pingme.android.activities.ChatActivity;
 import com.pingme.android.adapters.FriendsAdapter;
 import com.pingme.android.databinding.FragmentFriendsBinding;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 import com.pingme.android.utils.PersonalNameDialog;
 
 import java.util.ArrayList;
@@ -90,7 +88,7 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
         
         Log.d(TAG, "Loading friends for user: " + currentUserId);
         
-        FirestoreUtil.getFriendsRef(currentUserId)
+        FirebaseUtil.getFriendsRef(currentUserId)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     friendsList.clear();
@@ -113,7 +111,7 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
     
     private void loadFriendWithPersonalName(String friendId, DocumentSnapshot friendDoc) {
         // First, get the friend's user info
-        FirestoreUtil.getUserRef(friendId).get()
+        FirebaseUtil.getUserRef(friendId).get()
                 .addOnSuccessListener(userSnapshot -> {
                     if (userSnapshot.exists()) {
                         User friend = userSnapshot.toObject(User.class);
@@ -218,7 +216,7 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
             String friendEmail = friend.getEmail();
             if (friendEmail != null && !friendEmail.isEmpty()) {
                 // Search for friend by email to get proper ID
-                FirestoreUtil.searchUserByEmail(friendEmail, new FirestoreUtil.UserSearchCallback() {
+                FirebaseUtil.searchUserByEmail(friendEmail, new FirebaseUtil.UserSearchCallback() {
                     @Override
                     public void onUserFound(User foundUser) {
                         foundUser.setPersonalName(friend.getPersonalName()); // Keep personal name

@@ -7,13 +7,11 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.pingme.android.models.Chat;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,7 +38,7 @@ public class ChatRepository {
 
     public void cleanup() {
         for (Map.Entry<String, ValueEventListener> entry : activeListeners.entrySet()) {
-            FirestoreUtil.getChatRef(entry.getKey()).removeEventListener(entry.getValue());
+            FirebaseUtil.getChatRef(entry.getKey()).removeEventListener(entry.getValue());
         }
         activeListeners.clear();
     }
@@ -51,7 +49,7 @@ public class ChatRepository {
 
     public void loadChats(String userId) {
         // First, get blocked users from Realtime Database
-        FirestoreUtil.getRealtimeBlockedUsersRef(currentUserId).addListenerForSingleValueEvent(new ValueEventListener() {
+        FirebaseUtil.getRealtimeBlockedUsersRef(currentUserId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot blockedSnapshot) {
                 List<String> blockedUserIds = new ArrayList<>();
@@ -76,7 +74,7 @@ public class ChatRepository {
     }
 
     private void loadFriendsAsEmptyChats(List<String> blockedUserIds) {
-        FirestoreUtil.getFriendsRef(currentUserId)
+        FirebaseUtil.getFriendsRef(currentUserId)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     List<Chat> friendChats = new ArrayList<>();
@@ -88,7 +86,7 @@ public class ChatRepository {
 
                             // Create empty chat for friend
                             Chat friendChat = new Chat();
-                            String chatId = FirestoreUtil.generateChatId(currentUserId, friend.getId());
+                            String chatId = FirebaseUtil.generateChatId(currentUserId, friend.getId());
                             friendChat.setId(chatId);
                             friendChat.setOtherUser(friend);
                             friendChat.setLastMessage("Tap to start messaging");
@@ -120,7 +118,7 @@ public class ChatRepository {
     }
 
     private void loadActiveChats(List<String> blockedUserIds) {
-        FirestoreUtil.getUserChatsRef(currentUserId)
+        FirebaseUtil.getUserChatsRef(currentUserId)
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
@@ -204,13 +202,13 @@ public class ChatRepository {
         };
 
         activeListeners.put(chatId, listener);
-        FirestoreUtil.getChatRef(chatId).addValueEventListener(listener);
+        FirebaseUtil.getChatRef(chatId).addValueEventListener(listener);
     }
 
     private void loadUserForChat(String chatId, String userId, String lastMessage,
                                  long lastMessageTimestamp, String lastMessageSenderId, String lastMessageType,
                                  List<Chat> chats, MutableLiveData<Integer> completionCounter) {
-        FirestoreUtil.getUserRef(userId).get()
+        FirebaseUtil.getUserRef(userId).get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
                         DocumentSnapshot userSnapshot = task.getResult();
@@ -300,12 +298,12 @@ public class ChatRepository {
     }
 
     public void createNewEmptyChat(String friendId) {
-        String chatId = FirestoreUtil.generateChatId(currentUserId, friendId);
-        FirestoreUtil.createNewChatInRealtime(chatId, currentUserId, friendId);
+        String chatId = FirebaseUtil.generateChatId(currentUserId, friendId);
+        FirebaseUtil.createNewChatInRealtime(chatId, currentUserId, friendId);
     }
 
     public void blockUser(String userId) {
-        FirestoreUtil.blockUser(currentUserId, userId, new FirestoreUtil.FriendActionCallback() {
+        FirebaseUtil.blockUser(currentUserId, userId, new FirebaseUtil.FriendActionCallback() {
             @Override
             public void onSuccess() {
                 // Refresh chats to remove blocked user
@@ -320,7 +318,7 @@ public class ChatRepository {
     }
 
     public void unblockUser(String userId) {
-        FirestoreUtil.unblockUser(currentUserId, userId, new FirestoreUtil.FriendActionCallback() {
+        FirebaseUtil.unblockUser(currentUserId, userId, new FirebaseUtil.FriendActionCallback() {
             @Override
             public void onSuccess() {
                 // Refresh chats if needed

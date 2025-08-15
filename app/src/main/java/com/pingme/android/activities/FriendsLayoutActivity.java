@@ -17,12 +17,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.pingme.android.R;
 import com.pingme.android.adapters.FriendsLayoutAdapter;
 import com.pingme.android.databinding.ActivityFriendsLayoutBinding;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 import com.pingme.android.utils.PersonalNameDialog;
 
 import java.util.ArrayList;
@@ -103,7 +102,7 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
         
         Log.d(TAG, "Loading friends for user: " + currentUserId);
         
-        FirestoreUtil.getFriendsRef(currentUserId)
+        FirebaseUtil.getFriendsRef(currentUserId)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     friendsList.clear();
@@ -114,7 +113,7 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
                         String personalName = doc.getString("personalName");
                         
                         // Get friend details from users collection
-                        FirestoreUtil.getUserRef(friendId)
+                        FirebaseUtil.getUserRef(friendId)
                                 .get()
                                 .addOnSuccessListener(userDoc -> {
                                     if (userDoc.exists()) {

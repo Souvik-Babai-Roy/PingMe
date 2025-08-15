@@ -2,9 +2,7 @@ package com.pingme.android.activities;
 
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.content.IntentSender;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Toast;
@@ -26,7 +24,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.pingme.android.R;
 import com.pingme.android.databinding.ActivityAuthBinding;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import android.widget.ProgressBar;
 
@@ -215,7 +213,7 @@ public class AuthActivity extends AppCompatActivity {
         }
 
         String userId = mAuth.getCurrentUser().getUid();
-        FirestoreUtil.getUserRef(userId).get().addOnCompleteListener(task -> {
+        FirebaseUtil.getUserRef(userId).get().addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult().exists()) {
                 startActivity(new Intent(AuthActivity.this, MainActivity.class));
                 finish();

@@ -4,11 +4,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.google.android.gms.tasks.Task;
-import com.google.android.gms.tasks.TaskCompletionSource;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -18,27 +13,20 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.pingme.android.models.Broadcast;
-import com.pingme.android.models.Chat;
 import com.pingme.android.models.ChatHistory;
 import com.pingme.android.models.ChatManagement;
 import com.pingme.android.models.Message;
 import com.pingme.android.models.Status;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.NotificationUtil;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 
-import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-
-public class FirestoreUtil {
-    private static final String TAG = "FirestoreUtil";
+public class FirebaseUtil {
+    private static final String TAG = "FirebaseUtil";
     private static final String COLLECTION_USERS = "users";
     private static final String COLLECTION_MESSAGES = "messages";
     private static final String COLLECTION_CHATS = "chats";

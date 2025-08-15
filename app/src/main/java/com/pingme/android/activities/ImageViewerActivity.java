@@ -25,7 +25,7 @@ import com.github.chrisbanes.photoview.PhotoView;
 import com.pingme.android.R;
 import com.pingme.android.databinding.ActivityImageViewerBinding;
 import com.pingme.android.models.User;
-import com.pingme.android.utils.FirestoreUtil;
+import com.pingme.android.utils.FirebaseUtil;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -291,7 +291,7 @@ public class ImageViewerActivity extends AppCompatActivity {
     private void loadSenderInfo() {
         try {
             if (senderId != null && !senderId.trim().isEmpty()) {
-                FirestoreUtil.getUserRef(senderId).get()
+                FirebaseUtil.getUserRef(senderId).get()
                         .addOnSuccessListener(documentSnapshot -> {
                             try {
                                 if (documentSnapshot != null && documentSnapshot.exists()) {

@@ -131,17 +131,6 @@
             android:visibility="gone" />
         
         <!-- Add Status FAB -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fabAddStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:layout_margin="16dp"
-            app:backgroundTint="@color/colorPrimary"
-            app:tint="@android:color/white"
-            app:srcCompat="@drawable/ic_camera"
-            app:elevation="6dp"
-            android:contentDescription="Add Status" />
-            
+
     </FrameLayout>
 </layout>
