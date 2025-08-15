@@ -67,6 +67,20 @@
         <item name="android:windowBackground">@color/chat_background</item>
     </style>
 
+    <!-- Image Viewer Theme -->
+    <style name="ImageViewerTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
     <!-- Primary Button -->
     <style name="PrimaryButton" parent="Widget.MaterialComponents.Button">
         <item name="backgroundTint">@color/soft_lavender</item>

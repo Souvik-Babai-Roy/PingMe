@@ -14,6 +14,8 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.pingme.android.adapters.ChatListAdapter;
 import com.pingme.android.databinding.FragmentChatsBinding;
@@ -116,15 +118,34 @@ public class ChatsFragment extends Fragment {
                 // Load active chats with messages
                 for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
                     String chatId = chatSnapshot.getKey();
-                    Chat chatData = chatSnapshot.getValue(Chat.class);
                     
-                    if (chatData != null && chatId != null) {
-                        chatData.setId(chatId);
+                    try {
+                        // Check if the value is a boolean (indicating user participation)
+                        if (chatSnapshot.getValue() instanceof Boolean) {
+                            // This is just a boolean flag indicating the user is in this chat
+                            // We need to load the actual chat data from the chats node
+                            if (Boolean.TRUE.equals(chatSnapshot.getValue())) {
+                                loadChatFromChatsNode(chatId);
+                            }
+                            continue;
+                        }
                         
-                        // Only add chats that have messages (lastMessageTimestamp > 0)
-                        if (chatData.getLastMessageTimestamp() > 0) {
-                            // Check if chat is not deleted for current user
-                            checkChatVisibility(chatData);
+                        Chat chatData = chatSnapshot.getValue(Chat.class);
+                        
+                        if (chatData != null && chatId != null) {
+                            chatData.setId(chatId);
+                            
+                            // Only add chats that have messages (lastMessageTimestamp > 0)
+                            if (chatData.getLastMessageTimestamp() > 0) {
+                                // Check if chat is not deleted for current user
+                                checkChatVisibility(chatData);
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error processing chat data for chatId: " + chatId, e);
+                        // Try to load from chats node as fallback
+                        if (chatId != null) {
+                            loadChatFromChatsNode(chatId);
                         }
                     }
                 }
@@ -609,5 +630,35 @@ public class ChatsFragment extends Fragment {
         if (type == null) type = "text";
         if ("friend_added".equals(type) || "empty_chat".equals(type)) return true;
         return lastMessage == null || lastMessage.trim().isEmpty();
+    }
+    
+    private void loadChatFromChatsNode(String chatId) {
+        if (chatId == null) return;
+        
+        DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference("chats").child(chatId);
+        chatRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                try {
+                    Chat chatData = dataSnapshot.getValue(Chat.class);
+                    if (chatData != null) {
+                        chatData.setId(chatId);
+                        
+                        // Only add chats that have messages (lastMessageTimestamp > 0)
+                        if (chatData.getLastMessageTimestamp() > 0) {
+                            // Check if chat is not deleted for current user
+                            checkChatVisibility(chatData);
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error loading chat from chats node for chatId: " + chatId, e);
+                }
+            }
+            
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, "Database error loading chat: " + databaseError.getMessage());
+            }
+        });
     }
 }

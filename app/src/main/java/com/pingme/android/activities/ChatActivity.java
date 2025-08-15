@@ -98,12 +98,27 @@ public class ChatActivity extends AppCompatActivity {
         chatId = getIntent().getStringExtra("chatId");
         receiverId = getIntent().getStringExtra("receiverId");
 
+        // Handle legacy intent format from FriendsLayoutActivity
+        if (chatId == null || receiverId == null) {
+            String userId = getIntent().getStringExtra("userId");
+            if (userId != null) {
+                receiverId = userId;
+                // Generate chat ID using same logic as AddFriendActivity
+                String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                chatId = currentUserId + "_" + receiverId;
+                if (currentUserId.compareTo(receiverId) > 0) {
+                    chatId = receiverId + "_" + currentUserId;
+                }
+                Log.d(TAG, "Using legacy intent format - generated chatId: " + chatId + " receiverId: " + receiverId);
+            }
+        }
+
         Log.d(TAG, "ChatActivity created with chatId: " + chatId + " receiverId: " + receiverId);
         Log.d(TAG, "Intent extras: " + getIntent().getExtras());
 
         if (chatId == null || receiverId == null) {
             Log.e(TAG, "Invalid chat data - chatId: " + chatId + " receiverId: " + receiverId);
-            Toast.makeText(this, "Invalid chat data. ChatId: " + chatId + " ReceiverId: " + receiverId, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Invalid chat data. Please try again.", Toast.LENGTH_LONG).show();
             finish();
             return;
         }
