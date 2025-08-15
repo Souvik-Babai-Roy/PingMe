@@ -30,6 +30,10 @@ public class Message {
     private long timestamp;
     private int status;
     private String type;
+    
+    // Search and navigation fields
+    private String chatId;
+    private String otherUserId;
 
     // Media fields
     private String imageUrl;
@@ -270,6 +274,13 @@ public class Message {
 
     public String getEncryptedContent() { return encryptedContent; }
     public void setEncryptedContent(String encryptedContent) { this.encryptedContent = encryptedContent; }
+
+    // Search and navigation getters and setters
+    public String getChatId() { return chatId; }
+    public void setChatId(String chatId) { this.chatId = chatId; }
+
+    public String getOtherUserId() { return otherUserId; }
+    public void setOtherUserId(String otherUserId) { this.otherUserId = otherUserId; }
 
     // Helper methods
     public boolean isTextMessage() { return TYPE_TEXT.equals(type); }

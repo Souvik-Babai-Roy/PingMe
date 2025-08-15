@@ -2,8 +2,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     
     <item 
-        android:id="@+id/action_search"
-        android:title="Search"
+        android:id="@+id/action_search_messages"
+        android:title="Search Messages"
         android:icon="@drawable/ic_search"
         app:showAsAction="ifRoom" />
         

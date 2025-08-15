@@ -87,4 +87,11 @@
             android:summary="Read our privacy policy" />
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="Account">
+        <Preference
+            android:key="logout"
+            android:title="Logout"
+            android:summary="Sign out of your account" />
+    </PreferenceCategory>
+
 </PreferenceScreen>
