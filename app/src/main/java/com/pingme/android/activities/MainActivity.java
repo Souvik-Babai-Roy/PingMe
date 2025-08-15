@@ -234,6 +234,45 @@ public class MainActivity extends AppCompatActivity {
 			startActivity(intent);
 			return true;
 		}
+		if (id == R.id.action_blocked_users) {
+			Intent intent = new Intent(this, BlockedUsersActivity.class);
+			startActivity(intent);
+			return true;
+		}
+		if (id == R.id.action_logout) {
+			showLogoutDialog();
+			return true;
+		}
 		return super.onOptionsItemSelected(item);
+	}
+
+	private void showLogoutDialog() {
+		new androidx.appcompat.app.AlertDialog.Builder(this)
+			.setTitle("Logout")
+			.setMessage("Are you sure you want to logout?")
+			.setPositiveButton("Logout", (dialog, which) -> {
+				logout();
+			})
+			.setNegativeButton("Cancel", null)
+			.show();
+	}
+
+	private void logout() {
+		// Update user presence to offline
+		if (currentUserId != null) {
+			FirestoreUtil.updatePresence(currentUserId, false);
+		}
+
+		// Sign out from Firebase Auth
+		FirebaseAuth.getInstance().signOut();
+
+		// Clear any stored preferences
+		PreferenceUtils.clearUserData(this);
+
+		// Navigate to AuthActivity
+		Intent intent = new Intent(this, AuthActivity.class);
+		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+		startActivity(intent);
+		finish();
 	}
 }
