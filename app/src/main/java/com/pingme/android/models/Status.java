@@ -114,6 +114,19 @@ public class Status {
         return "video".equals(type);
     }
 
+    // Additional methods for compatibility with StatusAdapter
+    public String getText() {
+        return content;
+    }
+
+    public String getCaption() {
+        return content;
+    }
+
+    public String getFormattedTimestamp() {
+        return getFormattedTimeAgo();
+    }
+
     public void addViewer(String viewerId) {
         if (viewers == null) {
             viewers = new HashMap<>();

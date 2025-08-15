@@ -1,4 +1,3 @@
-/*
 package com.pingme.android.adapters;
 
 import android.content.Context;
@@ -99,4 +98,3 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusView
         }
     }
 }
-*/
