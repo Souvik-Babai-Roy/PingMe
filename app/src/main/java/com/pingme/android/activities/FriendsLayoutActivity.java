@@ -154,10 +154,7 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
                     ? friend.getPersonalName() 
                     : friend.getName();
                     
-                if (displayName.toLowerCase().contains(lowerQuery) || 
-                    friend.getPhoneNumber().contains(query)) {
-                    filteredFriendsList.add(friend);
-                }
+
             }
         }
         

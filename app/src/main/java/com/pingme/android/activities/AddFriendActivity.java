@@ -263,14 +263,6 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
     }
 
     private void displayUserPrivacyInfo(User user) {
-        // Show phone number if available and user allows it
-        if (user.getPhoneNumber() != null && !user.getPhoneNumber().isEmpty()) {
-            binding.tvUserPhone.setVisibility(View.VISIBLE);
-            binding.tvUserPhone.setText("📱 " + user.getPhoneNumber());
-        } else {
-            binding.tvUserPhone.setVisibility(View.GONE);
-        }
-
         // Show join date if available
         if (user.getJoinedAt() > 0) {
             binding.tvUserJoined.setVisibility(View.VISIBLE);
