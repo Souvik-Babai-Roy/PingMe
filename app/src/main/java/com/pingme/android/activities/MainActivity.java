@@ -14,7 +14,7 @@ import com.pingme.android.adapters.ViewPagerAdapter;
 import com.pingme.android.databinding.ActivityMainBinding;
 import com.pingme.android.fragments.CallsFragment;
 import com.pingme.android.fragments.ChatsFragment;
-// import com.pingme.android.fragments.StatusFragment;
+import com.pingme.android.fragments.StatusFragment;
 import com.pingme.android.utils.FirebaseUtil;
 import com.pingme.android.utils.PreferenceUtils;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -96,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
 	private void setupViewPager() {
 		ViewPagerAdapter adapter = new ViewPagerAdapter(this);
 		adapter.addFragment(new ChatsFragment(), "CHATS");
-		// adapter.addFragment(new StatusFragment(), "STATUS");
+		adapter.addFragment(new StatusFragment(), "STATUS");
 		adapter.addFragment(new CallsFragment(), "CALLS");
 
 		binding.viewPager.setAdapter(adapter);

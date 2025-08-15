@@ -68,6 +68,7 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
     private void setupClickListeners() {
         binding.btnSearch.setOnClickListener(v -> searchUserByEmail());
         binding.btnAddFriend.setOnClickListener(v -> addFriend());
+        binding.btnAddFriend.setText("Add Friend");
         binding.etFriendSearch.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
@@ -374,7 +375,7 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
                 binding.btnAddFriend.setBackgroundTintList(
                         getColorStateList(android.R.color.darker_gray));
             } else {
-                // Not friends
+                // Not friends - can add directly
                 binding.btnAddFriend.setText("Add Friend");
                 binding.btnAddFriend.setEnabled(true);
                 binding.btnAddFriend.setBackgroundTintList(
@@ -385,23 +386,37 @@ public class AddFriendActivity extends AppCompatActivity implements FriendsAdapt
 
     private void addFriend() {
         if (foundUser == null || currentUser == null) {
-            Toast.makeText(this, "Unable to send friend request. Please try again.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Unable to add friend. Please try again.", Toast.LENGTH_SHORT).show();
             return;
         }
 
         showLoading(true);
 
-        // Send friend request instead of directly adding friend
-        FirebaseUtil.sendFriendRequest(currentUserId, foundUser.getEmail());
-        
-        showLoading(false);
-        Toast.makeText(AddFriendActivity.this, 
-            "Friend request sent to " + foundUser.getDisplayName(), 
-            Toast.LENGTH_SHORT).show();
-        binding.btnAddFriend.setText("Request Sent");
-        binding.btnAddFriend.setEnabled(false);
-        binding.btnAddFriend.setBackgroundTintList(
-                getColorStateList(android.R.color.darker_gray));
+        // Directly add friend without request
+        FirebaseUtil.addFriendDirectly(currentUserId, foundUser.getId(), new FirebaseUtil.FriendOperationCallback() {
+            @Override
+            public void onSuccess() {
+                showLoading(false);
+                Toast.makeText(AddFriendActivity.this, 
+                    foundUser.getDisplayName() + " added as friend!", 
+                    Toast.LENGTH_SHORT).show();
+                binding.btnAddFriend.setText("Friend Added");
+                binding.btnAddFriend.setEnabled(false);
+                binding.btnAddFriend.setBackgroundTintList(
+                        getColorStateList(android.R.color.darker_gray));
+                
+                // Refresh friends list
+                loadFriends();
+            }
+
+            @Override
+            public void onError(String error) {
+                showLoading(false);
+                Toast.makeText(AddFriendActivity.this, 
+                    "Failed to add friend: " + error, 
+                    Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void showUserNotFound() {

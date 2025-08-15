@@ -220,7 +220,7 @@ public class StatusCreationActivity extends AppCompatActivity {
         status.setContent(content);
         status.setType("text");
         status.setBackgroundColor(backgroundColors[currentColorIndex]);
-        status.setTimestamp(System.currentTimeMillis());
+        status.setTimestamp(com.google.firebase.Timestamp.now());
         status.setExpiryTime(System.currentTimeMillis() + (24 * 60 * 60 * 1000)); // 24 hours
 
         saveStatusToFirestore(status);
@@ -234,7 +234,7 @@ public class StatusCreationActivity extends AppCompatActivity {
         status.setContent(content);
         status.setImageUrl(imageUrl);
         status.setType("image");
-        status.setTimestamp(System.currentTimeMillis());
+        status.setTimestamp(com.google.firebase.Timestamp.now());
         status.setExpiryTime(System.currentTimeMillis() + (24 * 60 * 60 * 1000)); // 24 hours
 
         saveStatusToFirestore(status);

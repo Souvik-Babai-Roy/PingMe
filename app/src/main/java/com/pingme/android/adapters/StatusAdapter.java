@@ -1,4 +1,3 @@
-/*
 package com.pingme.android.adapters;
 
 import android.content.Context;
@@ -42,7 +41,24 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusView
     @Override
     public void onBindViewHolder(@NonNull StatusViewHolder holder, int position) {
         Status status = statusList.get(position);
-        holder.bind(status);
+        
+        holder.tvUserName.setText(status.getUserName());
+        holder.tvTimestamp.setText(status.getFormattedTimestamp());
+        
+        if (status.getImageUrl() != null && !status.getImageUrl().isEmpty()) {
+            Glide.with(context)
+                .load(status.getImageUrl())
+                .placeholder(R.drawable.ic_person)
+                .into(holder.ivStatusImage);
+        } else {
+            holder.ivStatusImage.setImageResource(R.drawable.ic_person);
+        }
+        
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onStatusClick(status);
+            }
+        });
     }
 
     @Override
@@ -50,53 +66,16 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.StatusView
         return statusList.size();
     }
 
-    public class StatusViewHolder extends RecyclerView.ViewHolder {
-        private ImageView statusImage;
-        private TextView statusText;
-        private TextView timestampText;
+    public static class StatusViewHolder extends RecyclerView.ViewHolder {
+        ImageView ivStatusImage;
+        TextView tvUserName;
+        TextView tvTimestamp;
 
         public StatusViewHolder(@NonNull View itemView) {
             super(itemView);
-            statusImage = itemView.findViewById(R.id.statusImage);
-            statusText = itemView.findViewById(R.id.statusText);
-            timestampText = itemView.findViewById(R.id.timestampText);
-
-            itemView.setOnClickListener(v -> {
-                int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION && listener != null) {
-                    listener.onStatusClick(statusList.get(position));
-                }
-            });
-        }
-
-        public void bind(Status status) {
-            // Load status image if available
-            if (status.getImageUrl() != null && !status.getImageUrl().isEmpty()) {
-                statusImage.setVisibility(View.VISIBLE);
-                Glide.with(context)
-                    .load(status.getImageUrl())
-                    .placeholder(R.drawable.ic_image_placeholder)
-                    .error(R.drawable.ic_image_error)
-                    .into(statusImage);
-            } else {
-                statusImage.setVisibility(View.GONE);
-            }
-
-            // Set status text
-            if (status.getText() != null && !status.getText().isEmpty()) {
-                statusText.setVisibility(View.VISIBLE);
-                statusText.setText(status.getText());
-            } else {
-                statusText.setVisibility(View.GONE);
-            }
-
-            // Set timestamp
-            if (status.getTimestamp() != null) {
-                timestampText.setText(status.getFormattedTimestamp());
-            } else {
-                timestampText.setText("");
-            }
+            ivStatusImage = itemView.findViewById(R.id.ivStatusImage);
+            tvUserName = itemView.findViewById(R.id.tvUserName);
+            tvTimestamp = itemView.findViewById(R.id.tvTimestamp);
         }
     }
 }
-*/

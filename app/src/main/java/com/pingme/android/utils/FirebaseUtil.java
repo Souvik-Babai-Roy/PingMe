@@ -9,6 +9,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -1050,7 +1051,7 @@ public class FirebaseUtil {
         status.setText(statusText);
         status.setMediaUrl(mediaUrl);
         status.setMediaType(mediaType);
-        status.setTimestamp(System.currentTimeMillis());
+        status.setTimestamp(Timestamp.now());
         status.setExpiryTime(System.currentTimeMillis() + (24 * 60 * 60 * 1000)); // 24 hours
         status.setViewers(new HashMap<>());
 
@@ -1262,6 +1263,54 @@ public class FirebaseUtil {
 
     public static CollectionReference getFriendRequestsRef(String userId) {
         return getUserRef(userId).collection("friend_requests");
+    }
+
+    public interface FriendOperationCallback {
+        void onSuccess();
+        void onError(String error);
+    }
+
+    public static void addFriendDirectly(String currentUserId, String friendId, FriendOperationCallback callback) {
+        // Check if already friends
+        checkIfFriends(currentUserId, friendId, areFriends -> {
+            if (areFriends) {
+                callback.onError("Already friends");
+                return;
+            }
+
+            // Add friend to current user's friends list
+            Map<String, Object> friendData = new HashMap<>();
+            friendData.put("friendId", friendId);
+            friendData.put("addedAt", System.currentTimeMillis());
+            friendData.put("personalName", "");
+
+            getFriendsRef(currentUserId)
+                .document(friendId)
+                .set(friendData)
+                .addOnSuccessListener(aVoid -> {
+                    // Add current user to friend's friends list
+                    Map<String, Object> currentUserData = new HashMap<>();
+                    currentUserData.put("friendId", currentUserId);
+                    currentUserData.put("addedAt", System.currentTimeMillis());
+                    currentUserData.put("personalName", "");
+
+                    getFriendsRef(friendId)
+                        .document(currentUserId)
+                        .set(currentUserData)
+                        .addOnSuccessListener(aVoid2 -> {
+                            Log.d(TAG, "Friend added successfully");
+                            callback.onSuccess();
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e(TAG, "Failed to add friend to friend's list", e);
+                            callback.onError("Failed to add friend");
+                        });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to add friend to current user's list", e);
+                    callback.onError("Failed to add friend");
+                });
+        });
     }
 
     // ===== CHAT MANAGEMENT =====

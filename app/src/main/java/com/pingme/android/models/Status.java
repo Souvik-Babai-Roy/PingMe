@@ -1,92 +1,121 @@
 package com.pingme.android.models;
 
+import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.PropertyName;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class Status {
     private String id;
     private String userId;
     private String userName;
     private String userImageUrl;
+    private String text;
     private String content;
     private String imageUrl;
     private String videoUrl;
-    private long timestamp;
-    private long expiryTime;
+    private String mediaUrl;
+    private String mediaType;
+    private String type;
     private String backgroundColor;
-    private String type; // text, image, video
+    private Timestamp timestamp;
+    private long expiryTime;
+    private boolean isViewed;
     
-    // Privacy and interaction
     @PropertyName("viewers")
     private Map<String, Long> viewers = new HashMap<>();
-    private boolean isViewed = false;
-    
-    // For UI state
     private int viewerCount = 0;
 
     public Status() {
-        this.timestamp = System.currentTimeMillis();
-        this.expiryTime = timestamp + (24 * 60 * 60 * 1000); // 24 hours
+        // Required empty constructor for Firestore
+        this.timestamp = Timestamp.now();
+        this.expiryTime = System.currentTimeMillis() + (24 * 60 * 60 * 1000); // 24 hours
         this.type = "text";
     }
 
-    public Status(String userId, String content, String imageUrl, long timestamp, long expiryTime) {
-        this();
-        this.userId = userId;
-        this.content = content;
-        this.imageUrl = imageUrl;
-        this.timestamp = timestamp;
-        this.expiryTime = expiryTime;
-        this.type = imageUrl != null ? "image" : "text";
-    }
-
-    public Status(String userId, String userName, String userImageUrl, String content, String type) {
+    public Status(String userId, String userName, String userImageUrl, String text, String imageUrl) {
         this();
         this.userId = userId;
         this.userName = userName;
         this.userImageUrl = userImageUrl;
-        this.content = content;
-        this.type = type != null ? type : "text";
+        this.text = text;
+        this.content = text;
+        this.imageUrl = imageUrl;
+        this.isViewed = false;
     }
 
-    // Getters
-    public String getId() { return id; }
-    public String getUserId() { return userId; }
-    public String getUserName() { return userName; }
-    public String getUserImageUrl() { return userImageUrl; }
-    public String getContent() { return content; }
-    public String getImageUrl() { return imageUrl; }
-    public String getVideoUrl() { return videoUrl; }
-    public long getTimestamp() { return timestamp; }
-    public long getExpiryTime() { return expiryTime; }
-    public String getBackgroundColor() { return backgroundColor; }
-    public String getType() { return type; }
-    public Map<String, Long> getViewers() { return viewers; }
-    public boolean isViewed() { return isViewed; }
-    public int getViewerCount() { return viewerCount; }
+    public String getId() {
+        return id;
+    }
 
-    // Setters
-    public void setId(String id) { this.id = id; }
-    public void setUserId(String userId) { this.userId = userId; }
-    public void setUserName(String userName) { this.userName = userName; }
-    public void setUserImageUrl(String userImageUrl) { this.userImageUrl = userImageUrl; }
-    public void setContent(String content) { this.content = content; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-    public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
-    public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
-    public void setExpiryTime(long expiryTime) { this.expiryTime = expiryTime; }
-    public void setBackgroundColor(String backgroundColor) { this.backgroundColor = backgroundColor; }
-    public void setType(String type) { this.type = type; }
-    public void setViewers(Map<String, Long> viewers) { this.viewers = viewers; }
-    public void setViewed(boolean viewed) { isViewed = viewed; }
-    public void setViewerCount(int viewerCount) { this.viewerCount = viewerCount; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    // Additional setters for compatibility
-    public void setText(String text) { this.content = text; }
-    public void setMediaUrl(String mediaUrl) { 
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getUserImageUrl() {
+        return userImageUrl;
+    }
+
+    public void setUserImageUrl(String userImageUrl) {
+        this.userImageUrl = userImageUrl;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+        this.text = content;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public String getVideoUrl() {
+        return videoUrl;
+    }
+
+    public void setVideoUrl(String videoUrl) {
+        this.videoUrl = videoUrl;
+    }
+
+    public String getMediaUrl() {
+        return mediaUrl;
+    }
+
+    public void setMediaUrl(String mediaUrl) {
+        this.mediaUrl = mediaUrl;
         if (mediaUrl != null && mediaUrl.contains("video")) {
             this.videoUrl = mediaUrl;
             this.type = "video";
@@ -95,9 +124,93 @@ public class Status {
             this.type = "image";
         }
     }
-    public void setMediaType(String mediaType) { this.type = mediaType; }
 
-    // Helper methods
+    public String getMediaType() {
+        return mediaType;
+    }
+
+    public void setMediaType(String mediaType) {
+        this.mediaType = mediaType;
+        this.type = mediaType;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getBackgroundColor() {
+        return backgroundColor;
+    }
+
+    public void setBackgroundColor(String backgroundColor) {
+        this.backgroundColor = backgroundColor;
+    }
+
+    public Timestamp getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Timestamp timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public long getExpiryTime() {
+        return expiryTime;
+    }
+
+    public void setExpiryTime(long expiryTime) {
+        this.expiryTime = expiryTime;
+    }
+
+    public boolean isViewed() {
+        return isViewed;
+    }
+
+    public void setViewed(boolean viewed) {
+        isViewed = viewed;
+    }
+
+    public Map<String, Long> getViewers() {
+        return viewers;
+    }
+
+    public void setViewers(Map<String, Long> viewers) {
+        this.viewers = viewers;
+        this.viewerCount = viewers != null ? viewers.size() : 0;
+    }
+
+    public int getViewerCount() {
+        return viewerCount;
+    }
+
+    public void setViewerCount(int viewerCount) {
+        this.viewerCount = viewerCount;
+    }
+
+    public String getFormattedTimestamp() {
+        if (timestamp == null) return "";
+        
+        long timeDiff = System.currentTimeMillis() - timestamp.toDate().getTime();
+        long seconds = timeDiff / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+        long days = hours / 24;
+
+        if (days > 0) {
+            return days + "d ago";
+        } else if (hours > 0) {
+            return hours + "h ago";
+        } else if (minutes > 0) {
+            return minutes + "m ago";
+        } else {
+            return "Just now";
+        }
+    }
+
     public boolean isExpired() {
         return System.currentTimeMillis() > expiryTime;
     }
@@ -131,7 +244,9 @@ public class Status {
     }
 
     public String getFormattedTimeAgo() {
-        long diff = System.currentTimeMillis() - timestamp;
+        if (timestamp == null) return "";
+        
+        long diff = System.currentTimeMillis() - timestamp.toDate().getTime();
         long hours = diff / (1000 * 60 * 60);
         long minutes = (diff % (1000 * 60 * 60)) / (1000 * 60);
 
@@ -146,48 +261,5 @@ public class Status {
 
     public boolean canView(String viewerId) {
         return !isExpired() && viewerId != null;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Status)) return false;
-        Status status = (Status) o;
-        return timestamp == status.timestamp &&
-                expiryTime == status.expiryTime &&
-                isViewed == status.isViewed &&
-                viewerCount == status.viewerCount &&
-                Objects.equals(id, status.id) &&
-                Objects.equals(userId, status.userId) &&
-                Objects.equals(userName, status.userName) &&
-                Objects.equals(userImageUrl, status.userImageUrl) &&
-                Objects.equals(content, status.content) &&
-                Objects.equals(imageUrl, status.imageUrl) &&
-                Objects.equals(videoUrl, status.videoUrl) &&
-                Objects.equals(backgroundColor, status.backgroundColor) &&
-                Objects.equals(type, status.type) &&
-                Objects.equals(viewers, status.viewers);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, userId, userName, userImageUrl, content, imageUrl, 
-                videoUrl, timestamp, expiryTime, backgroundColor, type, viewers, 
-                isViewed, viewerCount);
-    }
-
-    @Override
-    public String toString() {
-        return "Status{" +
-                "id='" + id + '\'' +
-                ", userId='" + userId + '\'' +
-                ", userName='" + userName + '\'' +
-                ", content='" + content + '\'' +
-                ", type='" + type + '\'' +
-                ", timestamp=" + timestamp +
-                ", expiryTime=" + expiryTime +
-                ", viewerCount=" + viewerCount +
-                ", isExpired=" + isExpired() +
-                '}';
     }
 }

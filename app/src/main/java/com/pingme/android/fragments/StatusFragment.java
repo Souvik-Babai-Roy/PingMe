@@ -1,4 +1,3 @@
-/*
 package com.pingme.android.fragments;
 
 import android.content.Intent;
@@ -22,15 +21,16 @@ import com.google.firebase.firestore.Query;
 import com.pingme.android.R;
 import com.pingme.android.adapters.StatusAdapter;
 import com.pingme.android.models.Status;
-import com.pingme.android.utils.FirebaseUtil;
+import com.pingme.android.models.User;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class StatusFragment extends Fragment implements StatusAdapter.OnStatusClickListener {
+public class StatusFragment extends Fragment {
     private RecyclerView recyclerView;
-    private StatusAdapter statusAdapter;
+    private StatusAdapter adapter;
     private List<Status> statusList;
+    private FirebaseFirestore db;
     private FirebaseUser currentUser;
 
     @Nullable
@@ -38,67 +38,55 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_status, container, false);
         
+        recyclerView = view.findViewById(R.id.recyclerViewStatus);
+        FloatingActionButton fabAddStatus = view.findViewById(R.id.fabAddStatus);
+        
+        db = FirebaseFirestore.getInstance();
         currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
-            return view;
-        }
-
-        initViews(view);
-        setupRecyclerView();
+        
+        statusList = new ArrayList<>();
+        adapter = new StatusAdapter(getContext(), statusList, new StatusAdapter.OnStatusClickListener() {
+            @Override
+            public void onStatusClick(Status status) {
+                // Handle status click - open status viewer
+                // TODO: Implement status viewer activity
+            }
+        });
+        
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        recyclerView.setAdapter(adapter);
+        
+        fabAddStatus.setOnClickListener(v -> {
+            // TODO: Implement add status functionality
+            // Intent intent = new Intent(getContext(), AddStatusActivity.class);
+            // startActivity(intent);
+        });
+        
         loadStatuses();
         
         return view;
     }
-
-    private void initViews(View view) {
-        recyclerView = view.findViewById(R.id.recyclerView);
-        FloatingActionButton fabAddStatus = view.findViewById(R.id.fabAddStatus);
-        
-        fabAddStatus.setOnClickListener(v -> {
-            // TODO: Implement add status functionality
-            // Intent intent = new Intent(getActivity(), AddStatusActivity.class);
-            // startActivity(intent);
-        });
-    }
-
-    private void setupRecyclerView() {
-        statusList = new ArrayList<>();
-        statusAdapter = new StatusAdapter(getContext(), statusList, this);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.setAdapter(statusAdapter);
-    }
-
+    
     private void loadStatuses() {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        if (currentUser == null) return;
         
         db.collection("statuses")
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener((value, error) -> {
                 if (error != null) {
-                    // Handle error
                     return;
                 }
-
+                
                 statusList.clear();
                 if (value != null) {
                     for (DocumentSnapshot document : value.getDocuments()) {
                         Status status = document.toObject(Status.class);
                         if (status != null) {
-                            status.setId(document.getId());
                             statusList.add(status);
                         }
                     }
                 }
-                statusAdapter.notifyDataSetChanged();
+                adapter.notifyDataSetChanged();
             });
     }
-
-    @Override
-    public void onStatusClick(Status status) {
-        // TODO: Implement status viewing functionality
-        // Intent intent = new Intent(getActivity(), ViewStatusActivity.class);
-        // intent.putExtra("statusId", status.getId());
-        // startActivity(intent);
-    }
 }
-*/
