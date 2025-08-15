@@ -1,4 +1,3 @@
-/*
 package com.pingme.android.fragments;
 
 import android.content.Intent;
@@ -20,6 +19,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.pingme.android.R;
+import com.pingme.android.activities.StatusCreationActivity;
 import com.pingme.android.adapters.StatusAdapter;
 import com.pingme.android.models.Status;
 import com.pingme.android.utils.FirebaseUtil;
@@ -54,11 +54,13 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
         recyclerView = view.findViewById(R.id.recyclerView);
         FloatingActionButton fabAddStatus = view.findViewById(R.id.fabAddStatus);
         
-        fabAddStatus.setOnClickListener(v -> {
-            // TODO: Implement add status functionality
-            // Intent intent = new Intent(getActivity(), AddStatusActivity.class);
-            // startActivity(intent);
-        });
+        if (fabAddStatus != null) {
+            fabAddStatus.setOnClickListener(v -> {
+                // Open status creation activity
+                Intent intent = new Intent(getActivity(), StatusCreationActivity.class);
+                startActivity(intent);
+            });
+        }
     }
 
     private void setupRecyclerView() {
@@ -71,7 +73,9 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
     private void loadStatuses() {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         
+        // Load statuses from friends and current user only
         db.collection("statuses")
+            .whereGreaterThan("timestamp", System.currentTimeMillis() - (24 * 60 * 60 * 1000)) // Only last 24 hours
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener((value, error) -> {
                 if (error != null) {
@@ -85,20 +89,41 @@ public class StatusFragment extends Fragment implements StatusAdapter.OnStatusCl
                         Status status = document.toObject(Status.class);
                         if (status != null) {
                             status.setId(document.getId());
-                            statusList.add(status);
+                            // Only show statuses from friends or current user
+                            checkIfFriendOrSelf(status.getUserId(), isFriendOrSelf -> {
+                                if (isFriendOrSelf) {
+                                    statusList.add(status);
+                                    statusAdapter.notifyDataSetChanged();
+                                }
+                            });
                         }
                     }
                 }
-                statusAdapter.notifyDataSetChanged();
             });
+    }
+
+    private void checkIfFriendOrSelf(String userId, FirebaseUtil.FriendshipStatusCallback callback) {
+        if (currentUser == null) {
+            callback.onResult(false);
+            return;
+        }
+        
+        String currentUserId = currentUser.getUid();
+        if (userId.equals(currentUserId)) {
+            callback.onResult(true);
+            return;
+        }
+        
+        FirebaseUtil.checkFriendship(currentUserId, userId, callback);
     }
 
     @Override
     public void onStatusClick(Status status) {
-        // TODO: Implement status viewing functionality
-        // Intent intent = new Intent(getActivity(), ViewStatusActivity.class);
-        // intent.putExtra("statusId", status.getId());
-        // startActivity(intent);
+        // Open status viewing activity - implement similar to WhatsApp
+        // For now, we can use the existing ImageViewerActivity
+        Intent intent = new Intent(getActivity(), com.pingme.android.activities.ImageViewerActivity.class);
+        intent.putExtra("imageUrl", status.getImageUrl());
+        intent.putExtra("caption", status.getCaption());
+        startActivity(intent);
     }
 }
-*/

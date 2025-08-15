@@ -152,13 +152,11 @@ public class SetupProfileActivity extends AppCompatActivity {
         FirebaseAuth auth = FirebaseAuth.getInstance();
         String userId = auth.getCurrentUser().getUid();
 
-        User user = new User(
-                userId,
-                name,
-                auth.getCurrentUser().getEmail(),
-                imageUrl,
-                "Available"
-        );
+        // Log the imageUrl to debug
+        android.util.Log.d("SetupProfile", "Creating user profile with imageUrl: " + imageUrl);
+
+        // Use the correct constructor for setup profile
+        User user = new User(userId, name, auth.getCurrentUser().getEmail(), imageUrl);
         user.setAbout(about);
         user.setJoinedAt(System.currentTimeMillis());
         user.setOnline(true);
@@ -169,6 +167,9 @@ public class SetupProfileActivity extends AppCompatActivity {
         user.setLastSeenEnabled(true);
         user.setAboutEnabled(true);
         user.setReadReceiptsEnabled(true);
+
+        // Debug log to verify imageUrl is properly set
+        android.util.Log.d("SetupProfile", "User object imageUrl: " + user.getImageUrl());
 
         // Create user with discoverable profile
         FirebaseUtil.createUserWithDiscoverableProfile(user);
