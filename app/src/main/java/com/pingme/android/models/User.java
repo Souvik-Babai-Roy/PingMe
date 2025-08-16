@@ -123,15 +123,15 @@ public class User {
     public boolean isReadReceiptsEnabled() { return readReceiptsEnabled; }
     public boolean isNotificationsEnabled() { return notificationsEnabled; } // Updated to use field
 
-    // Getters for new fields
-    public String getDisplayName() { return displayName; }
-    public String getOnlineStatus() { return onlineStatus; }
-    public boolean isFriend() { return friend; }
-    public boolean isValidEmail() { return validEmail; }
+    // Getters for new fields (simple field accessors)
+    public String getDisplayNameField() { return displayName; }
+    public String getOnlineStatusField() { return onlineStatus; }
+    public boolean isFriendField() { return friend; }
+    public boolean isValidEmailField() { return validEmail; }
     public String getTheme() { return theme; }
-    public boolean isBlockedByMe() { return blockedByMe; }
-    public String getDisplayAbout() { return displayAbout; }
-    public boolean isComplete() { return complete; }
+    public boolean isBlockedByMeField() { return blockedByMe; }
+    public String getDisplayAboutField() { return displayAbout; }
+    public boolean isCompleteField() { return complete; }
 
     // Setters
     public void setId(String id) { this.id = id; }
@@ -272,6 +272,18 @@ public class User {
         copy.isBlocked = this.isBlocked;
         copy.friendshipStatus = this.friendshipStatus;
         copy.personalName = this.personalName;
+        
+        // Copy new fields
+        copy.displayName = this.displayName;
+        copy.onlineStatus = this.onlineStatus;
+        copy.notificationsEnabled = this.notificationsEnabled;
+        copy.friend = this.friend;
+        copy.validEmail = this.validEmail;
+        copy.theme = this.theme;
+        copy.blockedByMe = this.blockedByMe;
+        copy.displayAbout = this.displayAbout;
+        copy.complete = this.complete;
+        
         return copy;
     }
 
@@ -289,6 +301,11 @@ public class User {
                 readReceiptsEnabled == user.readReceiptsEnabled &&
                 joinedAt == user.joinedAt &&
                 isBlocked == user.isBlocked &&
+                notificationsEnabled == user.notificationsEnabled &&
+                friend == user.friend &&
+                validEmail == user.validEmail &&
+                blockedByMe == user.blockedByMe &&
+                complete == user.complete &&
                 Objects.equals(id, user.id) &&
                 Objects.equals(name, user.name) &&
                 Objects.equals(email, user.email) &&
@@ -296,14 +313,20 @@ public class User {
                 Objects.equals(about, user.about) &&
                 Objects.equals(fcmToken, user.fcmToken) &&
                 Objects.equals(friendshipStatus, user.friendshipStatus) &&
-                Objects.equals(personalName, user.personalName);
+                Objects.equals(personalName, user.personalName) &&
+                Objects.equals(displayName, user.displayName) &&
+                Objects.equals(onlineStatus, user.onlineStatus) &&
+                Objects.equals(theme, user.theme) &&
+                Objects.equals(displayAbout, user.displayAbout);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(id, name, email, imageUrl, about, isOnline,
                 lastSeen, fcmToken, profilePhotoEnabled, lastSeenEnabled, aboutEnabled,
-                readReceiptsEnabled, joinedAt, isBlocked, friendshipStatus, personalName);
+                readReceiptsEnabled, joinedAt, isBlocked, friendshipStatus, personalName,
+                displayName, onlineStatus, notificationsEnabled, friend, validEmail,
+                theme, blockedByMe, displayAbout, complete);
     }
 
     @NonNull
@@ -321,6 +344,9 @@ public class User {
                 ", isBlocked=" + isBlocked +
                 ", friendshipStatus='" + friendshipStatus + '\'' +
                 ", personalName='" + personalName + '\'' +
+                ", displayName='" + displayName + '\'' +
+                ", theme='" + theme + '\'' +
+                ", complete=" + complete +
                 '}';
     }
 }
