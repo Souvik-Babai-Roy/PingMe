@@ -110,48 +110,28 @@ public class ChatsFragment extends Fragment {
         userChatsListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                Log.d(TAG, "User chats data changed");
+                Log.d(TAG, "User chats data changed, found " + dataSnapshot.getChildrenCount() + " chat entries");
                 
                 // Clear existing chats
                 chatList.clear();
+                adapter.notifyDataSetChanged();
                 
                 // Load active chats with messages
                 for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
                     String chatId = chatSnapshot.getKey();
+                    Log.d(TAG, "Processing chat: " + chatId + " with value: " + chatSnapshot.getValue());
                     
-                    try {
-                        // Check if the value is a boolean (indicating user participation)
-                        if (chatSnapshot.getValue() instanceof Boolean) {
-                            // This is just a boolean flag indicating the user is in this chat
-                            // We need to load the actual chat data from the chats node
-                            if (Boolean.TRUE.equals(chatSnapshot.getValue())) {
-                                loadChatFromChatsNode(chatId);
-                            }
-                            continue;
-                        }
-                        
-                        Chat chatData = chatSnapshot.getValue(Chat.class);
-                        
-                        if (chatData != null && chatId != null) {
-                            chatData.setId(chatId);
-                            
-                            // Only add chats that have messages (lastMessageTimestamp > 0)
-                            if (chatData.getLastMessageTimestamp() > 0) {
-                                // Check if chat is not deleted for current user
-                                checkChatVisibility(chatData);
-                            }
-                        }
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error processing chat data for chatId: " + chatId, e);
-                        // Try to load from chats node as fallback
-                        if (chatId != null) {
-                            loadChatFromChatsNode(chatId);
-                        }
+                    if (chatId != null) {
+                        // Always load from chats node to get complete data
+                        loadChatFromChatsNode(chatId);
                     }
                 }
                 
-                updateEmptyState(chatList.isEmpty());
-                Log.d(TAG, "Loaded " + chatList.size() + " active chats");
+                // Update empty state after processing all chats
+                new android.os.Handler().postDelayed(() -> {
+                    updateEmptyState(chatList.isEmpty());
+                    Log.d(TAG, "Final chat list size: " + chatList.size());
+                }, 1000); // Give time for async loading
             }
 
             @Override
@@ -372,11 +352,13 @@ public class ChatsFragment extends Fragment {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         if (dataSnapshot.exists()) {
-                            Boolean isOnline = dataSnapshot.child("online").getValue(Boolean.class);
+                            Boolean isOnline = dataSnapshot.child("isOnline").getValue(Boolean.class);
                             Long lastSeen = dataSnapshot.child("lastSeen").getValue(Long.class);
 
                             user.setOnline(isOnline != null ? isOnline : false);
                             user.setLastSeen(lastSeen != null ? lastSeen : 0);
+                            
+                            Log.d(TAG, "Loaded presence for " + user.getDisplayName() + " - online: " + isOnline);
                         }
                         onComplete.run();
                     }
@@ -635,20 +617,41 @@ public class ChatsFragment extends Fragment {
     private void loadChatFromChatsNode(String chatId) {
         if (chatId == null) return;
         
+        Log.d(TAG, "Loading chat data from chats node: " + chatId);
         DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference("chats").child(chatId);
         chatRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 try {
-                    Chat chatData = dataSnapshot.getValue(Chat.class);
-                    if (chatData != null) {
-                        chatData.setId(chatId);
+                    if (dataSnapshot.exists()) {
+                        Log.d(TAG, "Chat data found for " + chatId + ": " + dataSnapshot.getValue());
                         
-                        // Only add chats that have messages (lastMessageTimestamp > 0)
-                        if (chatData.getLastMessageTimestamp() > 0) {
+                        // Create Chat object manually to handle potential data issues
+                        Chat chat = new Chat();
+                        chat.setId(chatId);
+                        
+                        // Get all chat properties safely
+                        String lastMessage = dataSnapshot.child("lastMessage").getValue(String.class);
+                        Long lastMessageTimestamp = dataSnapshot.child("lastMessageTimestamp").getValue(Long.class);
+                        String lastMessageSenderId = dataSnapshot.child("lastMessageSenderId").getValue(String.class);
+                        String lastMessageType = dataSnapshot.child("lastMessageType").getValue(String.class);
+                        
+                        chat.setLastMessage(lastMessage != null ? lastMessage : "");
+                        chat.setLastMessageTimestamp(lastMessageTimestamp != null ? lastMessageTimestamp : 0);
+                        chat.setLastMessageSenderId(lastMessageSenderId != null ? lastMessageSenderId : "");
+                        chat.setLastMessageType(lastMessageType != null ? lastMessageType : "text");
+                        
+                        Log.d(TAG, "Chat " + chatId + " - lastMessage: " + lastMessage + ", timestamp: " + lastMessageTimestamp);
+                        
+                        // Show chats even if they don't have messages yet (for new conversations)
+                        if (lastMessageTimestamp != null && lastMessageTimestamp > 0) {
                             // Check if chat is not deleted for current user
-                            checkChatVisibility(chatData);
+                            checkChatVisibility(chat);
+                        } else {
+                            Log.d(TAG, "Chat " + chatId + " has no messages yet, skipping");
                         }
+                    } else {
+                        Log.w(TAG, "No chat data found for chatId: " + chatId);
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "Error loading chat from chats node for chatId: " + chatId, e);
@@ -657,7 +660,7 @@ public class ChatsFragment extends Fragment {
             
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-                Log.e(TAG, "Database error loading chat: " + databaseError.getMessage());
+                Log.e(TAG, "Database error loading chat " + chatId + ": " + databaseError.getMessage());
             }
         });
     }

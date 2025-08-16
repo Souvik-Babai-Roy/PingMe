@@ -590,21 +590,41 @@ public class FirebaseUtil {
         }
     }
 
-    // New method to trigger delivery notification
+    // New method to trigger delivery notification - only when recipient is actually online
     private static void triggerDeliveryNotification(String chatId, String messageId, String senderId) {
         // Get the other user in the chat
         String[] userIds = chatId.split("_");
         if (userIds.length == 2) {
             String receiverId = userIds[0].equals(senderId) ? userIds[1] : userIds[0];
             
-            // Update message status to delivered for the receiver
-            Map<String, Object> deliveryUpdate = new HashMap<>();
-            deliveryUpdate.put("deliveredTo/" + receiverId, System.currentTimeMillis());
-            deliveryUpdate.put("status", Message.STATUS_DELIVERED);
-            
-            getMessagesRef(chatId).child(messageId).updateChildren(deliveryUpdate)
-                    .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ DELIVERY NOTIFICATION SENT"))
-                    .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO SEND DELIVERY NOTIFICATION", e));
+            // Check if the recipient is currently online before marking as delivered
+            getPresenceRef(receiverId).addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    if (dataSnapshot.exists()) {
+                        Boolean isOnline = dataSnapshot.child("isOnline").getValue(Boolean.class);
+                        if (Boolean.TRUE.equals(isOnline)) {
+                            // Recipient is online, mark as delivered
+                            Map<String, Object> deliveryUpdate = new HashMap<>();
+                            deliveryUpdate.put("deliveredTo/" + receiverId, System.currentTimeMillis());
+                            deliveryUpdate.put("status", Message.STATUS_DELIVERED);
+                            
+                            getMessagesRef(chatId).child(messageId).updateChildren(deliveryUpdate)
+                                    .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ DELIVERY NOTIFICATION SENT (recipient online)"))
+                                    .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO SEND DELIVERY NOTIFICATION", e));
+                        } else {
+                            Log.d(TAG, "Recipient is offline, message stays as SENT until they come online");
+                        }
+                    } else {
+                        Log.d(TAG, "No presence data for recipient, message stays as SENT");
+                    }
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+                    Log.e(TAG, "Failed to check recipient online status", databaseError.toException());
+                }
+            });
         }
     }
 
@@ -759,6 +779,62 @@ public class FirebaseUtil {
         presenceData.put("lastSeen", System.currentTimeMillis());
         
         getPresenceRef(userId).setValue(presenceData);
+        
+        // When user comes online, mark pending messages as delivered
+        if (isOnline) {
+            markPendingMessagesAsDelivered(userId);
+        }
+    }
+    
+    // Mark all pending (sent but not delivered) messages as delivered when user comes online
+    private static void markPendingMessagesAsDelivered(String userId) {
+        // Get all chats where this user is a participant
+        getUserChatsRef(userId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
+                    String chatId = chatSnapshot.getKey();
+                    if (chatId != null) {
+                        // Check messages in this chat that are sent but not delivered to this user
+                        getMessagesRef(chatId).orderByChild("status").equalTo(Message.STATUS_SENT)
+                                .addListenerForSingleValueEvent(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(DataSnapshot messagesSnapshot) {
+                                        for (DataSnapshot messageSnapshot : messagesSnapshot.getChildren()) {
+                                            String messageId = messageSnapshot.getKey();
+                                            String senderId = messageSnapshot.child("senderId").getValue(String.class);
+                                            
+                                            // Only mark as delivered if message was not sent by this user
+                                            if (messageId != null && senderId != null && !senderId.equals(userId)) {
+                                                // Check if not already delivered to this user
+                                                DataSnapshot deliveredToSnapshot = messageSnapshot.child("deliveredTo").child(userId);
+                                                if (!deliveredToSnapshot.exists()) {
+                                                    // Mark as delivered
+                                                    Map<String, Object> deliveryUpdate = new HashMap<>();
+                                                    deliveryUpdate.put("deliveredTo/" + userId, System.currentTimeMillis());
+                                                    deliveryUpdate.put("status", Message.STATUS_DELIVERED);
+                                                    
+                                                    getMessagesRef(chatId).child(messageId).updateChildren(deliveryUpdate);
+                                                    Log.d(TAG, "Marked message " + messageId + " as delivered for user " + userId);
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onCancelled(DatabaseError databaseError) {
+                                        Log.e(TAG, "Failed to check pending messages", databaseError.toException());
+                                    }
+                                });
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.e(TAG, "Failed to get user chats for delivery update", databaseError.toException());
+            }
+        });
     }
 
     public static void updateUserPresence(String userId, boolean isOnline) {
