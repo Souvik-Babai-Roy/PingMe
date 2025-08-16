@@ -355,17 +355,20 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 Object item = items.get(position);
                 if (item instanceof Message) {
                     Message message = (Message) item;
-                    int deliveryStatus = message.getDeliveryStatus(currentUserId);
+                    
+                    // Use enhanced status calculation with recipient ID for accuracy
+                    String recipientId = otherUser != null ? otherUser.getId() : null;
+                    int deliveryStatus = message.getDeliveryStatus(currentUserId, recipientId);
                     
                     switch (deliveryStatus) {
                         case Message.STATUS_SENT:
-                            statusIcon.setImageResource(R.drawable.ic_sent);
+                            statusIcon.setImageResource(R.drawable.ic_sent); // Single gray tick
                             break;
                         case Message.STATUS_DELIVERED:
-                            statusIcon.setImageResource(R.drawable.ic_delivered);
+                            statusIcon.setImageResource(R.drawable.ic_delivered); // Double gray tick
                             break;
                         case Message.STATUS_READ:
-                            statusIcon.setImageResource(R.drawable.ic_read);
+                            statusIcon.setImageResource(R.drawable.ic_read); // Double blue tick
                             break;
                         default:
                             statusIcon.setImageResource(R.drawable.ic_sent);
@@ -384,16 +387,19 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 String status = message.getStatusText(currentUserId);
                 statusText.setText(status);
                 
-                int deliveryStatus = message.getDeliveryStatus(currentUserId);
+                // Use enhanced status calculation with recipient ID for accuracy
+                String recipientId = otherUser != null ? otherUser.getId() : null;
+                int deliveryStatus = message.getDeliveryStatus(currentUserId, recipientId);
+                
                 switch (deliveryStatus) {
                     case Message.STATUS_SENT:
-                        statusText.setTextColor(context.getResources().getColor(R.color.status_sent));
+                        statusText.setTextColor(context.getResources().getColor(R.color.status_sent)); // Gray
                         break;
                     case Message.STATUS_DELIVERED:
-                        statusText.setTextColor(context.getResources().getColor(R.color.status_delivered));
+                        statusText.setTextColor(context.getResources().getColor(R.color.status_delivered)); // Gray
                         break;
                     case Message.STATUS_READ:
-                        statusText.setTextColor(context.getResources().getColor(R.color.status_read));
+                        statusText.setTextColor(context.getResources().getColor(R.color.status_read)); // Blue
                         break;
                     default:
                         statusText.setTextColor(context.getResources().getColor(R.color.status_sent));

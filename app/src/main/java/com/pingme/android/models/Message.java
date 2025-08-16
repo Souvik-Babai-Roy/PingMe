@@ -369,16 +369,69 @@ public class Message {
 
     public int getDeliveryStatus(String currentUserId) {
         if (isSentByCurrentUser(currentUserId)) {
-            // For sent messages, check if delivered and read
-            if (readBy != null && !readBy.isEmpty()) {
-                return STATUS_READ; // Blue double tick
-            } else if (deliveredTo != null && !deliveredTo.isEmpty()) {
-                return STATUS_DELIVERED; // Double tick
+            // For sent messages, determine status based on recipient's interaction
+            // Get the other user ID from the message context
+            String recipientId = getRecipientId(currentUserId);
+            
+            if (recipientId != null) {
+                // Check if read by the specific recipient
+                if (readBy != null && readBy.containsKey(recipientId)) {
+                    return STATUS_READ; // Blue double tick - message was read
+                }
+                // Check if delivered to the specific recipient  
+                else if (deliveredTo != null && deliveredTo.containsKey(recipientId)) {
+                    return STATUS_DELIVERED; // Gray double tick - message was delivered
+                }
+                // Otherwise, message is only sent
+                else {
+                    return STATUS_SENT; // Single gray tick - message sent but not delivered yet
+                }
             } else {
-                return STATUS_SENT; // Single tick
+                // Fallback to general status checking (for group chats or when recipient ID is unclear)
+                if (readBy != null && !readBy.isEmpty()) {
+                    return STATUS_READ; // Blue double tick
+                } else if (deliveredTo != null && !deliveredTo.isEmpty()) {
+                    return STATUS_DELIVERED; // Double tick
+                } else {
+                    return STATUS_SENT; // Single tick
+                }
             }
         }
         return status; // For received messages, return original status
+    }
+    
+    // Enhanced method that accepts recipient ID for accurate status calculation
+    public int getDeliveryStatus(String currentUserId, String recipientId) {
+        if (isSentByCurrentUser(currentUserId)) {
+            // For sent messages, check status for the specific recipient
+            if (recipientId != null) {
+                // Check if read by the specific recipient
+                if (readBy != null && readBy.containsKey(recipientId)) {
+                    return STATUS_READ; // Blue double tick - message was read
+                }
+                // Check if delivered to the specific recipient  
+                else if (deliveredTo != null && deliveredTo.containsKey(recipientId)) {
+                    return STATUS_DELIVERED; // Gray double tick - message was delivered
+                }
+                // Otherwise, message is only sent
+                else {
+                    return STATUS_SENT; // Single gray tick - message sent but not delivered yet
+                }
+            } else {
+                // Fallback to general method
+                return getDeliveryStatus(currentUserId);
+            }
+        }
+        return status; // For received messages, return original status
+    }
+    
+    // Helper method to determine recipient ID for one-on-one chats
+    private String getRecipientId(String currentUserId) {
+        // In a one-on-one chat, the recipient is the other user
+        // This would typically be determined from the chat context
+        // For now, return null - this should be enhanced to get the actual recipient
+        // In a full implementation, you'd pass the chat participant IDs or get them from chat context
+        return null; // TODO: Implement proper recipient ID detection
     }
 
     public String getStatusText(String currentUserId) {
