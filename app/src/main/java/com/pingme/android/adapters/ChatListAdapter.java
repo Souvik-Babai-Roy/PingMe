@@ -101,6 +101,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
         TextView tvLastMessage;
         TextView tvTime;
         TextView tvUnreadCount;
+        ImageView ivMessageStatus;
 
         public ChatViewHolder(View itemView) {
             super(itemView);
@@ -110,6 +111,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             tvLastMessage = itemView.findViewById(R.id.tvLastMessage);
             tvTime = itemView.findViewById(R.id.tvTime);
             tvUnreadCount = itemView.findViewById(R.id.tvUnreadCount);
+            ivMessageStatus = itemView.findViewById(R.id.ivMessageStatus);
         }
 
         public void bind(Chat chat) {
@@ -165,6 +167,15 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                 tvUnreadCount.setText(unreadText);
             } else {
                 tvUnreadCount.setVisibility(View.GONE);
+            }
+
+            // Show message status for sent messages
+            if (chat.getLastMessageSenderId() != null && chat.getLastMessageSenderId().equals(currentUserId)) {
+                ivMessageStatus.setVisibility(View.VISIBLE);
+                // For now, use a simple status - in a real implementation, you'd check the actual message status
+                ivMessageStatus.setImageResource(R.drawable.ic_delivered);
+            } else {
+                ivMessageStatus.setVisibility(View.GONE);
             }
 
             // FIXED: Typing indicator with proper styling

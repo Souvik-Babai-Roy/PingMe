@@ -179,7 +179,7 @@ public class User {
         return imageUrl != null && !imageUrl.trim().isEmpty() && profilePhotoEnabled;
     }
 
-    public String getDisplayName() {
+    public String getDisplayNameForUser() {
         // Priority: displayName field > personal name > name > phone number > email username
         if (displayName != null && !displayName.trim().isEmpty()) {
             return displayName;
@@ -193,7 +193,7 @@ public class User {
         return "Unknown User";
     }
 
-    public String getDisplayAbout() {
+    public String getDisplayAboutForUser() {
         return aboutEnabled ? getAbout() : "";
     }
 
@@ -209,7 +209,7 @@ public class User {
         return readReceiptsEnabled;
     }
 
-    public String getOnlineStatus() {
+    public String getOnlineStatusForUser() {
         if (!lastSeenEnabled) {
             return "";
         }
@@ -231,26 +231,17 @@ public class User {
         return "offline";
     }
 
-    // Friend management helper methods
-    public boolean isFriend() {
-        return friend || "friend".equals(friendshipStatus);
-    }
-
-    public boolean isBlockedByMe() {
-        return blockedByMe || "blocked".equals(friendshipStatus);
-    }
-
     public boolean canBeAdded() {
         return "none".equals(friendshipStatus);
     }
 
     // Validation methods
-    public boolean isValidEmail() {
+    public boolean isEmailValid() {
         return validEmail && email != null && email.contains("@") && email.contains(".");
     }
 
-    public boolean isComplete() {
-        return complete || (name != null && !name.trim().isEmpty() && isValidEmail());
+    public boolean isProfileComplete() {
+        return complete || (name != null && !name.trim().isEmpty() && isEmailValid());
     }
 
     // Copy
