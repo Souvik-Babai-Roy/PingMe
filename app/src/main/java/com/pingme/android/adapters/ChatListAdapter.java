@@ -142,6 +142,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
             }
 
             // FIXED: Show online indicator respecting user's last seen privacy settings
+            // Only show online status if the user has enabled "last seen" privacy AND they are actually online
             if (otherUser.isLastSeenEnabled() && otherUser.isOnline()) {
                 onlineIndicator.setVisibility(View.VISIBLE);
             } else {

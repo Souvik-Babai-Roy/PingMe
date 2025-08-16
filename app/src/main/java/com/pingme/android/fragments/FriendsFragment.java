@@ -124,23 +124,47 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
                                 friend.setPersonalName(personalName);
                             }
                             
-                            friendsList.add(friend);
+                            // FIXED: Check for duplicates before adding
+                            boolean alreadyExists = false;
+                            for (User existingFriend : friendsList) {
+                                if (existingFriend.getId().equals(friendId)) {
+                                    alreadyExists = true;
+                                    break;
+                                }
+                            }
                             
-                            // Check if all friends are loaded by getting the total count
-                            friendDoc.getReference().getParent().get()
-                                .addOnSuccessListener(querySnapshot -> {
-                                    if (friendsList.size() == querySnapshot.size()) {
-                                        // Sort friends by display name (personal name or regular name)
-                                        friendsList.sort((f1, f2) -> f1.getDisplayName().compareToIgnoreCase(f2.getDisplayName()));
-                                        
-                                        // Initially show all friends
-                                        filteredFriendsList.clear();
-                                        filteredFriendsList.addAll(friendsList);
-                                        
-                                        showLoading(false);
-                                        updateUI();
-                                    }
+                            if (!alreadyExists) {
+                                // Load presence data respecting privacy settings
+                                loadFriendPresence(friend, () -> {
+                                    friendsList.add(friend);
+                                    Log.d(TAG, "Added friend: " + friend.getDisplayName() + " (Online: " + friend.isOnline() + ", Last seen enabled: " + friend.isLastSeenEnabled() + ")");
+                                    
+                                    // Check if all friends are loaded by getting the total count
+                                    friendDoc.getReference().getParent().get()
+                                        .addOnSuccessListener(querySnapshot -> {
+                                            if (friendsList.size() == querySnapshot.size()) {
+                                                // Sort friends by display name (personal name or regular name)
+                                                friendsList.sort((f1, f2) -> f1.getDisplayName().compareToIgnoreCase(f2.getDisplayName()));
+                                                
+                                                // Initially show all friends
+                                                filteredFriendsList.clear();
+                                                filteredFriendsList.addAll(friendsList);
+                                                
+                                                showLoading(false);
+                                                updateUI();
+                                            }
+                                        });
                                 });
+                            } else {
+                                // Check if all friends are loaded (for duplicate case)
+                                friendDoc.getReference().getParent().get()
+                                    .addOnSuccessListener(querySnapshot -> {
+                                        if (friendsList.size() == querySnapshot.size()) {
+                                            showLoading(false);
+                                            updateUI();
+                                        }
+                                    });
+                            }
                         }
                     }
                 })
@@ -174,6 +198,29 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
         
         friendsAdapter.notifyDataSetChanged();
         updateUI();
+    }
+
+    private void loadFriendPresence(User friend, Runnable onComplete) {
+        FirebaseUtil.getRealtimePresenceRef(friend.getId())
+                .addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.exists()) {
+                            Boolean isOnline = dataSnapshot.child("isOnline").getValue(Boolean.class);
+                            Long lastSeen = dataSnapshot.child("lastSeen").getValue(Long.class);
+
+                            friend.setOnline(isOnline != null ? isOnline : false);
+                            friend.setLastSeen(lastSeen != null ? lastSeen : 0);
+                        }
+                        onComplete.run();
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull com.google.firebase.database.DatabaseError databaseError) {
+                        Log.e(TAG, "Failed to load friend presence", databaseError.toException());
+                        onComplete.run();
+                    }
+                });
     }
 
     private void updateUI() {
