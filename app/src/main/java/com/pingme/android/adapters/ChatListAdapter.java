@@ -170,11 +170,14 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
                 tvUnreadCount.setVisibility(View.GONE);
             }
 
-            // Show message status for sent messages
+            // Show message status for sent messages with actual status from database
             if (chat.getLastMessageSenderId() != null && chat.getLastMessageSenderId().equals(currentUserId)) {
                 ivMessageStatus.setVisibility(View.VISIBLE);
-                // For now, use a simple status - in a real implementation, you'd check the actual message status
-                ivMessageStatus.setImageResource(R.drawable.ic_delivered);
+                
+                // Get the actual message status - this should be enhanced to fetch from the actual last message
+                // For now, we'll use a placeholder that shows the general status pattern
+                // In a real implementation, you'd fetch the actual last message status from Firebase
+                setMessageStatusIcon(ivMessageStatus, chat);
             } else {
                 ivMessageStatus.setVisibility(View.GONE);
             }
@@ -381,6 +384,70 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatVi
         private User getFriendFromChat(Chat chat) {
             // Get the friend user from the chat (the other user)
             return chat.getOtherUser();
+        }
+
+        private void setMessageStatusIcon(ImageView statusIcon, Chat chat) {
+            // Fetch the actual last message status from Firebase Realtime Database
+            if (chat.getLastMessageId() != null && !chat.getLastMessageId().isEmpty()) {
+                FirebaseUtil.getMessagesRef(chat.getId()).child(chat.getLastMessageId())
+                        .addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+                    @Override
+                    public void onDataChange(com.google.firebase.database.DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.exists()) {
+                            // Get message data
+                            Integer status = dataSnapshot.child("status").getValue(Integer.class);
+                            com.google.firebase.database.DataSnapshot deliveredTo = dataSnapshot.child("deliveredTo");
+                            com.google.firebase.database.DataSnapshot readBy = dataSnapshot.child("readBy");
+                            
+                            // Determine the actual status based on the message data
+                            int actualStatus = com.pingme.android.models.Message.STATUS_SENT; // Default
+                            
+                            if (status != null) {
+                                // Check if message has been read (blue ticks)
+                                if (readBy.hasChildren()) {
+                                    actualStatus = com.pingme.android.models.Message.STATUS_READ;
+                                }
+                                // Check if message has been delivered (gray double ticks)
+                                else if (deliveredTo.hasChildren()) {
+                                    actualStatus = com.pingme.android.models.Message.STATUS_DELIVERED;
+                                }
+                                // Otherwise, message is just sent (gray single tick)
+                                else {
+                                    actualStatus = com.pingme.android.models.Message.STATUS_SENT;
+                                }
+                            }
+                            
+                            // Set the appropriate icon based on actual status
+                            switch (actualStatus) {
+                                case com.pingme.android.models.Message.STATUS_SENT:
+                                    statusIcon.setImageResource(R.drawable.ic_sent); // Single gray tick
+                                    break;
+                                case com.pingme.android.models.Message.STATUS_DELIVERED:
+                                    statusIcon.setImageResource(R.drawable.ic_delivered); // Double gray tick
+                                    break;
+                                case com.pingme.android.models.Message.STATUS_READ:
+                                    statusIcon.setImageResource(R.drawable.ic_read); // Double blue tick
+                                    break;
+                                default:
+                                    statusIcon.setImageResource(R.drawable.ic_sent);
+                                    break;
+                            }
+                        } else {
+                            // Fallback if message not found
+                            statusIcon.setImageResource(R.drawable.ic_sent);
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(com.google.firebase.database.DatabaseError databaseError) {
+                        // Error handling - show default status
+                        statusIcon.setImageResource(R.drawable.ic_sent);
+                    }
+                });
+            } else {
+                // No last message ID available, show default
+                statusIcon.setImageResource(R.drawable.ic_sent);
+            }
         }
     }
 }

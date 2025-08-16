@@ -590,7 +590,7 @@ public class FirebaseUtil {
         }
     }
 
-    // New method to trigger delivery notification - only when recipient is actually online
+    // Enhanced method to trigger delivery notification - WhatsApp-like behavior
     private static void triggerDeliveryNotification(String chatId, String messageId, String senderId) {
         // Get the other user in the chat
         String[] userIds = chatId.split("_");
@@ -604,25 +604,25 @@ public class FirebaseUtil {
                     if (dataSnapshot.exists()) {
                         Boolean isOnline = dataSnapshot.child("isOnline").getValue(Boolean.class);
                         if (Boolean.TRUE.equals(isOnline)) {
-                            // Recipient is online, mark as delivered
+                            // Recipient is online, mark as delivered immediately
                             Map<String, Object> deliveryUpdate = new HashMap<>();
                             deliveryUpdate.put("deliveredTo/" + receiverId, System.currentTimeMillis());
                             deliveryUpdate.put("status", Message.STATUS_DELIVERED);
                             
                             getMessagesRef(chatId).child(messageId).updateChildren(deliveryUpdate)
-                                    .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ DELIVERY NOTIFICATION SENT (recipient online)"))
+                                    .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ DELIVERY NOTIFICATION SENT (recipient online): " + messageId))
                                     .addOnFailureListener(e -> Log.e(TAG, "❌ FAILED TO SEND DELIVERY NOTIFICATION", e));
                         } else {
-                            Log.d(TAG, "Recipient is offline, message stays as SENT until they come online");
+                            Log.d(TAG, "Recipient offline - message " + messageId + " stays as SENT until they come online");
                         }
                     } else {
-                        Log.d(TAG, "No presence data for recipient, message stays as SENT");
+                        Log.d(TAG, "No presence data for recipient, message " + messageId + " stays as SENT");
                     }
                 }
 
                 @Override
                 public void onCancelled(DatabaseError databaseError) {
-                    Log.e(TAG, "Failed to check recipient online status", databaseError.toException());
+                    Log.e(TAG, "Failed to check recipient online status for message: " + messageId, databaseError.toException());
                 }
             });
         }
@@ -773,21 +773,39 @@ public class FirebaseUtil {
 
     // ===== PRESENCE & TYPING =====
 
+    // Enhanced presence system with automatic disconnect detection
     public static void updatePresence(String userId, boolean isOnline) {
         Map<String, Object> presenceData = new HashMap<>();
         presenceData.put("isOnline", isOnline);
         presenceData.put("lastSeen", System.currentTimeMillis());
         
-        getPresenceRef(userId).setValue(presenceData);
+        DatabaseReference presenceRef = getPresenceRef(userId);
         
-        // When user comes online, mark pending messages as delivered
         if (isOnline) {
+            // Set user as online
+            presenceRef.setValue(presenceData);
+            
+            // Set up automatic offline detection using Firebase's onDisconnect
+            Map<String, Object> offlineData = new HashMap<>();
+            offlineData.put("isOnline", false);
+            offlineData.put("lastSeen", System.currentTimeMillis());
+            presenceRef.onDisconnect().updateChildren(offlineData);
+            
+            // When user comes online, mark pending messages as delivered
             markPendingMessagesAsDelivered(userId);
+            
+            Log.d(TAG, "User " + userId + " set to ONLINE with auto-disconnect setup");
+        } else {
+            // Set user as offline
+            presenceRef.setValue(presenceData);
+            Log.d(TAG, "User " + userId + " set to OFFLINE");
         }
     }
     
-    // Mark all pending (sent but not delivered) messages as delivered when user comes online
+    // Mark all pending (sent but not delivered) messages as delivered when user comes online - WhatsApp-like behavior
     private static void markPendingMessagesAsDelivered(String userId) {
+        Log.d(TAG, "Marking pending messages as delivered for user coming online: " + userId);
+        
         // Get all chats where this user is a participant
         getUserChatsRef(userId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -796,34 +814,48 @@ public class FirebaseUtil {
                     String chatId = chatSnapshot.getKey();
                     if (chatId != null) {
                         // Check messages in this chat that are sent but not delivered to this user
-                        getMessagesRef(chatId).orderByChild("status").equalTo(Message.STATUS_SENT)
+                        getMessagesRef(chatId).orderByChild("timestamp")
                                 .addListenerForSingleValueEvent(new ValueEventListener() {
                                     @Override
                                     public void onDataChange(DataSnapshot messagesSnapshot) {
+                                        Map<String, Object> batchUpdates = new HashMap<>();
+                                        int pendingCount = 0;
+                                        
                                         for (DataSnapshot messageSnapshot : messagesSnapshot.getChildren()) {
                                             String messageId = messageSnapshot.getKey();
                                             String senderId = messageSnapshot.child("senderId").getValue(String.class);
+                                            Integer status = messageSnapshot.child("status").getValue(Integer.class);
                                             
-                                            // Only mark as delivered if message was not sent by this user
-                                            if (messageId != null && senderId != null && !senderId.equals(userId)) {
-                                                // Check if not already delivered to this user
+                                            // Only process messages:
+                                            // 1. That have a valid message ID and sender
+                                            // 2. That were not sent by this user (only mark received messages as delivered)
+                                            // 3. That are currently in SENT status (not already delivered/read)
+                                            // 4. That haven't been delivered to this user yet
+                                            if (messageId != null && senderId != null && !senderId.equals(userId) &&
+                                                status != null && status == Message.STATUS_SENT) {
+                                                
                                                 DataSnapshot deliveredToSnapshot = messageSnapshot.child("deliveredTo").child(userId);
                                                 if (!deliveredToSnapshot.exists()) {
-                                                    // Mark as delivered
-                                                    Map<String, Object> deliveryUpdate = new HashMap<>();
-                                                    deliveryUpdate.put("deliveredTo/" + userId, System.currentTimeMillis());
-                                                    deliveryUpdate.put("status", Message.STATUS_DELIVERED);
-                                                    
-                                                    getMessagesRef(chatId).child(messageId).updateChildren(deliveryUpdate);
-                                                    Log.d(TAG, "Marked message " + messageId + " as delivered for user " + userId);
+                                                    // This message is pending delivery - mark as delivered
+                                                    batchUpdates.put(messageId + "/deliveredTo/" + userId, System.currentTimeMillis());
+                                                    batchUpdates.put(messageId + "/status", Message.STATUS_DELIVERED);
+                                                    pendingCount++;
+                                                    Log.d(TAG, "Marking message " + messageId + " as delivered for user " + userId);
                                                 }
                                             }
+                                        }
+                                        
+                                        // Apply all updates in a single batch operation for efficiency
+                                        if (!batchUpdates.isEmpty()) {
+                                            getMessagesRef(chatId).updateChildren(batchUpdates)
+                                                    .addOnSuccessListener(aVoid -> Log.d(TAG, "✅ Marked " + pendingCount + " pending messages as delivered in chat " + chatId))
+                                                    .addOnFailureListener(e -> Log.e(TAG, "❌ Failed to mark pending messages as delivered in chat " + chatId, e));
                                         }
                                     }
 
                                     @Override
                                     public void onCancelled(DatabaseError databaseError) {
-                                        Log.e(TAG, "Failed to check pending messages", databaseError.toException());
+                                        Log.e(TAG, "Failed to check pending messages in chat " + chatId, databaseError.toException());
                                     }
                                 });
                     }
@@ -832,7 +864,7 @@ public class FirebaseUtil {
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                Log.e(TAG, "Failed to get user chats for delivery update", databaseError.toException());
+                Log.e(TAG, "Failed to get user chats for pending message delivery", databaseError.toException());
             }
         });
     }

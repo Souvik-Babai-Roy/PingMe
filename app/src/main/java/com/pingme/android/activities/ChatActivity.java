@@ -478,10 +478,10 @@ public class ChatActivity extends AppCompatActivity {
                                 Log.d(TAG, "Message filtered - sender is blocked");
                                 return;
                             }
-                            processIncomingMessage(message);
+                            addMessage(message);
                         });
                     } else {
-                        processIncomingMessage(message);
+                        addMessage(message);
                     }
                 } else {
                     Log.w(TAG, "❌ Failed to parse message from: " + dataSnapshot.getKey());
@@ -535,8 +535,8 @@ public class ChatActivity extends AppCompatActivity {
         FirebaseUtil.getMessagesRef(chatId).addChildEventListener(messageListener);
     }
 
-    private void processIncomingMessage(Message message) {
-        // Check if message already exists
+    private void addMessage(Message message) {
+        // Check if message already exists in list (prevent duplicates)
         boolean messageExists = false;
         for (Message existingMessage : messages) {
             if (existingMessage.getId().equals(message.getId())) {
@@ -551,10 +551,11 @@ public class ChatActivity extends AppCompatActivity {
 
             FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
             if (firebaseUser != null && !message.getSenderId().equals(firebaseUser.getUid())) {
-                // Mark message as delivered immediately when received
+                // Mark message as delivered immediately when received (this is correct WhatsApp behavior)
                 FirebaseUtil.markMessageAsDelivered(chatId, message.getId(), firebaseUser.getUid());
                 
-                // Mark as read if chat is active and user is viewing
+                // Only mark as read if chat is actively open and user is viewing
+                // This ensures read receipts only trigger when user actually sees the message
                 if (isChatActive()) {
                     FirebaseUtil.markMessageAsRead(chatId, message.getId(), firebaseUser.getUid());
                 }
@@ -564,6 +565,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private boolean isChatActive() {
         // Check if the chat activity is in foreground and user is actively viewing
+        // This ensures read receipts only trigger when user is actually looking at the chat
         return !isFinishing() && !isDestroyed() && hasWindowFocus();
     }
 
