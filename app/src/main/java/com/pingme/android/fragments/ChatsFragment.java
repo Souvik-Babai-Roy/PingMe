@@ -188,12 +188,19 @@ public class ChatsFragment extends Fragment {
                             otherUser.setId(otherUserId);
                             chat.setOtherUser(otherUser);
                             
-                            // Add chat to list and sort
-                            chatList.add(chat);
-                            Collections.sort(chatList, (c1, c2) -> Long.compare(c2.getLastMessageTimestamp(), c1.getLastMessageTimestamp()));
-                            
-                            adapter.notifyDataSetChanged();
-                            updateEmptyState(chatList.isEmpty());
+                            // Load user presence and then add to list
+                            loadUserPresence(otherUser, () -> {
+                                // Add chat to list and sort
+                                chatList.add(chat);
+                                Collections.sort(chatList, (c1, c2) -> Long.compare(c2.getLastMessageTimestamp(), c1.getLastMessageTimestamp()));
+                                
+                                // FIXED: Update adapter properly
+                                if (adapter != null) {
+                                    adapter.updateChats(chatList);
+                                    Log.d(TAG, "✅ Chat added to UI: " + chat.getId() + " with user: " + otherUser.getDisplayName());
+                                }
+                                updateEmptyState(chatList.isEmpty());
+                            });
                         }
                     }
                 })

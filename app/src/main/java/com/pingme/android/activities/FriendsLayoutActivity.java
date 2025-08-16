@@ -17,12 +17,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
+import androidx.annotation.NonNull;
 import com.pingme.android.R;
 import com.pingme.android.adapters.FriendsLayoutAdapter;
 import com.pingme.android.databinding.ActivityFriendsLayoutBinding;
 import com.pingme.android.models.User;
 import com.pingme.android.utils.FirebaseUtil;
 import com.pingme.android.utils.PersonalNameDialog;
+import com.google.android.material.tabs.TabLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +38,7 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
     private List<User> friendsList = new ArrayList<>();
     private List<User> filteredFriendsList = new ArrayList<>();
     private boolean isSearchMode = false;
+    private int currentTab = 0; // 0: All Friends, 1: Online Friends, 2: Recent Contacts
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +58,7 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
         setupRecyclerView();
         setupSearchFunctionality();
         setupAddFriendButton();
+        setupTabs();
         loadFriends();
     }
 
@@ -97,6 +101,22 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
         });
     }
 
+    private void setupTabs() {
+        binding.tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                currentTab = tab.getPosition();
+                filterFriendsByTab();
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {}
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {}
+        });
+    }
+
     private void loadFriends() {
         showLoading(true);
         
@@ -123,8 +143,11 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
                                             friend.setPersonalName(personalName);
                                             friend.setFriendshipStatus("friend");
                                             
-                                            friendsList.add(friend);
-                                            filterFriends(binding.searchEditText.getText().toString());
+                                            // Load presence data respecting privacy settings
+                                            loadFriendPresence(friend, () -> {
+                                                friendsList.add(friend);
+                                                filterFriends(binding.searchEditText.getText().toString());
+                                            });
                                         }
                                     }
                                 })
@@ -143,23 +166,77 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
     }
 
     private void filterFriends(String query) {
-        filteredFriendsList.clear();
+        isSearchMode = !query.isEmpty();
         
+        // First filter by tab
+        List<User> tabFilteredList = new ArrayList<>();
+        switch (currentTab) {
+            case 0: // All Friends
+                tabFilteredList.addAll(friendsList);
+                break;
+            case 1: // Online Friends (respecting privacy settings)
+                for (User friend : friendsList) {
+                    if (friend.isLastSeenEnabled() && friend.isOnline()) {
+                        tabFilteredList.add(friend);
+                    }
+                }
+                break;
+            case 2: // Recent Contacts (for now, same as all friends)
+                tabFilteredList.addAll(friendsList);
+                break;
+        }
+        
+        // Then filter by search query
+        filteredFriendsList.clear();
         if (query.isEmpty()) {
-            filteredFriendsList.addAll(friendsList);
+            filteredFriendsList.addAll(tabFilteredList);
         } else {
             String lowerQuery = query.toLowerCase();
-            for (User friend : friendsList) {
+            for (User friend : tabFilteredList) {
                 String displayName = friend.getPersonalName() != null && !friend.getPersonalName().isEmpty() 
                     ? friend.getPersonalName() 
                     : friend.getName();
                     
-
+                if (displayName != null && displayName.toLowerCase().contains(lowerQuery) ||
+                    (friend.getEmail() != null && friend.getEmail().toLowerCase().contains(lowerQuery))) {
+                    filteredFriendsList.add(friend);
+                }
             }
         }
         
         friendsAdapter.notifyDataSetChanged();
         updateEmptyState();
+    }
+
+    private void filterFriendsByTab() {
+        // Apply tab filtering with current search query
+        String currentQuery = binding.searchEditText.getText().toString();
+        filterFriends(currentQuery);
+    }
+
+    private void loadFriendPresence(User friend, Runnable onComplete) {
+        FirebaseUtil.getRealtimePresenceRef(friend.getId())
+                .addListenerForSingleValueEvent(new com.google.firebase.database.ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot dataSnapshot) {
+                        if (dataSnapshot.exists()) {
+                            Boolean isOnline = dataSnapshot.child("isOnline").getValue(Boolean.class);
+                            Long lastSeen = dataSnapshot.child("lastSeen").getValue(Long.class);
+
+                            friend.setOnline(isOnline != null ? isOnline : false);
+                            friend.setLastSeen(lastSeen != null ? lastSeen : 0);
+                            
+                            Log.d(TAG, "Loaded presence for " + friend.getDisplayName() + " - online: " + isOnline + ", lastSeenEnabled: " + friend.isLastSeenEnabled());
+                        }
+                        onComplete.run();
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull com.google.firebase.database.DatabaseError databaseError) {
+                        Log.e(TAG, "Failed to load friend presence", databaseError.toException());
+                        onComplete.run();
+                    }
+                });
     }
 
     private void updateEmptyState() {
