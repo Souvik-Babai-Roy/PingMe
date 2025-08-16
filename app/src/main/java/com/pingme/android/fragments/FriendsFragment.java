@@ -209,8 +209,16 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
                             Boolean isOnline = dataSnapshot.child("isOnline").getValue(Boolean.class);
                             Long lastSeen = dataSnapshot.child("lastSeen").getValue(Long.class);
 
+                            // FIXED: Only update presence-related fields, preserve privacy settings from Firestore
                             friend.setOnline(isOnline != null ? isOnline : false);
                             friend.setLastSeen(lastSeen != null ? lastSeen : 0);
+                            
+                            Log.d(TAG, "Loaded presence for " + friend.getDisplayName() + " - online: " + isOnline + ", lastSeenEnabled: " + friend.isLastSeenEnabled());
+                        } else {
+                            // User has no presence data, set as offline
+                            friend.setOnline(false);
+                            friend.setLastSeen(0);
+                            Log.d(TAG, "No presence data for " + friend.getDisplayName() + " - setting as offline, lastSeenEnabled: " + friend.isLastSeenEnabled());
                         }
                         onComplete.run();
                     }
@@ -218,6 +226,9 @@ public class FriendsFragment extends Fragment implements FriendsAdapter.OnFriend
                     @Override
                     public void onCancelled(@NonNull com.google.firebase.database.DatabaseError databaseError) {
                         Log.e(TAG, "Failed to load friend presence", databaseError.toException());
+                        // Set as offline on error
+                        friend.setOnline(false);
+                        friend.setLastSeen(0);
                         onComplete.run();
                     }
                 });

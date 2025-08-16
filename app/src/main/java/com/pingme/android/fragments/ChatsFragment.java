@@ -114,7 +114,15 @@ public class ChatsFragment extends Fragment {
                 
                 // Clear existing chats
                 chatList.clear();
-                adapter.notifyDataSetChanged();
+                if (adapter != null) {
+                    adapter.updateChats(chatList);
+                }
+                
+                if (!dataSnapshot.exists() || dataSnapshot.getChildrenCount() == 0) {
+                    Log.d(TAG, "No chats found for user");
+                    updateEmptyState(true);
+                    return;
+                }
                 
                 // Load active chats with messages
                 for (DataSnapshot chatSnapshot : dataSnapshot.getChildren()) {
@@ -126,12 +134,6 @@ public class ChatsFragment extends Fragment {
                         loadChatFromChatsNode(chatId);
                     }
                 }
-                
-                // Update empty state after processing all chats
-                new android.os.Handler().postDelayed(() -> {
-                    updateEmptyState(chatList.isEmpty());
-                    Log.d(TAG, "Final chat list size: " + chatList.size());
-                }, 1000); // Give time for async loading
             }
 
             @Override
@@ -190,15 +192,32 @@ public class ChatsFragment extends Fragment {
                             
                             // Load user presence and then add to list
                             loadUserPresence(otherUser, () -> {
-                                // Add chat to list and sort
-                                chatList.add(chat);
+                                // Check if chat is already in the list to avoid duplicates
+                                boolean chatExists = false;
+                                for (int i = 0; i < chatList.size(); i++) {
+                                    if (chatList.get(i).getId().equals(chat.getId())) {
+                                        // Update existing chat
+                                        chatList.set(i, chat);
+                                        chatExists = true;
+                                        break;
+                                    }
+                                }
+                                
+                                if (!chatExists) {
+                                    // Add new chat to list
+                                    chatList.add(chat);
+                                }
+                                
+                                // Sort by timestamp
                                 Collections.sort(chatList, (c1, c2) -> Long.compare(c2.getLastMessageTimestamp(), c1.getLastMessageTimestamp()));
                                 
-                                // FIXED: Update adapter properly
+                                // Update adapter immediately
                                 if (adapter != null) {
-                                    adapter.updateChats(chatList);
-                                    Log.d(TAG, "✅ Chat added to UI: " + chat.getId() + " with user: " + otherUser.getDisplayName());
+                                    adapter.updateChats(new ArrayList<>(chatList)); // Create a copy to avoid concurrent modification
+                                    Log.d(TAG, "✅ Chat added/updated in UI: " + chat.getId() + " with user: " + otherUser.getDisplayName());
                                 }
+                                
+                                // Update empty state
                                 updateEmptyState(chatList.isEmpty());
                             });
                         }
@@ -362,10 +381,16 @@ public class ChatsFragment extends Fragment {
                             Boolean isOnline = dataSnapshot.child("isOnline").getValue(Boolean.class);
                             Long lastSeen = dataSnapshot.child("lastSeen").getValue(Long.class);
 
+                            // FIXED: Only update presence-related fields, preserve privacy settings from Firestore
                             user.setOnline(isOnline != null ? isOnline : false);
                             user.setLastSeen(lastSeen != null ? lastSeen : 0);
                             
                             Log.d(TAG, "Loaded presence for " + user.getDisplayName() + " - online: " + isOnline);
+                        } else {
+                            // User has no presence data, set as offline
+                            user.setOnline(false);
+                            user.setLastSeen(0);
+                            Log.d(TAG, "No presence data for " + user.getDisplayName() + " - setting as offline");
                         }
                         onComplete.run();
                     }
@@ -373,6 +398,9 @@ public class ChatsFragment extends Fragment {
                     @Override
                     public void onCancelled(@NonNull DatabaseError databaseError) {
                         Log.e(TAG, "Failed to load user presence", databaseError.toException());
+                        // Set as offline on error
+                        user.setOnline(false);
+                        user.setLastSeen(0);
                         onComplete.run();
                     }
                 });

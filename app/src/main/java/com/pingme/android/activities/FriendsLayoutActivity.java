@@ -145,7 +145,20 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
                                             
                                             // Load presence data respecting privacy settings
                                             loadFriendPresence(friend, () -> {
-                                                friendsList.add(friend);
+                                                // FIXED: Check for duplicates before adding
+                                                boolean alreadyExists = false;
+                                                for (User existingFriend : friendsList) {
+                                                    if (existingFriend.getId().equals(friendId)) {
+                                                        alreadyExists = true;
+                                                        break;
+                                                    }
+                                                }
+                                                
+                                                if (!alreadyExists) {
+                                                    friendsList.add(friend);
+                                                    Log.d(TAG, "Added friend: " + friend.getDisplayName() + " (Online: " + friend.isOnline() + ", Last seen enabled: " + friend.isLastSeenEnabled() + ")");
+                                                }
+                                                
                                                 filterFriends(binding.searchEditText.getText().toString());
                                             });
                                         }
@@ -223,10 +236,16 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
                             Boolean isOnline = dataSnapshot.child("isOnline").getValue(Boolean.class);
                             Long lastSeen = dataSnapshot.child("lastSeen").getValue(Long.class);
 
+                            // FIXED: Only update presence-related fields, preserve privacy settings from Firestore
                             friend.setOnline(isOnline != null ? isOnline : false);
                             friend.setLastSeen(lastSeen != null ? lastSeen : 0);
                             
                             Log.d(TAG, "Loaded presence for " + friend.getDisplayName() + " - online: " + isOnline + ", lastSeenEnabled: " + friend.isLastSeenEnabled());
+                        } else {
+                            // User has no presence data, set as offline
+                            friend.setOnline(false);
+                            friend.setLastSeen(0);
+                            Log.d(TAG, "No presence data for " + friend.getDisplayName() + " - setting as offline, lastSeenEnabled: " + friend.isLastSeenEnabled());
                         }
                         onComplete.run();
                     }
@@ -234,6 +253,9 @@ public class FriendsLayoutActivity extends AppCompatActivity implements FriendsL
                     @Override
                     public void onCancelled(@NonNull com.google.firebase.database.DatabaseError databaseError) {
                         Log.e(TAG, "Failed to load friend presence", databaseError.toException());
+                        // Set as offline on error
+                        friend.setOnline(false);
+                        friend.setLastSeen(0);
                         onComplete.run();
                     }
                 });
