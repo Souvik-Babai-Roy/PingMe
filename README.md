@@ -2,7 +2,8 @@
 
 <div align="center">
 
-![PingMe Logo](https://via.placeholder.com/150x150/7C4DFF/FFFFFF?text=PingMe)
+<img src="https://raw.githubusercontent.com/Souvik-Babai-Roy/PingMe/main/app/src/main/res/drawable/logo.png" alt="PingMe Logo" width="520"/>
+
 
 **A feature-rich Android messaging app with real-time chat, media sharing, and privacy controls**
 
