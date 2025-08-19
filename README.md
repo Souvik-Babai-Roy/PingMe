@@ -22,7 +22,7 @@
 
 ### Latest Release
 
-**[⬇️ Download PingMe v1.0.0 APK](../../releases/latest/download/pingme-v1.0.0.apk)**
+**[⬇️ Download PingMe v1.0.0 APK](../../releases/latest/download/pingme.apk)**
 
 > **System Requirements:** Android 7.0 (API 24) or higher
 
