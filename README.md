@@ -1,5 +1,8 @@
+<div align="center">
+   
 # 📱 PingMe - Modern Chat Application
-
+   
+</div>
 <div align="center">
 
 <img src="https://raw.githubusercontent.com/Souvik-Babai-Roy/PingMe/main/app/src/main/res/drawable/logo.png" alt="PingMe Logo" width="520"/>
