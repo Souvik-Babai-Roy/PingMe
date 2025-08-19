@@ -352,21 +352,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### 🏠 Main Interface
 | Chat List | Individual Chat | Search Results |
 |-----------|----------------|----------------|
-| ![Chat List](https://via.placeholder.com/250x500/7C4DFF/FFFFFF?text=Chat+List) | ![Chat Interface](https://via.placeholder.com/250x500/7C4DFF/FFFFFF?text=Chat+Interface) | ![Search](https://via.placeholder.com/250x500/7C4DFF/FFFFFF?text=Search+Results) |
+| <img src="https://raw.githubusercontent.com/Souvik-Babai-Roy/PingMe/main/app/src/main/res/screenshots/Chatlist.jpg" width="200"/> | <img src="https://raw.githubusercontent.com/Souvik-Babai-Roy/PingMe/main/app/src/main/res/screenshots/Chat.jpg" width="200"/> | <img src="https://raw.githubusercontent.com/Souvik-Babai-Roy/PingMe/main/app/src/main/res/screenshots/Search.jpg" width="200"/> |
 
 ### 👤 Profile & Settings
-| Profile Setup | Privacy Settings | Status Updates |
-|---------------|------------------|----------------|
-| ![Profile](https://via.placeholder.com/250x500/7C4DFF/FFFFFF?text=Profile+Setup) | ![Settings](https://via.placeholder.com/250x500/7C4DFF/FFFFFF?text=Privacy+Settings) | ![Status](https://via.placeholder.com/250x500/7C4DFF/FFFFFF?text=Status+Updates) |
+| Login | Privacy Settings | Status Updates |
+|-------|------------------|----------------|
+| <img src="https://raw.githubusercontent.com/Souvik-Babai-Roy/PingMe/main/app/src/main/res/screenshots/Login.jpg" width="200"/> | <img src="https://raw.githubusercontent.com/Souvik-Babai-Roy/PingMe/main/app/src/main/res/screenshots/Settings.jpg" width="200"/> | <img src="https://raw.githubusercontent.com/Souvik-Babai-Roy/PingMe/main/app/src/main/res/screenshots/Status.jpg" width="200"/> |
 
 ### 📁 Media Sharing
-| Image Sharing | Document Sharing | Voice Messages |
-|---------------|------------------|----------------|
-| ![Images](https://via.placeholder.com/250x500/7C4DFF/FFFFFF?text=Image+Sharing) | ![Documents](https://via.placeholder.com/250x500/7C4DFF/FFFFFF?text=Document+Sharing) | ![Voice](https://via.placeholder.com/250x500/7C4DFF/FFFFFF?text=Voice+Messages) |
-
+| Image / Media Sharing |
+|------------------------|
+| <img src="https://raw.githubusercontent.com/Souvik-Babai-Roy/PingMe/main/app/src/main/res/screenshots/Attachment.jpg" width="200"/> |
 </div>
 
-> **Note**: Replace placeholder images with actual app screenshots before publishing
 
 ## 🐛 Known Issues & Limitations
 
@@ -400,7 +398,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Issues**: [GitHub Issues](../../issues)
 - **Discussions**: [GitHub Discussions](../../discussions)
-- **Email**: your-email@example.com (replace with actual contact)
+- **Email**: souvikroy733@gmail.com
 
 ## ⭐ Show Your Support
 
@@ -412,10 +410,10 @@ If you like this project, please consider:
 
 ## 📊 Project Stats
 
-![GitHub stars](https://img.shields.io/github/stars/yourusername/pingme?style=social)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/pingme?style=social)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/pingme)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/yourusername/pingme)
+![GitHub stars](https://img.shields.io/github/stars/Souvik-Babai-Roy/PingMe?style=social)
+![GitHub forks](https://img.shields.io/github/forks/Souvik-Babai-Roy/PingMe?style=social)
+![GitHub issues](https://img.shields.io/github/issues/Souvik-Babai-Roy/PingMe)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/Souvik-Babai-Roy/PingMe)
 
 ---
 
