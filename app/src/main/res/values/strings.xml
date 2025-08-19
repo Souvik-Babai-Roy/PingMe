@@ -1,0 +1,113 @@
+<resources>
+    <string name="app_name">PingMe</string>
+    <string name="login">Login</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="welcome_back">Welcome Back</string>
+    <string name="create_account">Create Account</string>
+    <string name="switch_to_signup">Don\'t have an account? Sign up</string>
+    <string name="switch_to_login">Already have an account? Login</string>
+    <string name="default_about">Hey there! I\'m using PingMe</string>
+    <string name="todo">TODO</string>
+    <string name="pingme_logo">PingMe Logo</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="reset_password">Reset Password</string>
+    <string name="reset_password_description">Enter your email address and we\'ll send you a link to reset your password.</string>
+    <string name="cancel">Cancel</string>
+    <string name="send_reset_link">Send Reset Link</string>
+
+    <!-- Chat related strings -->
+    <string name="type_a_message">Type a message</string>
+    <string name="tap_to_start_messaging">Tap to start messaging</string>
+    <string name="no_messages_yet">No messages yet</string>
+    <string name="online">online</string>
+    <string name="offline">offline</string>
+    <string name="typing">typing…</string>
+    <string name="last_seen">last seen</string>
+    <string name="just_now">just now</string>
+    <string name="today">Today</string>
+    <string name="yesterday">Yesterday</string>
+
+    <!-- Message types -->
+    <string name="image_message">📷 Image</string>
+    <string name="video_message">🎥 Video</string>
+    <string name="audio_message">🎤 Audio</string>
+    <string name="document_message">📄 Document</string>
+
+    <!-- Actions -->
+    <string name="send_media">Send Media</string>
+    <string name="select_image">Image</string>
+    <string name="select_video">Video</string>
+    <string name="select_audio">Audio</string>
+    <string name="record_audio">Record Audio</string>
+
+    <!-- Status messages -->
+    <string name="message_sent">Message sent</string>
+    <string name="message_delivered">Message delivered</string>
+    <string name="message_read">Message read</string>
+    <string name="failed_to_send">Failed to send message</string>
+    <string name="failed_to_upload_image">Failed to upload image</string>
+    <string name="failed_to_upload_video">Failed to upload video</string>
+    <string name="failed_to_upload_audio">Failed to upload audio</string>
+
+    <!-- Privacy messages -->
+    <string name="profile_photo_hidden">Profile photo hidden</string>
+    <string name="last_seen_hidden">Last seen hidden</string>
+    <string name="read_receipts_disabled">Read receipts disabled</string>
+
+    <!-- Empty states -->
+    <string name="no_chats_yet">No chats yet</string>
+
+    <!-- Time formats -->
+    <string name="time_format_12h">h:mm a</string>
+    <string name="date_format_short">MMM dd</string>
+    <string name="date_format_long">MMM dd, yyyy</string>
+    <string name="day_format">EEEE</string>
+
+    <!-- Optional theme arrays (commented out) -->
+    <!--
+    <string-array name="themes">
+        <item>Light</item>
+        <item>Dark</item>
+        <item>System Default</item>
+    </string-array>
+
+    <string-array name="theme_values">
+        <item>light</item>
+        <item>dark</item>
+        <item>system</item>
+    </string-array>
+    -->
+
+    <!-- ImageViewer Activity -->
+    <string name="back">Back</string>
+    <string name="more_options">More options</string>
+    <string name="share">Share</string>
+    <string name="save_to_gallery">Save to gallery</string>
+    <string name="forward">Forward</string>
+    <string name="loading_image">Loading image…</string>
+    <string name="failed_to_load_image">Failed to load image</string>
+    <string name="retry">Retry</string>
+    
+    <!-- Search and Friends -->
+    <string name="search_messages">Search Messages</string>
+    <string name="search_messages_hint">Search in messages...</string>
+    <string name="search">Search</string>
+    <string name="no_messages_found">No messages found</string>
+    <string name="try_different_keywords">Try different keywords</string>
+    <string name="friends">Friends</string>
+    <string name="add_friend">Add Friend</string>
+    <string name="search_friends">Search friends...</string>
+    <string name="all_friends">All Friends</string>
+    <string name="online_friends">Online</string>
+    <string name="recent_contacts">Recent</string>
+    <string name="no_friends_yet">No friends yet</string>
+    <string name="add_friends_to_start_chatting">Add friends to start chatting</string>
+    
+    <!-- Broadcast -->
+    <string name="broadcast_icon">Broadcast Icon</string>
+    <string name="create_broadcast">Create Broadcast</string>
+    <string name="broadcast_name">Broadcast Name</string>
+    <string name="create">Create</string>
+    <string name="add_status">Add Status</string>
+    
+</resources>

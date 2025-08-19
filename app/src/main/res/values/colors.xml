@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors - Modern Material Design 3 -->
+    <color name="colorPrimary">#1976D2</color>
+    <color name="colorPrimaryDark">#1565C0</color>
+    <color name="colorAccent">#2196F3</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+    <color name="colorPrimaryContainer">#E3F2FD</color>
+    <color name="colorOnPrimaryContainer">#0D47A1</color>
+
+    <!-- Secondary Colors -->
+    <color name="colorSecondary">#424242</color>
+    <color name="colorOnSecondary">#FFFFFF</color>
+    <color name="colorSecondaryContainer">#F5F5F5</color>
+    <color name="colorOnSecondaryContainer">#212121</color>
+
+    <!-- Tertiary Colors -->
+    <color name="colorTertiary">#FF6B35</color>
+    <color name="colorOnTertiary">#FFFFFF</color>
+    <color name="colorTertiaryContainer">#FFE8E0</color>
+    <color name="colorOnTertiaryContainer">#BF360C</color>
+
+    <!-- Surface Colors -->
+    <color name="colorSurface">#FFFBFE</color>
+    <color name="colorOnSurface">#1C1B1F</color>
+    <color name="colorSurfaceVariant">#E7E0EC</color>
+    <color name="colorOnSurfaceVariant">#49454F</color>
+    <color name="colorSurfaceDim">#DED8E1</color>
+    <color name="colorSurfaceBright">#FFFBFE</color>
+
+    <!-- Background Colors -->
+    <color name="background_color">#FFFBFE</color>
+    <color name="chat_background">#F7F2FA</color>
+    <color name="surface_color">#FFFBFE</color>
+
+    <!-- Text Colors - Improved for better readability -->
+    <color name="textColorPrimary">#1C1B1F</color>
+    <color name="textColorSecondary">#49454F</color>
+    <color name="textColorTertiary">#79747E</color>
+    <color name="textColorInverse">#FFFFFF</color>
+    
+    <!-- Gray Colors - Material Design 3 System -->
+    <color name="gray_light">#F4F4F5</color>
+    <color name="gray_medium">#A1A1AA</color>
+    <color name="gray_dark">#52525B</color>
+
+    <!-- Message Bubble Colors -->
+    <color name="sender_bubble">#8DEDFF</color>
+    <color name="receiver_bubble">#F3F4F6</color>
+    <color name="sender_bubble_pressed">#1565C0</color>
+    <color name="receiver_bubble_pressed">#E5E7EB</color>
+
+    <!-- Status Colors - Material Design 3 -->
+    <color name="error_red">#BA1A1A</color>
+    <color name="error_container">#FFDAD6</color>
+    <color name="success_green">#006C4C</color>
+    <color name="success_container">#89F8C7</color>
+    <color name="warning_orange">#B95000</color>
+    <color name="warning_container">#FFDBCF</color>
+    <color name="info_blue">#0061A4</color>
+    <color name="info_container">#D1E4FF</color>
+
+    <!-- Tab Colors -->
+    <color name="tab_selected">#1976D2</color>
+    <color name="tab_unselected">#79747E</color>
+    <color name="tab_indicator">#1976D2</color>
+
+    <!-- Message Status Colors -->
+    <color name="message_sent">#79747E</color>
+    <color name="message_delivered">#79747E</color>
+    <color name="message_read">#1976D2</color>
+
+    <!-- Online Status -->
+    <color name="online_status">#006C4C</color>
+    <color name="offline_status">#79747E</color>
+    <color name="typing_color">#1976D2</color>
+
+    <!-- Notification and Badge Colors -->
+    <color name="notification_badge">#1976D2</color>
+    <color name="unread_count_bg">#1976D2</color>
+    <color name="unread_normal">#1976D2</color>
+    <color name="unread_medium">#2196F3</color>
+    <color name="unread_high">#42A5F5</color>
+
+    <!-- Stroke and Border Colors -->
+    <color name="strokeColor">#CAC4D0</color>
+    <color name="stroke_light">#E7E0EC</color>
+    <color name="dividerColor">#1F1F1F1F</color>
+    <color name="outline">#79747E</color>
+    <color name="outline_variant">#CAC4D0</color>
+
+    <!-- White Variants -->
+    <color name="white">#FFFFFF</color>
+    <color name="white_70">#B3FFFFFF</color>
+    <color name="white_90">#E6FFFFFF</color>
+
+    <!-- Date Header -->
+    <color name="date_header_background">#E7E0EC</color>
+    <color name="date_header_text">#49454F</color>
+
+    <!-- Input Field Colors -->
+    <color name="input_background">#F7F2FA</color>
+    <color name="input_focused">#1976D2</color>
+    <color name="input_stroke_color">#CAC4D0</color>
+    <color name="input_hint">#79747E</color>
+
+    <!-- Shadow Colors -->
+    <color name="shadow_light">#1A000000</color>
+    <color name="shadow_medium">#33000000</color>
+    <color name="shadow_heavy">#66000000</color>
+
+    <!-- Attachment Colors -->
+    <color name="attachment_bg">#F7F2FA</color>
+    <color name="document_icon_bg">#1976D2</color>
+
+    <!-- Legacy Colors (for compatibility) -->
+    <color name="text_secondary">#49454F</color>
+    <color name="colorBackground">#FFFBFE</color>
+    <color name="backgroundColor">#FFFBFE</color>
+    <color name="textPrimary">#1C1B1F</color>
+    <color name="textSecondary">#49454F</color>
+    <color name="text_tertiary">#79747E</color>
+
+    <!-- Additional colors for new layouts -->
+    <color name="background_light">#F7F2FA</color>
+    <color name="card_background">#FFFBFE</color>
+    <color name="ripple_color">#1F1976D2</color>
+
+    <!-- Material Design 3 System Colors -->
+    <color name="md_sys_color_primary">#1976D2</color>
+    <color name="md_sys_color_on_primary">#FFFFFF</color>
+    <color name="md_sys_color_primary_container">#E3F2FD</color>
+    <color name="md_sys_color_on_primary_container">#0D47A1</color>
+    <color name="md_sys_color_secondary">#424242</color>
+    <color name="md_sys_color_on_secondary">#FFFFFF</color>
+    <color name="md_sys_color_secondary_container">#F5F5F5</color>
+    <color name="md_sys_color_on_secondary_container">#212121</color>
+    <color name="md_sys_color_tertiary">#FF6B35</color>
+    <color name="md_sys_color_on_tertiary">#FFFFFF</color>
+    <color name="md_sys_color_tertiary_container">#FFE8E0</color>
+    <color name="md_sys_color_on_tertiary_container">#BF360C</color>
+    <color name="md_sys_color_error">#BA1A1A</color>
+    <color name="md_sys_color_on_error">#FFFFFF</color>
+    <color name="md_sys_color_error_container">#FFDAD6</color>
+    <color name="md_sys_color_on_error_container">#410002</color>
+    <color name="md_sys_color_background">#FFFBFE</color>
+    <color name="md_sys_color_on_background">#1C1B1F</color>
+    <color name="md_sys_color_surface">#FFFBFE</color>
+    <color name="md_sys_color_on_surface">#1C1B1F</color>
+    <color name="md_sys_color_surface_variant">#E7E0EC</color>
+    <color name="md_sys_color_on_surface_variant">#49454F</color>
+    <color name="md_sys_color_outline">#79747E</color>
+    <color name="md_sys_color_outline_variant">#CAC4D0</color>
+    <color name="md_sys_color_inverse_surface">#313033</color>
+    <color name="md_sys_color_inverse_on_surface">#F4EFF4</color>
+    <color name="md_sys_color_inverse_primary">#D0BCFF</color>
+    <color name="md_sys_color_shadow">#000000</color>
+    <color name="md_sys_color_scrim">#000000</color>
+    <color name="md_sys_color_surface_tint">#6750A4</color>
+    <color name="md_sys_color_primary_fixed">#EADDFF</color>
+    <color name="md_sys_color_on_primary_fixed">#21005D</color>
+    <color name="md_sys_color_primary_fixed_dim">#D0BCFF</color>
+    <color name="md_sys_color_on_primary_fixed_variant">#4F378B</color>
+    <color name="md_sys_color_secondary_fixed">#E8DEF8</color>
+    <color name="md_sys_color_on_secondary_fixed">#1D192B</color>
+    <color name="md_sys_color_secondary_fixed_dim">#CCC2DC</color>
+    <color name="md_sys_color_on_secondary_fixed_variant">#4A4458</color>
+    <color name="md_sys_color_tertiary_fixed">#FFD8E4</color>
+    <color name="md_sys_color_on_tertiary_fixed">#31111D</color>
+    <color name="md_sys_color_tertiary_fixed_dim">#FFB3C8</color>
+    <color name="md_sys_color_on_tertiary_fixed_variant">#633B48</color>
+    <color name="md_sys_color_surface_dim">#DED8E1</color>
+    <color name="md_sys_color_surface_bright">#FFFBFE</color>
+    <color name="md_sys_color_surface_container_lowest">#FFFFFF</color>
+    <color name="md_sys_color_surface_container_low">#F7F2FA</color>
+    <color name="md_sys_color_surface_container">#F3EDF7</color>
+    <color name="md_sys_color_surface_container_high">#ECE6F0</color>
+    <color name="md_sys_color_surface_container_highest">#E6E0E9</color>
+    
+    <!-- Additional missing colors for Material Design 3 -->
+    <color name="colorOnBackground">#1C1B1F</color>
+    <color name="colorOnError">#FFFFFF</color>
+    <color name="colorOnErrorContainer">#410002</color>
+    
+    <!-- Missing color aliases for compatibility -->
+    <color name="date_header_bg">@color/date_header_background</color>
+    <color name="status_delivered">@color/message_delivered</color>
+    <color name="status_read">@color/message_read</color>
+    <color name="status_sent">@color/message_sent</color>
+    <color name="surface_container_low">@color/md_sys_color_surface_container_low</color>
+    
+    <!-- Additional missing colors -->
+    <color name="carbon_black">#1C1C1E</color>
+    <color name="gray">@color/gray_medium</color>
+    <color name="online_green">@color/success_green</color>
+    
+    <!-- Search highlight colors -->
+    <color name="search_highlight">#FFFF00</color>
+    <color name="search_highlight_translucent">#80FFFF00</color>
+    <color name="search_highlight_background">#80FFFF00</color>
+</resources>

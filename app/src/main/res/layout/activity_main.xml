@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background_color"
+        tools:context=".activities.MainActivity">
+
+        <!-- AppBar with Toolbar and TabLayout -->
+        <com.google.android.material.appbar.AppBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:elevation="1dp">
+
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="@color/colorPrimary"
+                app:titleTextColor="@color/colorOnPrimary"
+                app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+                app:elevation="0dp" />
+
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabLayout"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@color/colorPrimary"
+                app:tabTextColor="@color/white_70"
+                app:tabSelectedTextColor="@color/colorOnPrimary"
+                app:tabIndicatorColor="@color/colorOnPrimary"
+                app:tabIndicatorHeight="2dp"
+                app:tabMode="fixed"
+                app:tabGravity="fill"
+                app:tabTextAppearance="@style/TabTextStyle"
+                app:tabRippleColor="@color/white_70" />
+
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <!-- ViewPager2 below AppBar -->
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/viewPager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/background_color"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+        <!-- Floating Action Button -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:contentDescription="New Chat"
+            app:backgroundTint="@color/colorPrimary"
+            app:tint="@color/colorOnPrimary"
+            app:srcCompat="@drawable/ic_chat_add"
+            app:elevation="6dp"
+            app:fabSize="normal"
+            app:maxImageSize="24dp" />
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+</layout>

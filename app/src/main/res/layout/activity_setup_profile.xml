@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+    
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:background="@color/background_color"
+        android:padding="24dp">
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:minHeight="600dp">
+
+            <!-- Header Section -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginBottom="32dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Setup Your Profile"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorPrimary"
+                    android:fontFamily="sans-serif-light"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Add your details to complete the setup"
+                    android:textSize="16sp"
+                    android:textColor="@color/textColorSecondary"
+                    android:gravity="center"
+                    android:fontFamily="sans-serif"
+                    android:layout_marginBottom="16dp"/>
+
+            </LinearLayout>
+
+            <!-- Profile Setup Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/surface_color"
+                android:layout_marginBottom="32dp"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <!-- Profile Image Section -->
+                    <RelativeLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginBottom="32dp">
+
+                        <de.hdodenhof.circleimageview.CircleImageView
+                            android:id="@+id/ivProfile"
+                            android:layout_width="120dp"
+                            android:layout_height="120dp"
+                            android:src="@drawable/defaultprofile"
+                            app:civ_border_width="3dp"
+                            app:civ_border_color="@color/colorPrimary"
+                            android:background="@color/surface_container_low"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:contentDescription="Profile Image" />
+
+                        <!-- Camera Icon -->
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignEnd="@id/ivProfile"
+                            android:layout_alignBottom="@id/ivProfile"
+                            android:layout_marginEnd="8dp"
+                            android:layout_marginBottom="8dp"
+                            app:fabSize="mini"
+                            app:backgroundTint="@color/colorPrimary"
+                            app:tint="@color/colorOnPrimary"
+                            app:srcCompat="@drawable/ic_camera"
+                            app:elevation="6dp" />
+                    </RelativeLayout>
+
+                    <!-- Name Input -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        style="@style/InputFieldStyle"
+                        android:hint="Enter your name"
+                        app:startIconDrawable="@drawable/ic_person"
+                        app:startIconTint="@color/colorPrimary"
+                        app:boxBackgroundColor="@color/surface_container_low">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPersonName"
+                            android:textSize="16sp"
+                            android:textColor="@color/textColorPrimary"
+                            android:fontFamily="sans-serif"
+                            android:padding="16dp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Email Input (Read-only) -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        style="@style/InputFieldStyle"
+                        android:hint="Email address"
+                        app:startIconDrawable="@drawable/ic_email"
+                        app:startIconTint="@color/outline_variant"
+                        app:boxBackgroundColor="@color/surface_container_low"
+                        app:boxStrokeColor="@color/outline_variant">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etEmail"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textEmailAddress"
+                            android:textSize="16sp"
+                            android:textColor="@color/textColorSecondary"
+                            android:fontFamily="sans-serif"
+                            android:padding="16dp"
+                            android:enabled="false" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- About Input -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="32dp"
+                        style="@style/InputFieldStyle"
+                        android:hint="About (optional)"
+                        app:startIconDrawable="@drawable/ic_info"
+                        app:startIconTint="@color/colorPrimary"
+                        app:boxBackgroundColor="@color/surface_container_low"
+                        app:counterEnabled="true"
+                        app:counterMaxLength="140"
+                        app:counterTextColor="@color/textColorSecondary">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etAbout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textMultiLine"
+                            android:maxLines="3"
+                            android:maxLength="140"
+                            android:textSize="16sp"
+                            android:textColor="@color/textColorPrimary"
+                            android:fontFamily="sans-serif"
+                            android:padding="16dp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Progress Bar -->
+                    <ProgressBar
+                        android:id="@+id/progressBar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginBottom="24dp"
+                        android:visibility="gone"
+                        android:indeterminateTint="@color/colorPrimary"
+                        style="@style/ProgressBarStyle" />
+
+                    <!-- Save Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSave"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="Save &amp; Continue"
+                        android:textColor="@color/colorOnPrimary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium"
+                        app:backgroundTint="@color/colorPrimary"
+                        android:layout_marginBottom="16dp"
+                        app:cornerRadius="16dp"
+                        app:icon="@drawable/ic_check"
+                        app:iconGravity="textStart"
+                        app:iconPadding="12dp"
+                        app:iconSize="20dp" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Skip Button -->
+            <TextView
+                android:id="@+id/tvSkip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Skip for now"
+                android:textColor="@color/textColorSecondary"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium"
+                android:padding="16dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true" />
+
+        </LinearLayout>
+    </ScrollView>
+</layout>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Popup Theme for Dark Mode -->
+    <style name="PopupMenuStyle" parent="ThemeOverlay.MaterialComponents.Dark">
+        <item name="android:textColor">@color/textColorPrimary</item>
+        <item name="android:background">@color/surface_color</item>
+    </style>
+</resources>

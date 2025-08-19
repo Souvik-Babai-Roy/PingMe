@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_color">
+
+    <!-- Search Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical"
+        android:background="@color/surface_color">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_search"
+            android:layout_marginEnd="12dp"
+            app:tint="@color/textColorTertiary" />
+
+        <EditText
+            android:id="@+id/searchEditText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Search contacts"
+            android:textSize="16sp"
+            android:background="@null"
+            android:textColor="@color/textColorPrimary"
+            android:textColorHint="@color/textColorTertiary"
+            android:fontFamily="sans-serif"
+            android:inputType="text"
+            android:imeOptions="actionSearch" />
+
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/outline_variant" />
+
+    <!-- Friends List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewFriends"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:scrollbars="none" />
+
+    <!-- Loading Indicator -->
+    <LinearLayout
+        android:id="@+id/loadingLayout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Loading contacts..."
+            android:textSize="16sp"
+            android:textColor="@color/textColorSecondary"
+            android:fontFamily="sans-serif" />
+
+    </LinearLayout>
+
+    <!-- Empty State -->
+    <LinearLayout
+        android:id="@+id/emptyStateLayout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        android:padding="32dp">
+
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/ic_people"
+            app:tint="@color/textColorTertiary"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/textNoFriends"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No contacts yet"
+            android:textSize="20sp"
+            android:textColor="@color/textColorPrimary"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Add contacts to start chatting"
+            android:textSize="14sp"
+            android:textColor="@color/textColorSecondary"
+            android:fontFamily="sans-serif"
+            android:textAlignment="center" />
+
+        <!-- Add Friend Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddFriend"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:text="Add contact"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
+            style="@style/Widget.MaterialComponents.Button"
+            android:backgroundTint="@color/colorPrimary"
+            app:cornerRadius="24dp"
+            android:layout_marginTop="16dp"
+            app:icon="@drawable/ic_person_add"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"
+            app:iconSize="18dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,0 +1,132 @@
+plugins {
+    alias(libs.plugins.android.application)
+    id 'com.google.gms.google-services'
+}
+
+// Load environment variables from .env file
+def envFile = rootProject.file('.env')
+def envProps = new Properties()
+if (envFile.exists()) {
+    envFile.withInputStream { envProps.load(it) }
+    println "✅ Loaded environment variables from .env file"
+} else {
+    // Fallback values if .env doesn't exist (for CI/CD or new developers)
+    println "⚠️  .env file not found, using fallback values"
+    envProps.setProperty('CLOUDINARY_CLOUD_NAME', 'your-cloud-name')
+    envProps.setProperty('CLOUDINARY_API_KEY', 'your-api-key')
+    envProps.setProperty('CLOUDINARY_API_SECRET', 'your-api-secret')
+    envProps.setProperty('FIREBASE_PROJECT_ID', '')
+    envProps.setProperty('FIREBASE_WEB_API_KEY', '')
+    envProps.setProperty('APP_VERSION_NAME', '1.0')
+    envProps.setProperty('APP_VERSION_CODE', '1')
+}
+
+android {
+    namespace 'com.pingme.android'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.pingme.android"
+        minSdk 24
+        targetSdk 33
+        versionCode envProps.getProperty('APP_VERSION_CODE', '1').toInteger()
+        versionName envProps.getProperty('APP_VERSION_NAME', '1.0')
+        multiDexEnabled true
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // Custom BuildConfig fields loaded from .env file
+        buildConfigField "String", "CLOUDINARY_CLOUD_NAME", "\"${envProps.getProperty('CLOUDINARY_CLOUD_NAME')}\""
+        buildConfigField "String", "CLOUDINARY_API_KEY", "\"${envProps.getProperty('CLOUDINARY_API_KEY')}\""
+        buildConfigField "String", "CLOUDINARY_API_SECRET", "\"${envProps.getProperty('CLOUDINARY_API_SECRET')}\""
+        
+        // Optional Firebase fields (if needed)
+        buildConfigField "String", "FIREBASE_PROJECT_ID", "\"${envProps.getProperty('FIREBASE_PROJECT_ID', '')}\""
+        buildConfigField "String", "FIREBASE_WEB_API_KEY", "\"${envProps.getProperty('FIREBASE_WEB_API_KEY', '')}\""
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+            shrinkResources false
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    
+
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+        dataBinding true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+}
+
+// Enable -Xlint:unchecked for more warnings
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += "-Xlint:unchecked"
+}
+
+dependencies {
+    // Core Android
+    implementation libs.appcompat
+    implementation libs.material.v1110
+    implementation libs.constraintlayout
+    implementation libs.recyclerview
+    implementation libs.viewpager2
+    implementation libs.preference
+    implementation libs.multidex
+
+    // Fragment and Navigation
+    implementation libs.fragment
+    implementation libs.androidx.navigation.fragment
+    implementation libs.navigation.ui
+
+    // Lifecycle components
+    implementation libs.androidx.lifecycle.viewmodel
+    implementation libs.androidx.lifecycle.livedata
+
+    // Data Binding runtime (fixes DataBindingComponent class not found)
+    implementation libs.androidx.databinding.runtime
+
+    // Firebase
+    implementation platform(libs.firebase.bom)
+    implementation libs.firebase.auth
+    implementation libs.firebase.firestore
+    implementation libs.firebase.messaging
+    implementation libs.firebase.database
+
+    // Cloudinary
+    implementation libs.cloudinary.android
+
+    // Google Sign-In
+    implementation libs.play.services.auth
+
+
+    // Image loading
+    implementation libs.glide
+    implementation libs.androidx.swiperefreshlayout
+    implementation libs.play.services.appsearch
+    implementation libs.lifecycle.process
+    annotationProcessor libs.glide.compiler
+
+    // Permission handling
+    implementation libs.dexter
+
+    // Testing
+    testImplementation libs.junit
+    androidTestImplementation libs.androidx.junit.v115
+    androidTestImplementation libs.androidx.espresso.core.v351
+
+    implementation libs.circleimageview
+    implementation libs.photoview
+}

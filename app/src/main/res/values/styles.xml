@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Popup Theme for Light Mode -->
+    <style name="PopupMenuStyle" parent="ThemeOverlay.MaterialComponents.Light">
+        <item name="android:textColor">@color/textColorPrimary</item>
+        <item name="android:background">@color/surface_color</item>
+    </style>
+
+    <!-- Circle Image View Style -->
+    <style name="CircleImageView">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+</resources>

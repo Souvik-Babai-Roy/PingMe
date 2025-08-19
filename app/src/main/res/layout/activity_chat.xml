@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/chat_background">
+
+        <!-- Enhanced Toolbar -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/colorPrimary"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:navigationIconTint="@color/colorOnPrimary"
+            android:clickable="true"
+            android:focusable="true"
+            app:elevation="2dp">
+
+            <LinearLayout
+                android:id="@+id/toolbarContent"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:paddingHorizontal="16dp">
+
+                <!-- Profile Image Container -->
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp">
+
+                    <!-- Online Status Indicator -->
+
+                    <de.hdodenhof.circleimageview.CircleImageView
+                        android:id="@+id/toolbar_profile_image"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/defaultprofile"
+                        app:civ_border_width="0dp" />
+
+                    <View
+                        android:id="@+id/onlineIndicator"
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:layout_gravity="bottom|end"
+                        android:layout_marginEnd="1dp"
+                        android:layout_marginBottom="1dp"
+                        android:background="@drawable/online_indicator"
+                        android:visibility="gone" />
+
+                </FrameLayout>
+
+                <!-- User Info -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvUserName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="User Name"
+                        android:textColor="@color/colorOnPrimary"
+                        android:textSize="16sp"
+                        android:textStyle="normal"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:id="@+id/tvUserStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="online"
+                        android:textColor="@color/colorOnPrimary"
+                        android:textSize="12sp"
+                        android:fontFamily="sans-serif"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+
+                <!-- More Options Button -->
+                <ImageView
+                    android:id="@+id/ivMore"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_baseline_more_vert_24"
+                    android:padding="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="@color/colorOnPrimary" />
+
+            </LinearLayout>
+
+        </com.google.android.material.appbar.MaterialToolbar>
+
+        <!-- Chat Messages -->
+
+        <!-- Enhanced Typing Indicator -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@color/chat_background"
+            android:clipToPadding="false"
+            android:padding="8dp"
+            android:scrollbars="vertical" />
+
+        <LinearLayout
+            android:id="@+id/typingIndicator"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="16dp"
+            android:background="@color/surface_container_low"
+            android:visibility="gone">
+
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/defaultprofile"
+                android:layout_marginEnd="12dp"
+                app:civ_border_width="1dp"
+                app:civ_border_color="@color/outline_variant" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="typing..."
+                android:textColor="@color/textColorSecondary"
+                android:textSize="14sp"
+                android:textStyle="italic"
+                android:fontFamily="sans-serif" />
+
+        </LinearLayout>
+
+        <!-- Enhanced Message Input Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:background="@color/surface_color"
+            android:gravity="center_vertical"
+            app:elevation="8dp">
+
+            <!-- Attach Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAttach"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:icon="@drawable/ic_attach"
+                app:iconTint="@color/colorPrimary"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                app:strokeColor="@color/outline_variant"
+                app:strokeWidth="1dp"
+                app:cornerRadius="24dp"
+                android:layout_marginEnd="12dp" />
+
+            <!-- Message Input Field -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="12dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                app:boxCornerRadiusTopStart="24dp"
+                app:boxCornerRadiusTopEnd="24dp"
+                app:boxCornerRadiusBottomStart="24dp"
+                app:boxCornerRadiusBottomEnd="24dp"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeColor="@color/outline_variant"
+                app:boxBackgroundColor="@color/surface_container_low"
+                app:hintTextColor="@color/colorPrimary">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etMessage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/type_a_message"
+                    android:maxLines="4"
+                    android:textSize="16sp"
+                    android:textColor="@color/textColorPrimary"
+                    android:padding="16dp"
+                    android:background="@android:color/transparent" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Send Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSend"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:icon="@drawable/ic_send"
+                app:iconTint="@color/colorOnPrimary"
+                android:backgroundTint="@color/colorPrimary"
+                app:cornerRadius="24dp"
+                style="@style/Widget.MaterialComponents.Button" />
+
+        </LinearLayout>
+    </LinearLayout>
+</layout>

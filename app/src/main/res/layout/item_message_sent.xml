@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:gravity="end">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:maxWidth="280dp"
+        android:gravity="end">
+
+        <!-- Enhanced Text Message -->
+
+        <!-- Enhanced Image Message -->
+        <LinearLayout
+            android:id="@+id/layoutTextMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/senderchatdrawable"
+            android:minWidth="80dp"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/tvMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif"
+                android:lineSpacingMultiplier="1.2"
+                android:text="Hello! How are you?"
+                android:textColor="@color/colorOnSurface"
+                android:textSize="16sp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="6dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="12:30 PM"
+                    android:textColor="@color/colorOnSurfaceVariant"
+                    android:textSize="12sp" />
+
+                <ImageView
+                    android:id="@+id/ivStatus"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_sent" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutImage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/senderchatdrawable"
+            android:orientation="vertical"
+            android:padding="8px"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/ivMessageImage"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:scaleType="centerCrop"
+                android:background="@color/surface_container_low"
+                android:src="@drawable/ic_image_placeholder"
+                app:cornerRadius="12dp" />
+
+            <!-- Enhanced Image Caption -->
+            <TextView
+                android:id="@+id/tvImageCaption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:layout_marginHorizontal="12dp"
+                android:textColor="@color/colorOnSurface"
+                android:textSize="14sp"
+                android:fontFamily="sans-serif"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="12dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvImageTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="12:30 PM"
+                    android:textColor="@color/colorOnSurfaceVariant"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_marginEnd="6dp" />
+
+                <ImageView
+                    android:id="@+id/ivImageStatus"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_sent" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Enhanced Document Message -->
+        <LinearLayout
+            android:id="@+id/layoutDocument"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/senderchatdrawable"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_document"
+                    app:tint="@color/colorOnPrimary"
+                    android:layout_marginEnd="12dp" />
+
+                <TextView
+                    android:id="@+id/tvDocumentName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Document.pdf"
+                    android:textColor="@color/colorOnPrimary"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvDocumentSize"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="1.2 MB"
+                android:textColor="@color/colorOnSurface"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvDocumentTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="12:30 PM"
+                    android:textColor="@color/colorOnSurfaceVariant"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_marginEnd="6dp" />
+
+                <ImageView
+                    android:id="@+id/ivDocumentStatus"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_sent" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Enhanced Video Message -->
+        <LinearLayout
+            android:id="@+id/layoutVideo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/senderchatdrawable"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/ivVideoThumbnail"
+                    android:layout_width="120dp"
+                    android:layout_height="80dp"
+                    android:src="@drawable/ic_video_placeholder"
+                    android:scaleType="centerCrop"
+                    android:layout_marginEnd="12dp" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/ivPlayButton"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/ic_play_circle"
+                        android:layout_gravity="center" />
+
+                    <TextView
+                        android:id="@+id/tvVideoDuration"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="00:30"
+                        android:textColor="@color/colorOnSurface"
+                        android:textSize="12sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:layout_marginTop="4dp"
+                        android:layout_gravity="center" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvVideoTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="12:30 PM"
+                    android:textColor="@color/colorOnSurfaceVariant"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_marginEnd="6dp" />
+
+                <ImageView
+                    android:id="@+id/ivVideoStatus"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_sent" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Enhanced Audio Message -->
+        <LinearLayout
+            android:id="@+id/layoutAudio"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/senderchatdrawable"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/ivPlayAudio"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_play_circle"
+                    app:tint="@color/colorOnPrimary"
+                    android:layout_marginEnd="12dp" />
+
+                <TextView
+                    android:id="@+id/tvAudioDuration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0:30"
+                    android:textColor="@color/colorOnPrimary"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium" />
+
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/progressAudio"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="8dp"
+                android:progress="0"
+                android:progressTint="@color/colorOnSurface" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvAudioTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="12:30 PM"
+                    android:textColor="@color/colorOnSurfaceVariant"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_marginEnd="6dp" />
+
+                <ImageView
+                    android:id="@+id/ivAudioStatus"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_sent" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>

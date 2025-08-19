@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_color">
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+        
+        <!-- My Status Section -->
+        <LinearLayout
+            android:id="@+id/layoutMyStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="18dp"
+            android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground">
+            
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+                
+                <de.hdodenhof.circleimageview.CircleImageView
+                    android:id="@+id/ivMyStatus"
+                    android:layout_width="54dp"
+                    android:layout_height="54dp"
+                    android:src="@drawable/defaultprofile"
+                    app:civ_border_width="2dp"
+                    app:civ_border_color="@color/outline_variant"/>
+                
+                <!-- Add Status Icon -->
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="bottom|end"
+                    android:src="@drawable/ic_add"
+                    android:background="@drawable/circle_background"
+                    android:backgroundTint="@color/colorPrimary"
+                    app:tint="@color/white"
+                    android:padding="3dp" />
+                    
+            </FrameLayout>
+            
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="16dp">
+                
+                <TextView
+                    android:id="@+id/textMyStatusTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="My status"
+                    android:textStyle="normal"
+                    android:textColor="@color/textColorPrimary"
+                    android:fontFamily="sans-serif-medium"
+                    android:textSize="16sp"/>
+                
+                <TextView
+                    android:id="@+id/textMyStatusSubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tap to add status update"
+                    android:textColor="@color/textColorSecondary"
+                    android:fontFamily="sans-serif"
+                    android:textSize="14sp"
+                    android:layout_marginTop="2dp"/>
+                
+                <TextView
+                    android:id="@+id/textMyStatusTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="@color/textColorTertiary"
+                    android:fontFamily="sans-serif"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp"
+                    android:visibility="gone"/>
+                    
+            </LinearLayout>
+                
+        </LinearLayout>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/outline_variant"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp" />
+
+        <!-- Recent Updates Header -->
+        <TextView
+            android:id="@+id/textRecentUpdates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Recent updates"
+            android:textColor="@color/textColorSecondary"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:padding="18dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="8dp" />
+        
+        <!-- Status List -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewStatus"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:scrollbars="none"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+        
+    </LinearLayout>
+    
+    <!-- Empty State -->
+    <LinearLayout
+        android:id="@+id/layoutEmptyState"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:padding="32dp">
+        
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/ic_person_outline"
+            app:tint="@color/textColorTertiary" />
+            
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No status updates"
+            android:textColor="@color/textColorPrimary"
+            android:textSize="20sp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginTop="16dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Status updates from your contacts will appear here"
+            android:textColor="@color/textColorSecondary"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif"
+            android:layout_marginTop="8dp"
+            android:textAlignment="center"/>
+            
+    </LinearLayout>
+    
+    <!-- Progress Bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
+</FrameLayout>

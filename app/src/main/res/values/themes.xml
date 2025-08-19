@@ -1,0 +1,234 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.PingMe" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary colors -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorOnPrimary">@color/colorOnPrimary</item>
+        <item name="colorPrimaryContainer">@color/colorPrimaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/colorOnPrimaryContainer</item>
+
+        <!-- Secondary colors -->
+        <item name="colorSecondary">@color/colorSecondary</item>
+        <item name="colorOnSecondary">@color/colorOnSecondary</item>
+        <item name="colorSecondaryContainer">@color/colorSecondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/colorOnSecondaryContainer</item>
+
+        <!-- Tertiary colors -->
+        <item name="colorTertiary">@color/colorTertiary</item>
+        <item name="colorOnTertiary">@color/colorOnTertiary</item>
+        <item name="colorTertiaryContainer">@color/colorTertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/colorOnTertiaryContainer</item>
+
+        <!-- Surface -->
+        <item name="colorSurface">@color/colorSurface</item>
+        <item name="colorOnSurface">@color/colorOnSurface</item>
+        <item name="colorSurfaceVariant">@color/colorSurfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/colorOnSurfaceVariant</item>
+        <item name="colorSurfaceDim">@color/colorSurfaceDim</item>
+        <item name="colorSurfaceBright">@color/colorSurfaceBright</item>
+
+        <!-- Background -->
+        <item name="android:windowBackground">@color/background_color</item>
+        <item name="colorBackground">@color/background_color</item>
+        <item name="colorOnBackground">@color/colorOnBackground</item>
+
+        <!-- Text -->
+        <item name="android:textColorPrimary">@color/textColorPrimary</item>
+        <item name="android:textColorSecondary">@color/textColorSecondary</item>
+        <item name="colorOnSurfaceVariant">@color/colorOnSurfaceVariant</item>
+
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/colorPrimaryDark</item>
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- Navigation bar -->
+        <item name="android:navigationBarColor">@color/background_color</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
+        
+        <!-- Menu styling -->
+        <item name="actionMenuTextColor">@color/colorOnPrimary</item>
+        <item name="actionOverflowMenuStyle">@style/OverflowMenuStyle</item>
+        
+        <!-- Action bar theme -->
+        <item name="actionBarTheme">@style/ThemeOverlay.MaterialComponents.ActionBar</item>
+
+        <!-- Material Design 3 specific attributes -->
+        <item name="colorError">@color/error_red</item>
+        <item name="colorOnError">@color/colorOnError</item>
+        <item name="colorErrorContainer">@color/error_container</item>
+        <item name="colorOnErrorContainer">@color/colorOnErrorContainer</item>
+        <item name="colorOutline">@color/outline</item>
+        <item name="colorOutlineVariant">@color/outline_variant</item>
+        <item name="colorInverseSurface">@color/md_sys_color_inverse_surface</item>
+        <item name="colorInverseOnSurface">@color/md_sys_color_inverse_on_surface</item>
+        <item name="colorInversePrimary">@color/md_sys_color_inverse_primary</item>
+        <item name="colorSurfaceTint">@color/md_sys_color_surface_tint</item>
+        <item name="colorShadow">@color/md_sys_color_shadow</item>
+        <item name="colorScrim">@color/md_sys_color_scrim</item>
+    </style>
+    
+    <!-- Light Overflow Menu Style -->
+    <style name="OverflowMenuStyle" parent="Widget.MaterialComponents.PopupMenu.Overflow">
+        <item name="android:popupBackground">@color/surface_color</item>
+        <item name="android:textColor">@color/textColorPrimary</item>
+    </style>
+
+    <style name="Theme.PingMe" parent="Base.Theme.PingMe" />
+
+    <!-- Enhanced Tab Text Style -->
+    <style name="TabTextStyle" parent="TextAppearance.Design.Tab">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="textAllCaps">false</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- Splash Theme -->
+    <style name="SplashTheme" parent="Theme.PingMe">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@color/colorPrimary</item>
+    </style>
+
+    <!-- Chat Theme -->
+    <style name="ChatTheme" parent="Theme.PingMe">
+        <item name="android:windowBackground">@color/chat_background</item>
+    </style>
+
+    <!-- Image Viewer Theme -->
+    <style name="ImageViewerTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <!-- Enhanced Primary Button -->
+    <style name="PrimaryButton" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/colorPrimary</item>
+        <item name="android:textColor">@color/colorOnPrimary</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="elevation">2dp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- Enhanced Secondary Button -->
+    <style name="SecondaryButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/colorPrimary</item>
+        <item name="android:textColor">@color/colorPrimary</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">16sp</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- Enhanced Input Field Style -->
+    <style name="InputFieldStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">?attr/colorPrimary</item>
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="hintTextColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:textColorHint">?attr/colorOnSurfaceVariant</item>
+        <item name="boxBackgroundColor">?attr/colorSurface</item>
+        <item name="boxStrokeWidth">1dp</item>
+    </style>
+
+    <!-- Enhanced Toolbar -->
+    <style name="ToolbarStyle" parent="Widget.MaterialComponents.Toolbar.Primary">
+        <item name="android:background">@color/colorPrimary</item>
+        <item name="titleTextColor">@color/colorOnPrimary</item>
+        <item name="subtitleTextColor">@color/colorOnPrimary</item>
+        <item name="navigationIconTint">@color/colorOnPrimary</item>
+        <item name="elevation">0dp</item>
+    </style>
+
+    <!-- Enhanced Card -->
+    <style name="CardStyle" parent="Widget.MaterialComponents.CardView">
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="cardBackgroundColor">@color/surface_color</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="cardUseCompatPadding">true</item>
+    </style>
+
+    <!-- Enhanced FAB -->
+    <style name="FabStyle" parent="Widget.MaterialComponents.FloatingActionButton">
+        <item name="backgroundTint">@color/colorPrimary</item>
+        <item name="tint">@color/colorOnPrimary</item>
+        <item name="elevation">6dp</item>
+        <item name="pressedTranslationZ">8dp</item>
+        <item name="fabSize">normal</item>
+    </style>
+
+    <!-- Enhanced Bottom Sheet -->
+    <style name="BottomSheetStyle" parent="Widget.MaterialComponents.BottomSheet">
+        <item name="shapeAppearanceOverlay">@style/BottomSheetShapeAppearance</item>
+        <item name="android:background">@color/surface_color</item>
+    </style>
+
+    <style name="BottomSheetShapeAppearance">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
+    </style>
+
+    <!-- Enhanced Dialog -->
+    <style name="DialogStyle" parent="ThemeOverlay.Material3.Dialog">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorSurface">@color/surface_color</item>
+        <item name="android:windowBackground">@drawable/bg_dialog</item>
+        <item name="cornerRadius">16dp</item>
+    </style>
+
+    <!-- Enhanced Progress Bar -->
+    <style name="ProgressBarStyle" parent="Widget.MaterialComponents.CircularProgressIndicator">
+        <item name="indicatorColor">@color/colorPrimary</item>
+        <item name="trackColor">@color/outline_variant</item>
+        <item name="strokeWidth">4dp</item>
+    </style>
+
+    <!-- Legacy overlays for AppBar/Popup compatibility -->
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.Material3.ActionBar" />
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.Material3" />
+
+    <!-- Material Design 3 specific styles -->
+    <style name="Material3Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="cardBackgroundColor">@color/surface_color</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+    <style name="Material3Button" parent="Widget.Material3.Button">
+        <item name="cornerRadius">12dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="Material3ButtonOutlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="cornerRadius">12dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="strokeWidth">2dp</item>
+    </style>
+</resources>

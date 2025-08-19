@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:fitsSystemWindows="true">
+
+    <!-- Main Image Container -->
+    <FrameLayout
+        android:id="@+id/image_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_centerInParent="true">
+
+        <!-- Zoomable Image View -->
+        <com.github.chrisbanes.photoview.PhotoView
+            android:id="@+id/photo_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:scaleType="fitCenter" />
+
+        <!-- Loading Progress -->
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/white"
+            android:visibility="visible" />
+
+        <!-- Loading Text -->
+        <TextView
+            android:id="@+id/tv_loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="80dp"
+            android:text="@string/loading_image"
+            android:textColor="@color/white_70"
+            android:textSize="14sp"
+            android:visibility="visible" />
+
+        <!-- Error Message -->
+        <LinearLayout
+            android:id="@+id/error_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_broken_image_24"
+                app:tint="@color/white_70" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/failed_to_load_image"
+                android:textColor="@color/white_70"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btn_retry"
+                style="@style/SecondaryButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/retry"
+                android:textColor="@color/white" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <!-- Top Toolbar -->
+    <LinearLayout
+        android:id="@+id/top_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:background="@drawable/gradient_toolbar_overlay"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingTop="@dimen/status_bar_height"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp">
+
+        <!-- Back Button -->
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_vertical"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/back"
+            android:padding="12dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/white" />
+
+        <!-- User Info Container -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Sender Name -->
+            <TextView
+                android:id="@+id/tv_sender_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Sender Name"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <!-- Date Time -->
+            <TextView
+                android:id="@+id/tv_date_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Today, 2:30 PM"
+                android:textColor="@color/white_70"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+
+        <!-- More Options Button -->
+        <ImageButton
+            android:id="@+id/btn_more"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center_vertical"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/more_options"
+            android:padding="12dp"
+            android:src="@drawable/ic_more_vert_24"
+            app:tint="@color/white" />
+
+    </LinearLayout>
+
+    <!-- Bottom Action Bar -->
+    <LinearLayout
+        android:id="@+id/bottom_action_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/gradient_toolbar_overlay_bottom"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="24dp">
+
+        <!-- Share Button -->
+        <ImageButton
+            android:id="@+id/btn_share"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_marginEnd="24dp"
+            android:background="@drawable/bg_circle_action_button"
+            android:contentDescription="@string/share"
+            android:src="@drawable/ic_share_24"
+            app:tint="@color/white" />
+
+        <!-- Save Button -->
+        <ImageButton
+            android:id="@+id/btn_save"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_marginEnd="24dp"
+            android:background="@drawable/bg_circle_action_button"
+            android:contentDescription="@string/save_to_gallery"
+            android:src="@drawable/ic_download_24"
+            app:tint="@color/white" />
+
+        <!-- Forward Button -->
+        <ImageButton
+            android:id="@+id/btn_forward"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_circle_action_button"
+            android:contentDescription="@string/forward"
+            android:src="@drawable/ic_forward_24"
+            app:tint="@color/white" />
+
+    </LinearLayout>
+
+</RelativeLayout>

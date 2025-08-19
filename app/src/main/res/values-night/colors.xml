@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors - Dark Theme -->
+    <color name="colorPrimary">#2D2D2D</color>
+    <color name="colorPrimaryDark">#1C1C1C</color>
+    <color name="colorAccent">#3A3A3A</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+    <color name="colorPrimaryContainer">#383838</color>
+    <color name="colorOnPrimaryContainer">#E0E0E0</color>
+
+    <!-- Secondary Colors -->
+    <color name="colorSecondary">#424242</color>
+    <color name="colorOnSecondary">#E0E0E0</color>
+    <color name="colorSecondaryContainer">#303030</color>
+    <color name="colorOnSecondaryContainer">#F5F5F5</color>
+
+    <!-- Tertiary Colors -->
+    <color name="colorTertiary">#616161</color>
+    <color name="colorOnTertiary">#FFFFFF</color>
+    <color name="colorTertiaryContainer">#3A3A3A</color>
+    <color name="colorOnTertiaryContainer">#E0E0E0</color>
+
+    <!-- Surface Colors -->
+    <color name="colorSurface">#121212</color>
+    <color name="colorOnSurface">#E0E0E0</color>
+    <color name="colorSurfaceVariant">#2A2A2A</color>
+    <color name="colorOnSurfaceVariant">#BDBDBD</color>
+    <color name="colorSurfaceDim">#0D0D0D</color>
+    <color name="colorSurfaceBright">#1C1C1C</color>
+
+    <!-- Background Colors -->
+    <color name="background_color">#121212</color>
+    <color name="chat_background">#0D0D0D</color>
+    <color name="surface_color">#121212</color>
+
+    <!-- Text Colors -->
+    <color name="textColorPrimary">#E0E0E0</color>
+    <color name="textColorSecondary">#BDBDBD</color>
+    <color name="textColorTertiary">#8D8D8D</color>
+    <color name="textColorInverse">#121212</color>
+
+    <!-- Gray Palette -->
+    <color name="gray_light">#2D2D2D</color>
+    <color name="gray_medium">#484848</color>
+    <color name="gray_dark">#1C1C1C</color>
+
+    <!-- Message Bubbles -->
+    <color name="sender_bubble">#2D2D2D</color>
+    <color name="receiver_bubble">#383838</color>
+    <color name="sender_bubble_pressed">#3A3A3A</color>
+    <color name="receiver_bubble_pressed">#444444</color>
+
+    <!-- Status Colors -->
+    <color name="error_red">#FF6B6B</color>
+    <color name="error_container">#8A1C1C</color>
+    <color name="success_green">#4CAF50</color>
+    <color name="success_container">#1B5E20</color>
+    <color name="warning_orange">#FF9800</color>
+    <color name="warning_container">#7C3F00</color>
+    <color name="info_blue">#64B5F6</color>
+    <color name="info_container">#0D47A1</color>
+
+    <!-- Tabs -->
+    <color name="tab_selected">#E0E0E0</color>
+    <color name="tab_unselected">#8D8D8D</color>
+    <color name="tab_indicator">#E0E0E0</color>
+
+    <!-- Message Status -->
+    <color name="message_sent">#8D8D8D</color>
+    <color name="message_delivered">#8D8D8D</color>
+    <color name="message_read">#1976D2</color>
+
+    <!-- Online Status -->
+    <color name="online_status">#4CAF50</color>
+    <color name="offline_status">#8D8D8D</color>
+    <color name="typing_color">#BDBDBD</color>
+
+    <!-- Notifications / Badge -->
+    <color name="notification_badge">#383838</color>
+    <color name="unread_count_bg">#3A3A3A</color>
+    <color name="unread_normal">#3A3A3A</color>
+    <color name="unread_medium">#484848</color>
+    <color name="unread_high">#616161</color>
+
+    <!-- Stroke & Border -->
+    <color name="strokeColor">#2A2A2A</color>
+    <color name="stroke_light">#2A2A2A</color>
+    <color name="dividerColor">#1F1F1F</color>
+    <color name="outline">#8D8D8D</color>
+    <color name="outline_variant">#2A2A2A</color>
+
+    <!-- Date Header -->
+    <color name="date_header_background">#2D2D2D</color>
+    <color name="date_header_text">#BDBDBD</color>
+
+    <!-- Input -->
+    <color name="input_background">#1C1C1C</color>
+    <color name="input_focused">#383838</color>
+    <color name="input_stroke_color">#2A2A2A</color>
+    <color name="input_hint">#8D8D8D</color>
+
+    <!-- Shadows -->
+    <color name="shadow_light">#33000000</color>
+    <color name="shadow_medium">#66000000</color>
+    <color name="shadow_heavy">#99000000</color>
+
+    <!-- Attachment -->
+    <color name="attachment_bg">#1C1C1C</color>
+    <color name="document_icon_bg">#383838</color>
+
+    <!-- Legacy Colors -->
+    <color name="text_secondary">#BDBDBD</color>
+    <color name="colorBackground">#121212</color>
+    <color name="backgroundColor">#121212</color>
+    <color name="textPrimary">#E0E0E0</color>
+    <color name="textSecondary">#BDBDBD</color>
+    <color name="text_tertiary">#8D8D8D</color>
+
+    <!-- Card / Backgrounds -->
+    <color name="background_light">#1C1C1C</color>
+    <color name="card_background">#1C1C1C</color>
+    <color name="ripple_color">#1FFFFFFF</color>
+
+    <!-- White Variants -->
+    <color name="white">#FFFFFF</color>
+    <color name="white_70">#B3FFFFFF</color>
+    <color name="white_90">#E6FFFFFF</color>
+
+    <!-- Material Design 3 System Colors -->
+    <color name="md_sys_color_primary">#2D2D2D</color>
+    <color name="md_sys_color_on_primary">#FFFFFF</color>
+    <color name="md_sys_color_primary_container">#383838</color>
+    <color name="md_sys_color_on_primary_container">#E0E0E0</color>
+    <color name="md_sys_color_secondary">#424242</color>
+    <color name="md_sys_color_on_secondary">#E0E0E0</color>
+    <color name="md_sys_color_secondary_container">#303030</color>
+    <color name="md_sys_color_on_secondary_container">#F5F5F5</color>
+    <color name="md_sys_color_tertiary">#616161</color>
+    <color name="md_sys_color_on_tertiary">#FFFFFF</color>
+    <color name="md_sys_color_tertiary_container">#3A3A3A</color>
+    <color name="md_sys_color_on_tertiary_container">#E0E0E0</color>
+    <color name="md_sys_color_error">#FF6B6B</color>
+    <color name="md_sys_color_on_error">#121212</color>
+    <color name="md_sys_color_error_container">#8A1C1C</color>
+    <color name="md_sys_color_on_error_container">#FFDAD6</color>
+    <color name="md_sys_color_background">#121212</color>
+    <color name="md_sys_color_on_background">#E0E0E0</color>
+    <color name="md_sys_color_surface">#121212</color>
+    <color name="md_sys_color_on_surface">#E0E0E0</color>
+    <color name="md_sys_color_surface_variant">#2A2A2A</color>
+    <color name="md_sys_color_on_surface_variant">#BDBDBD</color>
+    <color name="md_sys_color_outline">#8D8D8D</color>
+    <color name="md_sys_color_outline_variant">#2A2A2A</color>
+    <color name="md_sys_color_inverse_surface">#E0E0E0</color>
+    <color name="md_sys_color_inverse_on_surface">#121212</color>
+    <color name="md_sys_color_inverse_primary">#BDBDBD</color>
+    <color name="md_sys_color_shadow">#000000</color>
+    <color name="md_sys_color_scrim">#000000</color>
+    <color name="md_sys_color_surface_tint">#383838</color>
+    <color name="md_sys_color_primary_fixed">#383838</color>
+    <color name="md_sys_color_on_primary_fixed">#E0E0E0</color>
+    <color name="md_sys_color_primary_fixed_dim">#2D2D2D</color>
+    <color name="md_sys_color_on_primary_fixed_variant">#BDBDBD</color>
+    <color name="md_sys_color_secondary_fixed">#303030</color>
+    <color name="md_sys_color_on_secondary_fixed">#F5F5F5</color>
+    <color name="md_sys_color_secondary_fixed_dim">#424242</color>
+    <color name="md_sys_color_on_secondary_fixed_variant">#E0E0E0</color>
+    <color name="md_sys_color_tertiary_fixed">#3A3A3A</color>
+    <color name="md_sys_color_on_tertiary_fixed">#E0E0E0</color>
+    <color name="md_sys_color_tertiary_fixed_dim">#616161</color>
+    <color name="md_sys_color_on_tertiary_fixed_variant">#BDBDBD</color>
+    <color name="md_sys_color_surface_dim">#0D0D0D</color>
+    <color name="md_sys_color_surface_bright">#1C1C1C</color>
+    <color name="md_sys_color_surface_container_lowest">#121212</color>
+    <color name="md_sys_color_surface_container_low">#1C1C1C</color>
+    <color name="md_sys_color_surface_container">#2D2D2D</color>
+    <color name="md_sys_color_surface_container_high">#383838</color>
+    <color name="md_sys_color_surface_container_highest">#424242</color>
+
+    <!-- Additional Colors -->
+    <color name="colorOnBackground">#E0E0E0</color>
+    <color name="colorOnError">#121212</color>
+    <color name="colorOnErrorContainer">#FFDAD6</color>
+
+    <color name="date_header_bg">@color/date_header_background</color>
+    <color name="status_delivered">@color/message_delivered</color>
+    <color name="status_read">@color/message_read</color>
+    <color name="status_sent">@color/message_sent</color>
+    <color name="surface_container_low">@color/md_sys_color_surface_container_low</color>
+
+    <!-- Search highlight colors (Dark Mode) -->
+    <color name="search_highlight">#978A4E</color> <!-- Golden yellow (less harsh than pure yellow) -->
+    <color name="search_highlight_translucent">#80FFD700</color> <!-- Semi-transparent golden -->
+    <color name="search_highlight_background">#40FFD700</color> <!-- Softer overlay for background -->
+
+</resources>

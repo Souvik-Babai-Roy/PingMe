@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Base.Theme.PingMe" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary colors -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+
+        <!-- Surface colors -->
+        <item name="colorSurface">@color/surface_color</item>
+        <item name="colorOnSurface">@color/textColorPrimary</item>
+
+        <!-- Background colors -->
+        <item name="android:windowBackground">@color/background_color</item>
+        <item name="colorBackground">@color/background_color</item>
+        <item name="colorOnBackground">@color/textColorPrimary</item>
+
+        <!-- Text colors -->
+        <item name="android:textColorPrimary">@color/textColorPrimary</item>
+        <item name="android:textColorSecondary">@color/textColorSecondary</item>
+
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/colorPrimaryDark</item>
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- Navigation bar -->
+        <item name="android:navigationBarColor">@color/background_color</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        
+        <!-- Material Design 3 specific attributes -->
+        <item name="colorSurfaceDim">@color/colorSurfaceDim</item>
+        <item name="colorSurfaceBright">@color/colorSurfaceBright</item>
+        <item name="colorInverseSurface">@color/md_sys_color_inverse_surface</item>
+        <item name="colorInverseOnSurface">@color/md_sys_color_inverse_on_surface</item>
+        <item name="colorInversePrimary">@color/md_sys_color_inverse_primary</item>
+        <item name="colorSurfaceTint">@color/md_sys_color_surface_tint</item>
+        <item name="colorShadow">@color/md_sys_color_shadow</item>
+        <item name="colorScrim">@color/md_sys_color_scrim</item>
+    </style>
+</resources>

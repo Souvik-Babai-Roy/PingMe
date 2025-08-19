@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="Appearance">
+        <ListPreference
+            android:key="theme"
+            android:title="Theme"
+            android:summary="Choose your preferred theme"
+            android:entries="@array/theme_entries"
+            android:entryValues="@array/theme_values"
+            android:defaultValue="auto" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Privacy">
+        <SwitchPreferenceCompat
+            android:key="last_seen"
+            android:title="Last seen"
+            android:summary="Show when you were last seen"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="read_receipts"
+            android:title="Read receipts"
+            android:summary="Show when your messages are read"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="profile_photo"
+            android:title="Profile photo"
+            android:summary="Show your profile photo to others"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="about"
+            android:title="About"
+            android:summary="Show your about information to others"
+            android:defaultValue="true" />
+
+        <Preference
+            android:key="blocked_users"
+            android:title="Blocked users"
+            android:summary="Manage blocked users" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Notifications">
+        <SwitchPreferenceCompat
+            android:key="message_notifications"
+            android:title="Message notifications"
+            android:summary="Show notifications for new messages"
+            android:defaultValue="true" />
+
+
+
+        <SwitchPreferenceCompat
+            android:key="status_notifications"
+            android:title="Status notifications"
+            android:summary="Show notifications for status updates"
+            android:defaultValue="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Storage and Data">
+        <Preference
+            android:key="storage_usage"
+            android:title="Storage and data"
+            android:summary="Manage storage and data usage" />
+
+        <Preference
+            android:key="network_usage"
+            android:title="Network usage"
+            android:summary="View network usage statistics" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="About">
+        <Preference
+            android:key="app_version"
+            android:title="App version"
+            android:summary="1.0.0" />
+
+        <Preference
+            android:key="terms_of_service"
+            android:title="Terms of Service"
+            android:summary="Read our terms of service" />
+
+        <Preference
+            android:key="privacy_policy"
+            android:title="Privacy Policy"
+            android:summary="Read our privacy policy" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Account">
+        <Preference
+            android:key="logout"
+            android:title="Logout"
+            android:summary="Sign out of your account" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

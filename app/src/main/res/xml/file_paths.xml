@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Access the external files directory for camera pictures -->
+    <external-files-path
+        name="my_images"
+        path="Pictures" />
+
+    <!-- Access external storage for documents -->
+    <external-path
+        name="external"
+        path="." />
+
+    <!-- Access external cache directory -->
+    <external-cache-path
+        name="cache"
+        path="." />
+
+    <!-- Access internal files directory -->
+    <files-path
+        name="internal"
+        path="." />
+
+    <!-- Access downloads directory -->
+    <external-path
+        name="downloads"
+        path="Download" />
+</paths>
