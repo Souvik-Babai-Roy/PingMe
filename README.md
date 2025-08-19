@@ -1,4 +1,4 @@
-# 📱 PingMe - Modern WhatsApp-like Chat Application
+# 📱 PingMe - Modern Chat Application
 
 <div align="center">
 
